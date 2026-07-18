@@ -57,6 +57,7 @@ Payments never enter the CRM: Zarinpal/card-to-card live in Mizro (E53) / Commer
 | 009 | Frontend: web-seller = consumer-mobile-app archetype (PWA, RTL, <2-min visit flow); web-admin = ops-admin-panel archetype; tokens via CSS-var theming contract; brand TBD | [ADR-009](decisions/ADR-009-frontend-design-system.md) |
 | 010 | Verticals: packages + module registry per org; vertical owns its data + privacy regime; core stays lean; custom fields deferred | [ADR-010](decisions/ADR-010-vertical-extension-model.md) |
 | 011 | Quality: two-tier Vitest (+ real-Postgres tests), golden commission scenarios, data-leak tests, ported CI guard scripts, Sentry+pino, append-only audit log | [ADR-011](decisions/ADR-011-quality-observability-audit.md) |
+| 012 | UI across verticals: 3 decoupled layers — per-vertical **theme** (token swap) + shared **component kit** + per-vertical **screens**; verticals not forced onto one look; UI polish is incremental/any-phase; harden the kit once before vertical #2 | [ADR-012](decisions/ADR-012-ui-surface-theming-across-verticals.md) |
 
 **Fit against the founder's five requirements** (fast flow · low bug risk · low maintenance · performance · flexibility): [01-requirements-fit.md](01-requirements-fit.md).
 

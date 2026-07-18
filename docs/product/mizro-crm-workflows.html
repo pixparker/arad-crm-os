@@ -1,0 +1,747 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>میزرو CRM — راهنمای گردش کار</title>
+    <!-- Vazirmatn from an Iranian CDN (FontServer.ir → cdn.fontcdn.ir) so it loads
+         fast/reliably inside Iran; Tahoma/system-ui remain the offline fallback. -->
+    <link rel="preconnect" href="https://v1.fontapi.ir" crossorigin />
+    <link rel="preconnect" href="https://cdn.fontcdn.ir" crossorigin />
+    <link href="https://v1.fontapi.ir/css/Vazirmatn" rel="stylesheet" />
+    <style>
+      :root {
+        --ground: #f7f7fb;
+        --surface: #ffffff;
+        --surface-2: #f1f1f6;
+        --border: #e5e5ee;
+        --ink: #1a1a24;
+        --muted: #6a6a7b;
+        --faint: #9a9aab;
+        --primary: #6d5ae6;
+        --primary-ink: #5847c9;
+        --primary-soft: #efecfc;
+        --primary-grad: #9b7bf2;
+        --gold: #c99226;
+        --gold-soft: #f8f0dd;
+        --success: #1f9d63;
+        --success-soft: #e3f4ec;
+        --danger: #d1503a;
+        --danger-soft: #f9e7e2;
+        --st-new: #5b7bd6;
+        --st-new-soft: #e8eefb;
+        --st-contact: #0f9bb0;
+        --st-contact-soft: #e0f3f6;
+        --st-demo: #6d5ae6;
+        --st-demo-soft: #efecfc;
+        --st-nego: #c9821f;
+        --st-nego-soft: #f8efdc;
+        --st-won: #1f9d63;
+        --st-won-soft: #e3f4ec;
+        --st-lost: #98929e;
+        --st-lost-soft: #eeecef;
+        --shadow: 0 1px 2px rgba(20, 20, 40, 0.04), 0 8px 24px rgba(20, 20, 40, 0.06);
+        --shadow-lg: 0 2px 6px rgba(20, 20, 40, 0.06), 0 18px 50px rgba(20, 20, 40, 0.12);
+        --r: 14px;
+        --r-sm: 9px;
+        --r-lg: 20px;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --ground: #111117;
+          --surface: #1a1a22;
+          --surface-2: #20202a;
+          --border: #2c2c39;
+          --ink: #ececf3;
+          --muted: #9c9cae;
+          --faint: #7a7a8b;
+          --primary: #8a79f0;
+          --primary-ink: #a596f5;
+          --primary-soft: #241f3a;
+          --gold: #e0ad4c;
+          --gold-soft: #352b16;
+          --success: #3bbd7e;
+          --success-soft: #123026;
+          --danger: #e2664e;
+          --danger-soft: #361d18;
+          --st-new: #7b98e6;
+          --st-new-soft: #1c2233;
+          --st-contact: #2bb6c9;
+          --st-contact-soft: #0f2b30;
+          --st-demo: #8a79f0;
+          --st-demo-soft: #241f3a;
+          --st-nego: #e0a24c;
+          --st-nego-soft: #332815;
+          --st-won: #3bbd7e;
+          --st-won-soft: #123026;
+          --st-lost: #8a8494;
+          --st-lost-soft: #25232a;
+          --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 10px 30px rgba(0, 0, 0, 0.35);
+          --shadow-lg: 0 2px 8px rgba(0, 0, 0, 0.4), 0 24px 60px rgba(0, 0, 0, 0.5);
+        }
+      }
+      * {
+        box-sizing: border-box;
+      }
+      html {
+        -webkit-text-size-adjust: 100%;
+      }
+      body {
+        margin: 0;
+        background: var(--ground);
+        color: var(--ink);
+        font-family: "Vazirmatn", "IRANSans", "IRANYekan", "Tahoma", system-ui, sans-serif;
+        line-height: 1.75;
+        -webkit-font-smoothing: antialiased;
+        font-variant-numeric: tabular-nums;
+      }
+      .wrap {
+        max-width: 900px;
+        margin: 0 auto;
+        padding: clamp(16px, 4vw, 40px) clamp(14px, 4vw, 28px) 72px;
+      }
+      /* ---------- hero ---------- */
+      .hero {
+        border-radius: var(--r-lg);
+        background:
+          radial-gradient(120% 140% at 100% 0%, rgba(109, 90, 230, 0.12), transparent 60%),
+          var(--surface);
+        border: 1px solid var(--border);
+        box-shadow: var(--shadow);
+        padding: clamp(22px, 4vw, 34px);
+      }
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 18px;
+      }
+      .logo {
+        width: 46px;
+        height: 46px;
+        border-radius: 12px;
+        display: grid;
+        place-items: center;
+        color: #fff;
+        font-weight: 900;
+        font-size: 20px;
+        background: linear-gradient(135deg, var(--primary), var(--primary-grad));
+        flex: none;
+      }
+      .brand .t {
+        font-weight: 800;
+        font-size: 18px;
+      }
+      .brand .s {
+        font-size: 12px;
+        color: var(--muted);
+        font-weight: 600;
+      }
+      h1 {
+        font-size: clamp(24px, 5vw, 34px);
+        margin: 6px 0 10px;
+        letter-spacing: -0.01em;
+        line-height: 1.35;
+      }
+      .lead {
+        font-size: clamp(15px, 2.4vw, 17px);
+        color: var(--muted);
+        margin: 0;
+        max-width: 62ch;
+      }
+      .lead b {
+        color: var(--ink);
+        font-weight: 700;
+      }
+      /* ---------- section ---------- */
+      section {
+        margin-top: 40px;
+      }
+      .h {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin: 0 0 6px;
+      }
+      .h .no {
+        width: 26px;
+        height: 26px;
+        border-radius: 8px;
+        display: grid;
+        place-items: center;
+        font-size: 13px;
+        font-weight: 800;
+        background: var(--primary-soft);
+        color: var(--primary-ink);
+        flex: none;
+      }
+      .h h2 {
+        font-size: clamp(18px, 3vw, 22px);
+        margin: 0;
+      }
+      .sub {
+        color: var(--muted);
+        font-size: 14px;
+        margin: 0 0 16px;
+      }
+      /* ---------- role cards ---------- */
+      .grid2 {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 14px;
+      }
+      @media (max-width: 640px) {
+        .grid2 {
+          grid-template-columns: 1fr;
+        }
+      }
+      .card {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: var(--r);
+        box-shadow: var(--shadow);
+        padding: 18px;
+      }
+      .role .rt {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-weight: 800;
+        font-size: 16px;
+        margin-bottom: 10px;
+      }
+      .role .ic {
+        width: 34px;
+        height: 34px;
+        border-radius: 10px;
+        display: grid;
+        place-items: center;
+        font-size: 17px;
+        flex: none;
+      }
+      .role.seller .ic {
+        background: var(--primary-soft);
+        color: var(--primary-ink);
+      }
+      .role.manager .ic {
+        background: var(--gold-soft);
+        color: var(--gold);
+      }
+      ul.clean {
+        margin: 0;
+        padding: 0;
+        list-style: none;
+      }
+      ul.clean li {
+        position: relative;
+        padding-inline-start: 22px;
+        font-size: 14px;
+        margin: 7px 0;
+        color: var(--ink);
+      }
+      ul.clean li::before {
+        content: "";
+        position: absolute;
+        inset-inline-start: 4px;
+        top: 11px;
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        background: var(--primary);
+      }
+      .role.manager ul.clean li::before {
+        background: var(--gold);
+      }
+      /* ---------- flow steps ---------- */
+      .flow {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+      }
+      .step {
+        display: flex;
+        gap: 14px;
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: var(--r);
+        box-shadow: var(--shadow);
+        padding: 16px 16px 16px 18px;
+        position: relative;
+        overflow: hidden;
+      }
+      .step::before {
+        content: "";
+        position: absolute;
+        inset-block: 0;
+        inset-inline-start: 0;
+        width: 4px;
+        background: var(--sc, var(--primary));
+      }
+      .step .num {
+        width: 34px;
+        height: 34px;
+        border-radius: 50%;
+        display: grid;
+        place-items: center;
+        font-weight: 800;
+        font-size: 15px;
+        color: #fff;
+        background: var(--sc, var(--primary));
+        flex: none;
+      }
+      .step .b {
+        min-width: 0;
+        flex: 1;
+      }
+      .step .st {
+        font-weight: 800;
+        font-size: 15.5px;
+        margin: 3px 0 4px;
+      }
+      .step .sd {
+        font-size: 14px;
+        color: var(--muted);
+        margin: 0;
+      }
+      .who {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        font-size: 11.5px;
+        font-weight: 700;
+        border-radius: 100px;
+        padding: 3px 10px;
+        margin-top: 9px;
+        white-space: nowrap;
+      }
+      .who.seller {
+        background: var(--primary-soft);
+        color: var(--primary-ink);
+      }
+      .who.manager {
+        background: var(--gold-soft);
+        color: var(--gold);
+      }
+      .who.system {
+        background: var(--st-contact-soft);
+        color: var(--st-contact);
+      }
+      .who.mizro {
+        background: var(--success-soft);
+        color: var(--success);
+      }
+      /* ---------- pipeline chips ---------- */
+      .pipe {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        align-items: center;
+      }
+      .stage {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 13px;
+        font-weight: 700;
+        border-radius: 100px;
+        padding: 6px 13px;
+      }
+      .stage .cd {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+      }
+      .arrow {
+        color: var(--faint);
+        font-weight: 900;
+      }
+      .s-new {
+        background: var(--st-new-soft);
+        color: var(--st-new);
+      }
+      .s-new .cd {
+        background: var(--st-new);
+      }
+      .s-contact {
+        background: var(--st-contact-soft);
+        color: var(--st-contact);
+      }
+      .s-contact .cd {
+        background: var(--st-contact);
+      }
+      .s-demo {
+        background: var(--st-demo-soft);
+        color: var(--st-demo);
+      }
+      .s-demo .cd {
+        background: var(--st-demo);
+      }
+      .s-nego {
+        background: var(--st-nego-soft);
+        color: var(--st-nego);
+      }
+      .s-nego .cd {
+        background: var(--st-nego);
+      }
+      .s-won {
+        background: var(--st-won-soft);
+        color: var(--st-won);
+      }
+      .s-won .cd {
+        background: var(--st-won);
+      }
+      .s-lost {
+        background: var(--st-lost-soft);
+        color: var(--st-lost);
+      }
+      .s-lost .cd {
+        background: var(--st-lost);
+      }
+      /* ---------- golden rules ---------- */
+      .rules {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+      }
+      @media (max-width: 640px) {
+        .rules {
+          grid-template-columns: 1fr;
+        }
+      }
+      .rule {
+        display: flex;
+        gap: 11px;
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: var(--r-sm);
+        padding: 13px 14px;
+        box-shadow: var(--shadow);
+      }
+      .rule .lk {
+        width: 24px;
+        height: 24px;
+        border-radius: 7px;
+        display: grid;
+        place-items: center;
+        font-size: 13px;
+        background: var(--success-soft);
+        color: var(--success);
+        flex: none;
+        font-weight: 900;
+      }
+      .rule .rt {
+        font-weight: 700;
+        font-size: 14px;
+        margin: 2px 0 2px;
+      }
+      .rule .rd {
+        font-size: 12.5px;
+        color: var(--muted);
+        margin: 0;
+      }
+      /* ---------- integration ---------- */
+      .integ {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: var(--r);
+        box-shadow: var(--shadow);
+        padding: 20px;
+      }
+      .chain {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex-wrap: wrap;
+        margin-top: 6px;
+      }
+      .node {
+        background: var(--surface-2);
+        border: 1px solid var(--border);
+        border-radius: var(--r-sm);
+        padding: 8px 12px;
+        font-size: 13px;
+        font-weight: 700;
+      }
+      .node.hi {
+        background: var(--primary-soft);
+        color: var(--primary-ink);
+        border-color: transparent;
+      }
+      .node.win {
+        background: var(--success-soft);
+        color: var(--success);
+        border-color: transparent;
+      }
+      /* ---------- footer ---------- */
+      footer {
+        margin-top: 44px;
+        text-align: center;
+        font-size: 12px;
+        color: var(--faint);
+      }
+      .note {
+        margin-top: 14px;
+        font-size: 13px;
+        color: var(--muted);
+        background: var(--surface-2);
+        border-radius: var(--r-sm);
+        padding: 12px 14px;
+        border: 1px solid var(--border);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <!-- HERO -->
+      <header class="hero">
+        <div class="brand">
+          <div class="logo">م</div>
+          <div>
+            <div class="t">میزرو CRM</div>
+            <div class="s">سامانهٔ فروش میدانی</div>
+          </div>
+        </div>
+        <h1>این سیستم چه کاری انجام می‌دهد؟</h1>
+        <p class="lead">
+          میزرو CRM ابزار کار روزانهٔ <b>تیم فروش میدانی</b> است: از پیدا کردن مشتری بالقوه
+          (کافه، رستوران، فروشگاه) تا بازدید، پیگیری، بستن قرارداد و در نهایت محاسبهٔ
+          <b>کمیسیون</b> و سنجش عملکرد هر فروشنده. هدف ساده است — هیچ سرنخی گم نشود، هر
+          فروش به فروشندهٔ درستش برسد، و مدیر بداند چه کسی سودآور است.
+        </p>
+      </header>
+
+      <!-- ROLES -->
+      <section>
+        <div class="h"><span class="no">۱</span><h2>دو نقش اصلی</h2></div>
+        <p class="sub">هر کاربر یکی از این دو نقش را دارد و صفحهٔ کاری متناسب خودش را می‌بیند.</p>
+        <div class="grid2">
+          <div class="card role seller">
+            <div class="rt"><span class="ic">🧑‍💼</span> فروشنده (کارِ میدانی)</div>
+            <ul class="clean">
+              <li>هر روز سرنخ‌های منطقهٔ خودش را برمی‌دارد («امروز من»)</li>
+              <li>به کسب‌وکارها سر می‌زند و نتیجهٔ بازدید را ثبت می‌کند</li>
+              <li>می‌تواند سرنخ جدید خودش را هم معرفی کند</li>
+              <li>لینک دموی اختصاصی‌اش را برای مشتری می‌فرستد</li>
+              <li>کمیسیون و درآمد خودش را می‌بیند</li>
+            </ul>
+          </div>
+          <div class="card role manager">
+            <div class="rt"><span class="ic">👔</span> مدیر / صاحب کسب‌وکار</div>
+            <ul class="clean">
+              <li>سرنخ‌ها را وارد و بین فروشنده‌ها/مناطق تقسیم می‌کند</li>
+              <li>قیف فروش و عملکرد کل تیم را می‌بیند</li>
+              <li>فروشندهٔ جدید و منطقه تعریف می‌کند</li>
+              <li>کمیسیون‌ها را تأیید و پرداخت‌شده علامت می‌زند</li>
+              <li>تصمیم می‌گیرد چه کسی را نگه دارد و چه کسی را نه</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <!-- CORE LOOP -->
+      <section>
+        <div class="h"><span class="no">۲</span><h2>گردش کار اصلی — قدم‌به‌قدم</h2></div>
+        <p class="sub">مسیر یک کسب‌وکار از «سرنخ» تا «مشتری پرداخت‌کننده» و «کمیسیون».</p>
+        <div class="flow">
+          <div class="step" style="--sc: var(--st-new)">
+            <div class="num">۱</div>
+            <div class="b">
+              <div class="st">تولید سرنخ</div>
+              <p class="sd">
+                فهرست کسب‌وکارها وارد می‌شود — از فایل اکسل، به‌صورت دستی، یا (به‌زودی) از
+                نقشه. تکراری‌ها خودکار حذف می‌شوند.
+              </p>
+              <span class="who manager">مدیر</span>
+            </div>
+          </div>
+
+          <div class="step" style="--sc: var(--st-new)">
+            <div class="num">۲</div>
+            <div class="b">
+              <div class="st">انتخاب روزانه (محدود به منطقه)</div>
+              <p class="sd">
+                فروشنده در «امروز من» فقط سرنخ‌های <b>منطقهٔ خودش</b> را می‌بیند و برمی‌دارد.
+                می‌تواند سرنخ جدید خودش را هم اضافه کند — که برای همیشه به نامش می‌خورد.
+              </p>
+              <span class="who seller">فروشنده</span>
+            </div>
+          </div>
+
+          <div class="step" style="--sc: var(--st-contact)">
+            <div class="num">۳</div>
+            <div class="b">
+              <div class="st">بازدید و ثبت یافته‌ها</div>
+              <p class="sd">
+                ثبت زیر ۲ دقیقه: نتیجهٔ بازدید، نوع کسب‌وکار (لوکس/سنتی)، پیشنهاد مناسب
+                (مثلاً VIP)، منوی فعلی. <b>هر بازدید باید یک «اقدام بعدی» تاریخ‌دار داشته باشد</b>
+                تا هیچ مشتری رها نشود.
+              </p>
+              <span class="who seller">فروشنده</span>
+            </div>
+          </div>
+
+          <div class="step" style="--sc: var(--st-demo)">
+            <div class="num">۴</div>
+            <div class="b">
+              <div class="st">پیشبرد در پایپلاین</div>
+              <p class="sd">
+                فرصت فروش مرحله‌به‌مرحله جلو می‌رود: تماس ← دمو ← مذاکره. هر مرحله رنگ و
+                وضعیت خودش را دارد و در پرونده مشتری دیده می‌شود.
+              </p>
+              <span class="who seller">فروشنده</span>
+            </div>
+          </div>
+
+          <div class="step" style="--sc: var(--st-demo)">
+            <div class="num">۵</div>
+            <div class="b">
+              <div class="st">لینک دمو و ثبت «معرِّف»</div>
+              <p class="sd">
+                فروشنده لینک دموی اختصاصی‌اش (<code>?ref=…</code>) را می‌فرستد. هر مشتری که از این
+                لینک بیاید، <b>برای همیشه</b> به آن فروشنده منتسب می‌شود — پایهٔ عادلانهٔ کمیسیون.
+              </p>
+              <span class="who seller">فروشنده</span>
+            </div>
+          </div>
+
+          <div class="step" style="--sc: var(--st-won)">
+            <div class="num">۶</div>
+            <div class="b">
+              <div class="st">تشخیص فروش (پرداخت واقعی)</div>
+              <p class="sd">
+                وقتی مشتری در پلتفرم میزرو <b>واقعاً پرداخت می‌کند</b>، سیستم خودکار خبردار می‌شود
+                و فرصت را «برنده» ثبت می‌کند. فروش هیچ‌وقت دستی زده نمی‌شود — فقط پرداخت واقعی.
+              </p>
+              <span class="who mizro">خودکار از میزرو</span>
+            </div>
+          </div>
+
+          <div class="step" style="--sc: var(--st-won)">
+            <div class="num">۷</div>
+            <div class="b">
+              <div class="st">محاسبهٔ کمیسیون</div>
+              <p class="sd">
+                به‌محض ثبت پرداخت، کمیسیون فروشنده (طبق طرح فعال، مثلاً ۱۵٪) خودکار محاسبه و
+                ثبت می‌شود. مبلغ و فرمولش شفاف است. اگر پرداخت برگشت بخورد، اصلاحیهٔ برگشتی ثبت می‌شود.
+              </p>
+              <span class="who system">خودکار سیستم</span>
+            </div>
+          </div>
+
+          <div class="step" style="--sc: var(--gold)">
+            <div class="num">۸</div>
+            <div class="b">
+              <div class="st">سنجش عملکرد و تصمیم نگه‌داشتن/حذف</div>
+              <p class="sd">
+                مدیر جدول عملکرد را می‌بیند: درآمد، نرخ تبدیل، و <b>درآمد به‌ازای هر فعالیت</b>
+                (که پاره‌وقت و تمام‌وقت را منصفانه مقایسه می‌کند). فروشنده‌های کم‌بازده مشخص
+                می‌شوند تا تصمیم درست گرفته شود.
+              </p>
+              <span class="who manager">مدیر</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- PIPELINE -->
+      <section>
+        <div class="h"><span class="no">۳</span><h2>مراحل پایپلاین فروش</h2></div>
+        <p class="sub">هر فرصت فروش در یکی از این مراحل قرار دارد.</p>
+        <div class="card">
+          <div class="pipe">
+            <span class="stage s-new"><span class="cd"></span>سرنخ جدید</span>
+            <span class="arrow">‹</span>
+            <span class="stage s-contact"><span class="cd"></span>در تماس</span>
+            <span class="arrow">‹</span>
+            <span class="stage s-demo"><span class="cd"></span>دمو</span>
+            <span class="arrow">‹</span>
+            <span class="stage s-nego"><span class="cd"></span>مذاکره</span>
+            <span class="arrow">‹</span>
+            <span class="stage s-won"><span class="cd"></span>برنده ✓</span>
+            <span class="arrow">/</span>
+            <span class="stage s-lost"><span class="cd"></span>ازدست‌رفته</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- GOLDEN RULES -->
+      <section>
+        <div class="h"><span class="no">۴</span><h2>قوانین طلایی سیستم</h2></div>
+        <p class="sub">این قوانین در دل سیستم قفل شده‌اند و همه‌جا رعایت می‌شوند.</p>
+        <div class="rules">
+          <div class="rule">
+            <span class="lk">✓</span>
+            <div>
+              <div class="rt">فروش = پرداخت واقعی</div>
+              <p class="rd">هیچ‌کس نمی‌تواند فروش را دستی «برنده» بزند؛ فقط پرداخت واقعی از میزرو.</p>
+            </div>
+          </div>
+          <div class="rule">
+            <span class="lk">✓</span>
+            <div>
+              <div class="rt">هیچ سرنخی رها نمی‌شود</div>
+              <p class="rd">هر بازدید یا تماس باید یک «اقدام بعدی» با تاریخ داشته باشد.</p>
+            </div>
+          </div>
+          <div class="rule">
+            <span class="lk">✓</span>
+            <div>
+              <div class="rt">کمیسیون تغییرناپذیر است</div>
+              <p class="rd">کمیسیون‌ها پاک یا ویرایش نمی‌شوند؛ فقط اصلاحیه/برگشتی ثبت می‌شود — تاریخچه دست‌نخورده می‌ماند.</p>
+            </div>
+          </div>
+          <div class="rule">
+            <span class="lk">✓</span>
+            <div>
+              <div class="rt">هر فروشنده در منطقهٔ خودش</div>
+              <p class="rd">فروشنده فقط سرنخ‌های منطقهٔ تعیین‌شده‌اش را می‌بیند و برمی‌دارد.</p>
+            </div>
+          </div>
+          <div class="rule">
+            <span class="lk">✓</span>
+            <div>
+              <div class="rt">معرِّف برای همیشه ثابت</div>
+              <p class="rd">اولین فروشنده‌ای که مشتری را آورد، معرِّف دائمی اوست؛ کمیسیون هر پرداخت بعدی هم به او می‌رسد.</p>
+            </div>
+          </div>
+          <div class="rule">
+            <span class="lk">✓</span>
+            <div>
+              <div class="rt">پول همیشه دقیق</div>
+              <p class="rd">مبالغ به ریال و بدون خطای اعشاری نگه‌داری می‌شوند؛ نمایش به تومان.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- INTEGRATION -->
+      <section>
+        <div class="h"><span class="no">۵</span><h2>اتصال به پلتفرم میزرو</h2></div>
+        <p class="sub">قلب تشخیص فروش — چطور یک پرداخت در میزرو به کمیسیون در CRM تبدیل می‌شود.</p>
+        <div class="integ">
+          <div class="chain">
+            <span class="node">مشتری از لینک دمو می‌آید</span>
+            <span class="arrow">‹</span>
+            <span class="node hi">در میزرو پرداخت می‌کند</span>
+            <span class="arrow">‹</span>
+            <span class="node">میزرو خبر پرداخت را امن می‌فرستد</span>
+            <span class="arrow">‹</span>
+            <span class="node">CRM فروشنده را از روی «معرِّف» پیدا می‌کند</span>
+            <span class="arrow">‹</span>
+            <span class="node win">فرصت «برنده» + کمیسیون ثبت</span>
+          </div>
+          <div class="note">
+            این خبرها امضاشده و <b>یکتا</b> هستند: اگر یک پرداخت دو بار خبر داده شود، سیستم
+            تشخیص می‌دهد و کمیسیون دوباره حساب نمی‌شود. اگر پرداخت برگشت بخورد، کمیسیونش
+            هم خودکار برگشت می‌خورد. پس آمار فروش و کمیسیون همیشه با واقعیت پول می‌خواند.
+          </div>
+        </div>
+      </section>
+
+      <footer>
+        میزرو CRM · راهنمای داخلی گردش کار · نسخهٔ پایلوت — این سند برای آشنایی سریع مدیران و
+        فروشنده‌های جدید است.
+      </footer>
+    </div>
+  </body>
+</html>

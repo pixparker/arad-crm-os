@@ -8,6 +8,13 @@
       "when": 1784386872924,
       "tag": "0000_initial-platform-core",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1784389738666,
+      "tag": "0001_sales-core",
+      "breakpoints": true
     }
   ]
 }

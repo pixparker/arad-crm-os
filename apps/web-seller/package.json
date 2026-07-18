@@ -13,6 +13,7 @@
   "dependencies": {
     "@arad-crm/api-contracts": "workspace:*",
     "@arad-crm/ui": "workspace:*",
+    "@arad-crm/vertical-mizro": "workspace:*",
     "@arad-crm/web-shared": "workspace:*",
     "@tanstack/react-query": "^5.62.0",
     "next": "^15.1.3",

@@ -40,6 +40,18 @@
           }
         }
       }
+    },
+    {
+      "include": [
+        "apps/web-seller/src/components/**/*.tsx",
+        "apps/web-admin/src/components/**/*.tsx"
+      ],
+      "linter": {
+        "rules": {
+          "a11y": { "noSvgWithoutTitle": "off", "useSemanticElements": "off" },
+          "suspicious": { "noArrayIndexKey": "off" }
+        }
+      }
     }
   ]
 }

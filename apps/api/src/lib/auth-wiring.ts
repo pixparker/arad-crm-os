@@ -1,0 +1,156 @@
+// Concrete ports for @arad/auth-otp (ADR-005): drizzle-backed repos, fake SMS
+// sender (dev), closed registration gate (invite-only pilot — sellers are
+// created by team management, never by open signup 🔒).
+
+import { config, requireJwtSecret } from '@arad-crm/config';
+import { db, otpSessions, users } from '@arad-crm/db';
+import {
+  type AuthConfig,
+  type AuthDeps,
+  MemoryRateLimitStore,
+  type SessionDeps,
+  type User,
+} from '@arad/auth-otp';
+import { logger } from '@arad/logger';
+import { and, desc, eq, gt, gte, isNull, sql } from 'drizzle-orm';
+
+const toAuthUser = (row: typeof users.$inferSelect): User => ({
+  id: row.id,
+  mobile: row.phone,
+  sessionVersion: row.sessionVersion,
+});
+
+export const authConfig: AuthConfig = {
+  otpTtlSeconds: config.OTP_TTL_SECONDS,
+  otpRequestCooldownSeconds: config.OTP_REQUEST_COOLDOWN_SECONDS,
+  otpMaxRequestsPerMobileHour: 5,
+  otpMaxRequestsPerIpHour: 30,
+  otpMaxVerifyAttempts: config.OTP_MAX_VERIFY_ATTEMPTS,
+  otpLockoutSeconds: 3600,
+  sessionTtlSeconds: config.SESSION_TTL_SECONDS,
+  jwtSecret: requireJwtSecret(),
+  jwtAudience: 'arad-crm',
+};
+
+const userRepo: AuthDeps['userRepo'] = {
+  async findByMobile(mobile) {
+    const row = (await db.select().from(users).where(eq(users.phone, mobile)))[0];
+    return row ? toAuthUser(row) : null;
+  },
+  async findById(id) {
+    const row = (await db.select().from(users).where(eq(users.id, id)))[0];
+    return row ? toAuthUser(row) : null;
+  },
+  async upsertByMobile({ mobile, touchLastLoginAt }) {
+    const existing = (await db.select().from(users).where(eq(users.phone, mobile)))[0];
+    if (existing) {
+      await db
+        .update(users)
+        .set({
+          ...(touchLastLoginAt ? { lastLoginAt: touchLastLoginAt } : {}),
+          ...(existing.status === 'invited' ? { status: 'active' as const } : {}),
+        })
+        .where(eq(users.id, existing.id));
+      return { user: toAuthUser(existing), isNewUser: false };
+    }
+    // registration gate is closed, so this only runs for gate-approved cases
+    const inserted = await db
+      .insert(users)
+      .values({
+        phone: mobile,
+        status: 'active',
+        ...(touchLastLoginAt ? { lastLoginAt: touchLastLoginAt } : {}),
+      })
+      .returning();
+    const row = inserted[0];
+    if (!row) throw new Error('user insert failed');
+    return { user: toAuthUser(row), isNewUser: true };
+  },
+  async bumpSessionVersion(id) {
+    const rows = await db
+      .update(users)
+      .set({ sessionVersion: sql`${users.sessionVersion} + 1` })
+      .where(eq(users.id, id))
+      .returning({ v: users.sessionVersion });
+    return rows[0]?.v ?? 0;
+  },
+};
+
+const otpSessionRepo: AuthDeps['otpSessionRepo'] = {
+  async create({ mobile, codeHash, expiresAt }) {
+    const rows = await db.insert(otpSessions).values({ mobile, codeHash, expiresAt }).returning();
+    const row = rows[0];
+    if (!row) throw new Error('otp session insert failed');
+    return row;
+  },
+  async latestActive(mobile, now) {
+    const rows = await db
+      .select()
+      .from(otpSessions)
+      .where(
+        and(
+          eq(otpSessions.mobile, mobile),
+          gt(otpSessions.expiresAt, now),
+          isNull(otpSessions.consumedAt),
+        ),
+      )
+      .orderBy(desc(otpSessions.createdAt))
+      .limit(1);
+    return rows[0] ?? null;
+  },
+  async incrementAttempts(id) {
+    const rows = await db
+      .update(otpSessions)
+      .set({ attempts: sql`${otpSessions.attempts} + 1` })
+      .where(eq(otpSessions.id, id))
+      .returning({ attempts: otpSessions.attempts });
+    return rows[0]?.attempts ?? 0;
+  },
+  async markConsumed(id, at) {
+    await db.update(otpSessions).set({ consumedAt: at }).where(eq(otpSessions.id, id));
+  },
+  async countRequestsSince(mobile, since) {
+    const rows = await db
+      .select({ n: sql<number>`count(*)::int` })
+      .from(otpSessions)
+      .where(and(eq(otpSessions.mobile, mobile), gte(otpSessions.createdAt, since)));
+    return rows[0]?.n ?? 0;
+  },
+};
+
+// Single-instance pilot: in-memory limiter. Swap to RedisRateLimitStore when
+// the api scales past one process.
+const rateLimitStore = new MemoryRateLimitStore();
+
+export const authDeps: AuthDeps = {
+  userRepo,
+  otpSessionRepo,
+  rateLimitStore,
+  otpSender: {
+    async sendOtp({ to, code, ttlSeconds }) {
+      // SMS_PROVIDER=fake — real delivery arrives with @arad/connect (wave-2)
+      logger.info({ to, code, ttlSeconds, provider: config.SMS_PROVIDER }, 'OTP (fake sender)');
+      return { messageId: `fake-${Date.now()}` };
+    },
+  },
+  auditLogger: {
+    async log(event) {
+      logger.info({ audit: event }, 'auth audit');
+    },
+  },
+  clock: { now: () => new Date() },
+  logger,
+  config: authConfig,
+  // 🔒 invite-only: unknown phones never create accounts
+  registrationGate: {
+    async evaluate() {
+      return { allow: false, reason: 'invitation_required' };
+    },
+  },
+};
+
+export const sessionDeps: SessionDeps = {
+  config: authConfig,
+  userRepo,
+  clock: authDeps.clock,
+};

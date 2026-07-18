@@ -23,8 +23,53 @@
   font-display: swap;
 }
 
+html {
+  -webkit-tap-highlight-color: transparent;
+}
+
 body {
   background: var(--ac-bg);
   color: var(--ac-fg);
   font-family: var(--ac-font-fa);
+}
+
+/* skeleton loading (ux-best-practices/techniques/skeleton-loading) */
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    var(--ac-surface-2) 25%,
+    var(--ac-border) 37%,
+    var(--ac-surface-2) 63%
+  );
+  background-size: 400% 100%;
+  animation: shimmer 1.4s ease infinite;
+}
+@keyframes shimmer {
+  0% {
+    background-position: 100% 0;
+  }
+  100% {
+    background-position: -100% 0;
+  }
+}
+
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.toast-in {
+  animation: toast-in 0.18s ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skeleton,
+  .toast-in {
+    animation: none;
+  }
 }

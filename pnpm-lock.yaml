@@ -35,18 +35,30 @@ importers:
       '@arad-crm/api-contracts':
         specifier: workspace:*
         version: link:../../packages/api-contracts
+      '@arad-crm/commission':
+        specifier: workspace:*
+        version: link:../../packages/commission
       '@arad-crm/config':
         specifier: workspace:*
         version: link:../../packages/config
       '@arad-crm/db':
         specifier: workspace:*
         version: link:../../packages/db
+      '@arad-crm/vertical-mizro':
+        specifier: workspace:*
+        version: link:../../packages/verticals/mizro
+      '@arad/auth-otp':
+        specifier: workspace:*
+        version: link:../../foundation/packages/auth-otp
       '@arad/errors':
         specifier: workspace:*
         version: link:../../foundation/packages/errors
       '@arad/logger':
         specifier: workspace:*
         version: link:../../foundation/packages/logger
+      '@arad/platform-events':
+        specifier: workspace:*
+        version: link:../../foundation/packages/platform-events
       '@hono/node-server':
         specifier: ^1.13.7
         version: 1.19.14(hono@4.12.30)
@@ -56,6 +68,9 @@ importers:
       '@scalar/hono-api-reference':
         specifier: ^0.5.165
         version: 0.5.184(hono@4.12.30)
+      drizzle-orm:
+        specifier: ^0.36.4
+        version: 0.36.4(@types/pg@8.20.0)(@types/react@19.2.17)(pg@8.22.0)(react@19.2.7)
       hono:
         specifier: ^4.6.14
         version: 4.12.30
@@ -87,6 +102,9 @@ importers:
       '@arad-crm/ui':
         specifier: workspace:*
         version: link:../../packages/ui
+      '@arad-crm/vertical-mizro':
+        specifier: workspace:*
+        version: link:../../packages/verticals/mizro
       '@arad-crm/web-shared':
         specifier: workspace:*
         version: link:../../packages/web-shared
@@ -102,6 +120,9 @@ importers:
       react-dom:
         specifier: ^19.0.0
         version: 19.2.7(react@19.2.7)
+      zod:
+        specifier: ^3.24.1
+        version: 3.25.76
     devDependencies:
       '@arad/tsconfig':
         specifier: workspace:*
@@ -139,6 +160,9 @@ importers:
       '@arad-crm/ui':
         specifier: workspace:*
         version: link:../../packages/ui
+      '@arad-crm/vertical-mizro':
+        specifier: workspace:*
+        version: link:../../packages/verticals/mizro
       '@arad-crm/web-shared':
         specifier: workspace:*
         version: link:../../packages/web-shared
@@ -185,6 +209,9 @@ importers:
 
   apps/worker:
     dependencies:
+      '@arad-crm/commission':
+        specifier: workspace:*
+        version: link:../../packages/commission
       '@arad-crm/config':
         specifier: workspace:*
         version: link:../../packages/config
@@ -194,9 +221,15 @@ importers:
       '@arad/logger':
         specifier: workspace:*
         version: link:../../foundation/packages/logger
+      '@arad/platform-events':
+        specifier: workspace:*
+        version: link:../../foundation/packages/platform-events
       bullmq:
         specifier: ^5.34.0
         version: 5.80.8
+      drizzle-orm:
+        specifier: ^0.36.4
+        version: 0.36.4(@types/pg@8.20.0)(@types/react@19.2.17)(pg@8.22.0)(react@19.2.7)
       ioredis:
         specifier: ^5.4.2
         version: 5.11.1
@@ -335,9 +368,15 @@ importers:
 
   packages/commission:
     dependencies:
+      '@arad-crm/db':
+        specifier: workspace:*
+        version: link:../db
       '@arad/errors':
         specifier: workspace:*
         version: link:../../foundation/packages/errors
+      drizzle-orm:
+        specifier: ^0.36.4
+        version: 0.36.4(@types/pg@8.20.0)(@types/react@19.2.17)(pg@8.22.0)(react@19.2.7)
       zod:
         specifier: ^3.24.1
         version: 3.25.76
@@ -424,6 +463,10 @@ importers:
         version: 2.1.9(@types/node@22.20.1)
 
   packages/verticals/mizro:
+    dependencies:
+      zod:
+        specifier: ^3.24.1
+        version: 3.25.76
     devDependencies:
       '@arad/tsconfig':
         specifier: workspace:*

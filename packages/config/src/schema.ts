@@ -38,6 +38,26 @@ export const envSchema = z.object({
   // wave-2 (@arad/connect) — the enum widens then.
   // @invariant-allow: local-enum env-config vocabulary, not an API shape
   SMS_PROVIDER: z.enum(['fake']).default('fake'),
+
+  // ADR-006 integration: HMAC shared secret for the Mizro producer. Unset ⇒
+  // the events endpoint refuses (503) — never accept unsigned events.
+  MIZRO_WEBHOOK_SECRET: z.string().min(16).optional(),
+  // Seller demo links: <DEMO_LINK_BASE>?ref=<attribution token> 🔒
+  DEMO_LINK_BASE: z.string().url().default('https://mizro.ir/demo'),
+
+  // Browser origins allowed to call the api with credentials (CORS). The web
+  // apps are cross-ORIGIN (different port) though same-site on localhost, so an
+  // explicit allowlist is required — '*' is illegal with credentials. Comma-
+  // separated; lab/prod set their real hosts.
+  WEB_ORIGINS: z
+    .string()
+    .default('http://localhost:3101,http://localhost:3102')
+    .transform((s) =>
+      s
+        .split(',')
+        .map((o) => o.trim())
+        .filter(Boolean),
+    ),
 });
 
 export type Config = z.infer<typeof envSchema>;

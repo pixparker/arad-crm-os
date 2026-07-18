@@ -6,6 +6,7 @@ import { config } from '@arad-crm/config';
 import { logger } from '@arad/logger';
 import { Queue, Worker } from 'bullmq';
 import IORedis from 'ioredis';
+import { sweepInbox } from './processor.js';
 import { QUEUES } from './queues.js';
 
 const connection = new IORedis(config.REDIS_URL, { maxRetriesPerRequest: null });
@@ -13,12 +14,16 @@ const connection = new IORedis(config.REDIS_URL, { maxRetriesPerRequest: null })
 const scheduledQueue = new Queue(QUEUES.scheduled, { connection });
 
 const registerRepeatables = async (): Promise<void> => {
-  // Heartbeat proves the repeatable pipeline end-to-end; real sweeps
-  // (reminders, cadences, reconciliation) replace it per the build order.
   await scheduledQueue.upsertJobScheduler(
     'heartbeat',
     { every: 5 * 60 * 1000 },
     { name: 'heartbeat', data: {} },
+  );
+  // ADR-006: integration inbox sweep — pending/failed rows, oldest first
+  await scheduledQueue.upsertJobScheduler(
+    'inbox-sweep',
+    { every: 15 * 1000 },
+    { name: 'inbox-sweep', data: {} },
   );
 };
 
@@ -27,6 +32,11 @@ const worker = new Worker(
   async (job) => {
     if (job.name === 'heartbeat') {
       logger.info({ job: job.name }, 'worker heartbeat');
+      return;
+    }
+    if (job.name === 'inbox-sweep') {
+      const n = await sweepInbox();
+      if (n > 0) logger.info({ processed: n }, 'inbox sweep');
       return;
     }
     logger.warn({ job: job.name }, 'no handler for job');

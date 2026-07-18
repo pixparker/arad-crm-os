@@ -9,10 +9,13 @@
     "test": "vitest run --passWithNoTests"
   },
   "dependencies": {
+    "@arad-crm/commission": "workspace:*",
     "@arad-crm/config": "workspace:*",
     "@arad-crm/db": "workspace:*",
     "@arad/logger": "workspace:*",
+    "@arad/platform-events": "workspace:*",
     "bullmq": "^5.34.0",
+    "drizzle-orm": "^0.36.4",
     "ioredis": "^5.4.2"
   },
   "devDependencies": {
