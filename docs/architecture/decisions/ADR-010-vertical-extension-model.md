@@ -1,6 +1,6 @@
 # ADR-010 — Vertical & extension model
 
-> **Status:** `in-review` · **Owner:** CTO · **Date:** 2026-07-18
+> **Status:** `approved` (founder, 2026-07-18) · **Owner:** CTO · **Date:** 2026-07-18
 > 🔒 Locked upstream: horizontal core + vertical apps; core headless; modules/connectors built on-demand; **no plugin store/SDK upfront**; vertical-SaaS-factory positioning — specificity lives in verticals, core stays lean.
 
 ## Decision

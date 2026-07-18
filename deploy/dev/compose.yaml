@@ -1,0 +1,43 @@
+# Local dev: stateful services in containers, app code runs natively under
+# Node (Mizro's doc-02 §5 pattern). Host ports are OFFSET from Mizro's dev
+# stack (pg 5432, redis 6379) so both products run side by side.
+
+name: arad-crm-dev
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: arad
+      POSTGRES_PASSWORD: arad
+      POSTGRES_DB: arad_crm
+    ports:
+      - '5433:5432'
+    volumes:
+      - arad-crm-pg:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U arad -d arad_crm']
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    # volatile-lru: evict only TTL'd keys under pressure — never the rate-limit
+    # counters protecting auth (Mizro precedent).
+    command: ['redis-server', '--maxmemory', '256mb', '--maxmemory-policy', 'volatile-lru']
+    ports:
+      - '6380:6379'
+    volumes:
+      - arad-crm-redis:/data
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+volumes:
+  arad-crm-pg:
+  arad-crm-redis:

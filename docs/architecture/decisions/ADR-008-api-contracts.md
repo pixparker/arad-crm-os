@@ -1,6 +1,6 @@
 # ADR-008 — API style & contracts
 
-> **Status:** `in-review` · **Owner:** CTO · **Date:** 2026-07-18
+> **Status:** `approved` (founder, 2026-07-18) · **Owner:** CTO · **Date:** 2026-07-18
 > 🔒 Core is headless / API-first — vertical apps are just API clients (product doc §5).
 
 ## Decision

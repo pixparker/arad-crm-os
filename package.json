@@ -1,0 +1,47 @@
+{
+  "name": "arad-crm-os",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Arad CRM-OS — sales execution system + CRM. Headless horizontal core + vertical apps; Mizro is vertical #1. See docs/architecture/00-overview.md.",
+  "engines": {
+    "node": ">=22.0.0",
+    "pnpm": ">=9.0.0"
+  },
+  "packageManager": "pnpm@9.15.0",
+  "scripts": {
+    "build": "turbo run build",
+    "dev": "pnpm -r --parallel run dev",
+    "dev:api": "pnpm --filter @arad-crm/api dev",
+    "dev:worker": "pnpm --filter @arad-crm/worker dev",
+    "dev:seller": "pnpm --filter @arad-crm/web-seller dev",
+    "dev:admin": "pnpm --filter @arad-crm/web-admin dev",
+    "lint": "biome lint .",
+    "format": "biome format --write .",
+    "check": "biome check .",
+    "typecheck": "turbo run typecheck",
+    "test": "turbo run test",
+    "verify": "pnpm check && pnpm typecheck && pnpm lint:org-scope && pnpm lint:contracts-enums && pnpm lint:migration-drift && pnpm secret-grep && pnpm test",
+    "lint:org-scope": "tsx scripts/check-org-scope.ts",
+    "lint:contracts-enums": "tsx scripts/check-contracts-enums.ts",
+    "lint:migration-drift": "tsx scripts/check-migration-drift.ts",
+    "secret-grep": "bash deploy/scripts/secret-grep.sh",
+    "db:generate": "pnpm --filter @arad-crm/db generate",
+    "db:migrate": "pnpm --filter @arad-crm/db migrate",
+    "db:seed": "pnpm --filter @arad-crm/db seed",
+    "services:up": "docker compose -f deploy/dev/compose.yaml up -d && pnpm db:migrate",
+    "services:down": "docker compose -f deploy/dev/compose.yaml down",
+    "services:reset": "docker compose -f deploy/dev/compose.yaml down -v && pnpm services:up && pnpm db:seed",
+    "foundation:status": "git submodule status foundation && git -C foundation log --oneline -3",
+    "foundation:pull": "git submodule update --remote foundation && git -C foundation log --oneline -1",
+    "prepare": "lefthook install || true"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "1.9.4",
+    "@types/node": "^22.10.0",
+    "lefthook": "^1.10.10",
+    "tsx": "^4.19.2",
+    "turbo": "^2.3.3",
+    "typescript": "^5.7.2",
+    "vitest": "^2.1.8"
+  }
+}

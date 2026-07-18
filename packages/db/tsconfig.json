@@ -1,0 +1,4 @@
+{
+  "extends": "@arad/tsconfig/node.json",
+  "include": ["src", "drizzle.config.ts"]
+}

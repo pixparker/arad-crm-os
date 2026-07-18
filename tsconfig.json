@@ -1,0 +1,7 @@
+{
+  "extends": "./foundation/packages/tsconfig/node.json",
+  "compilerOptions": {
+    "noEmit": true
+  },
+  "include": ["scripts"]
+}

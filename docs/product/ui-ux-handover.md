@@ -68,7 +68,21 @@ Build in the roadmap's order (`product-description.md` §13/§18), not all at on
 - Don't fork the design-system (§5) or add screens outside the product scope (§14 non-goals in the product description).
 - Don't bury the seller's next-action — it's the one thing that must always be obvious.
 
-## 9. Pointers
+## 9. Mock v2 changelog (2026-07-18, UI/UX pass — flows & forms)
+
+The mock was extended so the founder can approve **flows and forms**, not just screens. Added:
+
+- **Visit/call quick-log sheet** (the core-loop interaction): customer → interaction type → **standard outcome taxonomy** (7 outcomes) → **mandatory next-action** (type + date chips). The save button stays disabled until the rule is satisfied; a status note flips from warning to ✓. Reachable from: dashboard task rows («ثبت نتیجه»), customer detail (ثبت تماس/بازدید), prospects (ثبت بازدید), and the mobile **＋ FAB**.
+- **The two flow rules made visible:** outcome «دمو ارائه شد» reveals the **seller's demo-QR attribution block** (scan = permanent معرِّف lock); outcome «رد کرد» requires a **lost-reason** and disables next-action ("closed with reason" — every lead ends with a dated next-action *or* a close reason, never neither).
+- **New-lead form** — 3 required fields only (low-field-but-precise), source chips, dedupe note.
+- **Mobile seller surface** (≤760px): sidebar is replaced by a bottom nav (امروز من · پایپلاین · ＋ · کمیسیون · پرونده‌ها); the quick-log opens as a bottom sheet. This demonstrates the "<2 min on a phone" loop.
+- **Commission transparency:** clicking a ledger row shows the computation formula (payment × % · plan version · source event).
+- **Funnel guard-notes:** the «برنده» stage states it is entered **only via a real payment event** (no manual "sold" toggle); «از دست رفته» states every exit carries a standard reason.
+- Logging a visit from the customer page **prepends a live timeline entry** so the founder sees the write-path.
+
+Still intentionally *not* in the mock (post-approval / build-time): real date-picker, customer search picker on the FAB, edit/undo of a logged interaction, manager approval flows, empty/loading/error states.
+
+## 10. Pointers
 
 - Product: [`product-description.md`](./product-description.md)
 - Mock source: [`mock/crm-mock.html`](./mock/crm-mock.html) · Live: the artifact URL (§1)

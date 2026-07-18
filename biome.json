@@ -1,0 +1,45 @@
+{
+  "$schema": "https://biomejs.dev/schemas/1.9.4/schema.json",
+  "extends": ["./foundation/packages/biome-config/biome.json"],
+  "files": {
+    "ignore": [
+      "node_modules",
+      "dist",
+      "build",
+      ".next",
+      ".turbo",
+      "**/migrations/**/*.sql",
+      "**/drizzle/**/*.sql",
+      "**/drizzle/meta/*.json",
+      "pnpm-lock.yaml",
+      "foundation"
+    ]
+  },
+  "overrides": [
+    {
+      "include": ["**/*.test.ts", "**/*.spec.ts", "**/scripts/**/*.ts"],
+      "linter": {
+        "rules": {
+          "suspicious": { "noConsoleLog": "off" }
+        }
+      }
+    },
+    {
+      "include": ["packages/commission/**/*.ts", "packages/verticals/**/*.ts"],
+      "linter": {
+        "rules": {
+          "nursery": {
+            "noRestrictedImports": {
+              "level": "error",
+              "options": {
+                "paths": {
+                  "@arad-crm/api": "Packages must not import apps — dependency direction is app → package (ADR-003)."
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
+}

@@ -1,6 +1,6 @@
 # Requirements-Fit Review — the founder's five axes
 
-> **Status:** `in-review` · **Owner:** CTO · **Date:** 2026-07-18
+> **Status:** `approved` (founder, 2026-07-18) · **Owner:** CTO · **Date:** 2026-07-18
 > Founder requirements: **(1)** agile/fast dev flow · **(2)** low risk of bugs & breakage · **(3)** low-effort maintenance · **(4)** high performance where needed · **(5)** high feature flexibility.
 
 ## The governing principle: deliberate asymmetry

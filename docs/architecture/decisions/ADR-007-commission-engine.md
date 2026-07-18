@@ -1,6 +1,6 @@
 # ADR-007 — Commission engine (the crown jewel)
 
-> **Status:** `in-review` · **Owner:** CTO · **Date:** 2026-07-18
+> **Status:** `approved` (founder, 2026-07-18) · **Owner:** CTO · **Date:** 2026-07-18
 > 🔒 Locked upstream: independent, versioned, append-only, idempotent, auditable, clawback-on-refund — E53 wallet-ledger rigor. **Built first, tested against fixture payment events, before any UI** (product doc §18.3).
 
 ## Shape

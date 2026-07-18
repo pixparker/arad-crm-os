@@ -1,6 +1,6 @@
 # ADR-005 — Identity, authentication & authorization
 
-> **Status:** `in-review` · **Owner:** CTO · **Date:** 2026-07-18
+> **Status:** `approved` (founder, 2026-07-18) · **Owner:** CTO · **Date:** 2026-07-18
 
 ## Authentication (reuse, don't rebuild 🔒)
 

@@ -1,0 +1,23 @@
+# Pre-commit hooks — catches what CI catches, 30s before push instead of 5min
+# after. Installed on `pnpm install` via the root `prepare` script.
+#
+# Skip one check:  LEFTHOOK_EXCLUDE=biome git commit ...
+# Skip all (rare): LEFTHOOK=0 git commit ...
+
+pre-commit:
+  parallel: true
+  commands:
+    biome:
+      glob: '*.{ts,tsx,js,jsx,json,jsonc,yaml,yml}'
+      run: pnpm exec biome check --no-errors-on-unmatched {staged_files}
+
+    secret-grep:
+      run: bash deploy/scripts/secret-grep.sh
+
+    org-scope:
+      glob: '*.{ts,tsx}'
+      run: pnpm lint:org-scope
+
+    contracts-enums:
+      glob: '*.{ts,tsx}'
+      run: pnpm lint:contracts-enums

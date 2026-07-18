@@ -1,6 +1,6 @@
 # ADR-003 — Modular monolith, module map & app layout
 
-> **Status:** `in-review` · **Owner:** CTO · **Date:** 2026-07-18
+> **Status:** `approved` (founder, 2026-07-18) · **Owner:** CTO · **Date:** 2026-07-18
 > Locked upstream: modular monolith, NOT microservices (product doc §14; dev spec §24). This ADR defines the modules and their rules.
 
 ## Apps

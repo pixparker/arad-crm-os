@@ -1,6 +1,6 @@
 # ADR-011 — Quality gates, observability & audit
 
-> **Status:** `in-review` · **Owner:** CTO · **Date:** 2026-07-18
+> **Status:** `approved` (founder, 2026-07-18) · **Owner:** CTO · **Date:** 2026-07-18
 > 🔒 Locked upstream: financial transparency + full audit; sensitive changes logged; sellers see how commission was computed.
 
 ## Testing (Vitest, two tiers — Mizro pattern)

@@ -1,0 +1,54 @@
+# CI mirror of Mizro's pipeline: Biome → typecheck → invariant guards →
+# secret-grep → Vitest (+ Postgres 16 service for *.db.test.ts).
+# NOTE: submodule checkout needs github.com/pixparker/arad-foundation pushed
+# (relative URL ../arad-foundation.git resolves as a sibling of this repo).
+
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: arad
+          POSTGRES_PASSWORD: arad
+          POSTGRES_DB: arad_crm
+        ports:
+          - 5433:5432
+        options: >-
+          --health-cmd "pg_isready -U arad -d arad_crm"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 5
+    env:
+      DATABASE_URL: postgres://arad:arad@localhost:5433/arad_crm
+      REDIS_URL: redis://localhost:6380
+      NODE_ENV: test
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - run: pnpm check
+      - run: pnpm typecheck
+      - run: pnpm lint:org-scope
+      - run: pnpm lint:contracts-enums
+      - run: pnpm lint:migration-drift
+      - run: pnpm secret-grep
+      - run: pnpm test

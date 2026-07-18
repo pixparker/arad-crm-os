@@ -1,6 +1,6 @@
 # ADR-009 — Frontend architecture & design system
 
-> **Status:** `in-review` · **Owner:** CTO · **Date:** 2026-07-18
+> **Status:** `approved` (founder, 2026-07-18) · **Owner:** CTO · **Date:** 2026-07-18
 > Guidance sources: **`ux-best-practices` repo** (primary — wired into both apps' dev docs) · `mizro-design/docs` theming contract + brand-token *pattern* · `digital-menu/docs/ui/00-ui-conventions.md`.
 
 ## Two apps, two archetypes

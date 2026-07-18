@@ -1,6 +1,6 @@
 # ADR-002 — Runtime stack, tooling & deployment
 
-> **Status:** `in-review` · **Owner:** CTO · **Date:** 2026-07-18
+> **Status:** `approved` (founder, 2026-07-18) · **Owner:** CTO · **Date:** 2026-07-18
 
 ## Context
 
@@ -28,7 +28,7 @@ Mizro's stack is proven in production on the same infrastructure (mvp-pool), on 
 
 ## Deployment
 
-- **Target:** mvp-pool shared host ("pagio") behind Caddy — register the CRM's slug + **port allocations** (api `41xx` range to avoid Mizro's 4000) in mvp-pool.
+- **Target:** mvp-pool shared host ("pagio") behind Caddy — register the CRM's slug + **port allocations** in mvp-pool. **Locked dev allocation (never collides with Mizro's 4000/3001-3006/5432/6379):** api **4100** · web-seller **3101** · web-admin **3102** · Postgres **5433** · Redis **6380**.
 - **Containers:** per-app Dockerfiles (`deploy/Dockerfile.api|worker|web-seller|web-admin`); dev via `deploy/dev/compose.yaml` = postgres:16-alpine + redis:7-alpine + caddy (apps run natively with `tsx watch`/`next dev`).
 - **CI/CD:** mirror Mizro's — CI: Biome → typecheck → guard scripts → Vitest (+ PG service container). CD: self-hosted runner builds images → object storage → staged manifest → **Telegram `/promote`** flip. Reuse the pipeline scripts, parameterized.
 - **Isolation:** own DB, own Redis logical DB, own Sentry projects, own cookies/domains. Integration with Mizro is HTTP-only (ADR-006). 🔒

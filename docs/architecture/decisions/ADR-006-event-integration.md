@@ -1,6 +1,6 @@
 # ADR-006 — Event integration & the Mizro/Commerce contract
 
-> **Status:** `in-review` · **Owner:** CTO · **Date:** 2026-07-18
+> **Status:** `approved` (founder, 2026-07-18) · **Owner:** CTO · **Date:** 2026-07-18
 > 🔒 Locked upstream: thin, event-based integration; own DB; sale = a real payment event. The CRM is system-of-record for **sales activity**; Mizro/Commerce for **service + payment**.
 
 ## The contract package — `@arad/platform-events`

@@ -1,6 +1,6 @@
 # ADR-001 — Repo topology & the shared Arad foundation
 
-> **Status:** `in-review` · **Owner:** CTO · **Date:** 2026-07-18
+> **Status:** `approved` (founder, 2026-07-18) · **Owner:** CTO · **Date:** 2026-07-18
 > Product doc §3/§18 delegates the topology as "the CTO's call"; requirement is **shared foundation, not duplicated**.
 
 ## Context

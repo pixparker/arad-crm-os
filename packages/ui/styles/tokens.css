@@ -1,0 +1,39 @@
+/* Arad CRM-OS design tokens (ADR-009). NEUTRAL PLACEHOLDER THEME — the real
+ * brand (TBD) lands as a token swap here, never a refactor. Mechanism mirrors
+ * mizro-design's theming contract: CSS vars + [data-theme] overrides.
+ * Spacing base is 8px; --ac-* namespace. */
+
+:root {
+  /* palette — neutral slate + a restrained indigo accent (placeholder) */
+  --ac-bg: #f7f7f8;
+  --ac-surface: #ffffff;
+  --ac-surface-2: #f0f0f2;
+  --ac-fg: #17181c;
+  --ac-fg-muted: #5c5f6a;
+  --ac-border: #e2e3e8;
+  --ac-primary: #4f46e5;
+  --ac-primary-fg: #ffffff;
+  --ac-success: #15803d;
+  --ac-warning: #b45309;
+  --ac-danger: #b91c1c;
+
+  /* radii */
+  --ac-radius-sm: 8px;
+  --ac-radius-md: 12px;
+  --ac-radius-lg: 18px;
+  --ac-radius-full: 999px;
+
+  /* type */
+  --ac-font-fa: "Vazirmatn", "Tahoma", sans-serif;
+}
+
+[data-theme="dark"] {
+  --ac-bg: #0f1014;
+  --ac-surface: #17181c;
+  --ac-surface-2: #1f2026;
+  --ac-fg: #f2f2f4;
+  --ac-fg-muted: #9b9ea8;
+  --ac-border: #2a2b32;
+  --ac-primary: #818cf8;
+  --ac-primary-fg: #0f1014;
+}

@@ -1,6 +1,6 @@
 # Arad CRM-OS — Architecture Overview
 
-> **Status:** `in-review` — awaiting founder approval · **Owner:** CTO · **Date:** 2026-07-18
+> **Status:** `approved` (founder, 2026-07-18) · **Owner:** CTO · **Date:** 2026-07-18
 > **Inputs:** `docs/product/product-description.md` (locked) · `digital-menu/docs/money/sales-os-crm.md` · `digital-menu/docs/_ideas/funder/crm-idea.md` (dev spec v0.1) · `digital-menu/docs/architecture/*` (esp. doc-29 extraction hygiene) · `ux-best-practices` repo.
 > **Rule of this repo's docs:** mirrors Mizro's doc culture — numbered docs, ~150-line budget, status gate `in-review → approved`. 🔒 marks locked invariants.
 

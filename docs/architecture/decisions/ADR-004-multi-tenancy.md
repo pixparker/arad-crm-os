@@ -1,6 +1,6 @@
 # ADR-004 — Multi-tenancy & data isolation
 
-> **Status:** `in-review` · **Owner:** CTO · **Date:** 2026-07-18
+> **Status:** `approved` (founder, 2026-07-18) · **Owner:** CTO · **Date:** 2026-07-18
 > Locked upstream: multi-tenancy as a **seam now** — `organization_id` on every row; onboarding/billing/white-label later (product doc §5).
 
 ## Context
