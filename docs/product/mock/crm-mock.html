@@ -1,0 +1,1006 @@
+<title>میزرو سِیلز — سامانهٔ فروش (نمونه)</title>
+<style>
+  :root{
+    --ground:#f7f7fb; --surface:#ffffff; --surface-2:#f1f1f6; --surface-3:#eaeaf1;
+    --border:#e5e5ee; --border-strong:#d6d6e2;
+    --ink:#1a1a24; --muted:#6a6a7b; --faint:#9a9aab;
+    --primary:#6d5ae6; --primary-ink:#5847c9; --primary-soft:#efecfc;
+    --gold:#c99226; --gold-soft:#f8f0dd;
+    --success:#1f9d63; --success-soft:#e3f4ec;
+    --warning:#c9821f; --warning-soft:#f8efdc;
+    --danger:#d1503a; --danger-soft:#f9e7e2;
+    /* pipeline stage hues (multi-hue, purposeful) */
+    --st-new:#5b7bd6; --st-new-soft:#e8eefb;
+    --st-contact:#0f9bb0; --st-contact-soft:#e0f3f6;
+    --st-demo:#6d5ae6; --st-demo-soft:#efecfc;
+    --st-nego:#c9821f; --st-nego-soft:#f8efdc;
+    --st-won:#1f9d63; --st-won-soft:#e3f4ec;
+    --st-lost:#98929e; --st-lost-soft:#eeecef;
+    --shadow:0 1px 2px rgba(20,20,40,.04),0 8px 24px rgba(20,20,40,.06);
+    --shadow-lg:0 2px 6px rgba(20,20,40,.06),0 18px 50px rgba(20,20,40,.12);
+    --r:14px; --r-sm:9px; --r-lg:20px;
+  }
+  @media (prefers-color-scheme:dark){
+    :root{
+      --ground:#111117; --surface:#1a1a22; --surface-2:#20202a; --surface-3:#282833;
+      --border:#2c2c39; --border-strong:#3a3a48;
+      --ink:#ececf3; --muted:#9c9cae; --faint:#7a7a8b;
+      --primary:#8a79f0; --primary-ink:#a596f5; --primary-soft:#241f3a;
+      --gold:#e0ad4c; --gold-soft:#352b16;
+      --success:#3bbd7e; --success-soft:#123026;
+      --warning:#e0a24c; --warning-soft:#332815;
+      --danger:#e2664e; --danger-soft:#361d18;
+      --st-new:#7b98e6; --st-new-soft:#1c2233;
+      --st-contact:#2bb6c9; --st-contact-soft:#0f2b30;
+      --st-demo:#8a79f0; --st-demo-soft:#241f3a;
+      --st-nego:#e0a24c; --st-nego-soft:#332815;
+      --st-won:#3bbd7e; --st-won-soft:#123026;
+      --st-lost:#8a8494; --st-lost-soft:#25232a;
+      --shadow:0 1px 2px rgba(0,0,0,.3),0 10px 30px rgba(0,0,0,.35);
+      --shadow-lg:0 2px 8px rgba(0,0,0,.4),0 24px 60px rgba(0,0,0,.5);
+    }
+  }
+  :root[data-theme="light"]{
+    --ground:#f7f7fb; --surface:#ffffff; --surface-2:#f1f1f6; --surface-3:#eaeaf1;
+    --border:#e5e5ee; --border-strong:#d6d6e2; --ink:#1a1a24; --muted:#6a6a7b; --faint:#9a9aab;
+    --primary:#6d5ae6; --primary-ink:#5847c9; --primary-soft:#efecfc; --gold:#c99226; --gold-soft:#f8f0dd;
+    --success:#1f9d63; --success-soft:#e3f4ec; --warning:#c9821f; --warning-soft:#f8efdc; --danger:#d1503a; --danger-soft:#f9e7e2;
+    --st-new:#5b7bd6; --st-new-soft:#e8eefb; --st-contact:#0f9bb0; --st-contact-soft:#e0f3f6;
+    --st-demo:#6d5ae6; --st-demo-soft:#efecfc; --st-nego:#c9821f; --st-nego-soft:#f8efdc;
+    --st-won:#1f9d63; --st-won-soft:#e3f4ec; --st-lost:#98929e; --st-lost-soft:#eeecef;
+  }
+  :root[data-theme="dark"]{
+    --ground:#111117; --surface:#1a1a22; --surface-2:#20202a; --surface-3:#282833;
+    --border:#2c2c39; --border-strong:#3a3a48; --ink:#ececf3; --muted:#9c9cae; --faint:#7a7a8b;
+    --primary:#8a79f0; --primary-ink:#a596f5; --primary-soft:#241f3a; --gold:#e0ad4c; --gold-soft:#352b16;
+    --success:#3bbd7e; --success-soft:#123026; --warning:#e0a24c; --warning-soft:#332815; --danger:#e2664e; --danger-soft:#361d18;
+    --st-new:#7b98e6; --st-new-soft:#1c2233; --st-contact:#2bb6c9; --st-contact-soft:#0f2b30;
+    --st-demo:#8a79f0; --st-demo-soft:#241f3a; --st-nego:#e0a24c; --st-nego-soft:#332815;
+    --st-won:#3bbd7e; --st-won-soft:#123026; --st-lost:#8a8494; --st-lost-soft:#25232a;
+  }
+
+  *{box-sizing:border-box}
+  .app{
+    direction:rtl; text-align:right;
+    font-family:"Vazirmatn","IRANSans","IRANYekan",system-ui,"Segoe UI",Tahoma,Arial,sans-serif;
+    background:var(--ground); color:var(--ink);
+    line-height:1.6; -webkit-font-smoothing:antialiased;
+    font-variant-numeric:tabular-nums; min-height:100vh;
+  }
+  .num{font-variant-numeric:tabular-nums}
+  a{color:inherit}
+
+  /* ---------- top bar ---------- */
+  .top{position:sticky;top:0;z-index:40;display:flex;align-items:center;gap:14px;
+    background:var(--surface);border-bottom:1px solid var(--border);
+    padding:11px clamp(14px,3vw,24px);box-shadow:0 1px 0 rgba(0,0,0,.02)}
+  .brand{display:flex;align-items:center;gap:10px;font-weight:800;font-size:16px;white-space:nowrap}
+  .brand .logo{width:30px;height:30px;border-radius:8px;flex:none;display:grid;place-items:center;
+    background:linear-gradient(135deg,var(--primary),#9b7bf2);color:#fff;font-weight:900;font-size:15px}
+  .brand .sub{font-size:11px;color:var(--muted);font-weight:600;margin-inline-start:2px}
+  .top .spacer{flex:1}
+  .roleswitch{display:flex;background:var(--surface-2);border:1px solid var(--border);border-radius:100px;padding:3px}
+  .roleswitch button{border:0;background:none;color:var(--muted);font-family:inherit;font-weight:700;
+    font-size:12.5px;padding:6px 13px;border-radius:100px;cursor:pointer;white-space:nowrap}
+  .roleswitch button.on{background:var(--surface);color:var(--ink);box-shadow:var(--shadow)}
+  .who{display:flex;align-items:center;gap:9px}
+  .who .av{width:33px;height:33px;border-radius:50%;flex:none;display:grid;place-items:center;
+    font-weight:800;font-size:13px;color:#fff;background:var(--st-demo)}
+  .who .nm{font-size:13px;font-weight:700;line-height:1.2}
+  .who .rl{font-size:11px;color:var(--muted)}
+  @media(max-width:620px){.who .meta{display:none}}
+
+  /* ---------- shell ---------- */
+  .shell{display:grid;grid-template-columns:246px 1fr;align-items:start;
+    max-width:1360px;margin:0 auto}
+  .side{position:sticky;top:53px;align-self:start;height:calc(100vh - 53px);overflow-y:auto;
+    border-inline-start:1px solid var(--border);padding:16px 12px 30px;background:var(--ground)}
+  .navgroup{margin-bottom:6px}
+  .navgroup .glabel{font-size:11px;font-weight:800;color:var(--faint);letter-spacing:.04em;
+    padding:12px 12px 6px;text-transform:none}
+  .nav{display:flex;flex-direction:column;gap:2px}
+  .nav button{display:flex;align-items:center;gap:10px;width:100%;border:0;background:none;
+    font-family:inherit;color:var(--muted);font-size:13.5px;font-weight:600;
+    padding:9px 12px;border-radius:10px;cursor:pointer;text-align:right}
+  .nav button .ic{width:18px;text-align:center;flex:none;font-size:15px;opacity:.9}
+  .nav button .badge{margin-inline-start:auto;background:var(--danger);color:#fff;font-size:10.5px;
+    font-weight:800;border-radius:100px;padding:1px 7px;min-width:19px;text-align:center}
+  .nav button:hover{background:var(--surface-2);color:var(--ink)}
+  .nav button.on{background:var(--primary-soft);color:var(--primary-ink)}
+  .nav button.mgr::after{content:"مدیر";font-size:9.5px;font-weight:800;color:var(--gold);
+    background:var(--gold-soft);border-radius:5px;padding:1px 5px;margin-inline-start:auto}
+  .nav button.mgr .badge + .mgr{display:none}
+
+  .bridge{margin-top:14px;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:12px}
+  .bridge .bh{display:flex;align-items:center;gap:7px;font-size:12px;font-weight:800;margin-bottom:8px}
+  .bridge .bh .dot{width:8px;height:8px;border-radius:50%;background:var(--success);box-shadow:0 0 0 3px var(--success-soft)}
+  .bridge .row{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--muted);margin:5px 0}
+  .bridge .row b{color:var(--ink);font-weight:700}
+  .bridge .arw{color:var(--primary);font-weight:900}
+
+  .main{padding:22px clamp(14px,3vw,30px) 90px;min-width:0}
+
+  /* ---------- generic ---------- */
+  .screen{display:none;animation:fade .25s ease}
+  .screen.on{display:block}
+  @keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+  .phead{display:flex;align-items:flex-end;justify-content:space-between;gap:14px;flex-wrap:wrap;margin-bottom:18px}
+  .phead h1{font-size:clamp(20px,3vw,26px);font-weight:800;margin:0 0 3px;letter-spacing:-.01em}
+  .phead .psub{color:var(--muted);font-size:13.5px;margin:0}
+  .btn{border:1px solid var(--border-strong);background:var(--surface);color:var(--ink);font-family:inherit;
+    font-weight:700;font-size:13px;padding:9px 15px;border-radius:10px;cursor:pointer;display:inline-flex;
+    align-items:center;gap:7px;white-space:nowrap}
+  .btn:hover{background:var(--surface-2)}
+  .btn.pri{background:var(--primary);border-color:var(--primary);color:#fff}
+  .btn.pri:hover{filter:brightness(1.06)}
+  .btn.sm{padding:6px 11px;font-size:12px;border-radius:8px}
+  .btn.gold{background:var(--gold);border-color:var(--gold);color:#fff}
+
+  .card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);box-shadow:var(--shadow)}
+  .pad{padding:18px}
+  .chip{display:inline-flex;align-items:center;gap:5px;font-size:11.5px;font-weight:700;
+    border-radius:100px;padding:3px 10px;white-space:nowrap}
+  .chip .cd{width:6px;height:6px;border-radius:50%}
+  .st-new{color:var(--st-new);background:var(--st-new-soft)} .st-new .cd{background:var(--st-new)}
+  .st-contact{color:var(--st-contact);background:var(--st-contact-soft)} .st-contact .cd{background:var(--st-contact)}
+  .st-demo{color:var(--st-demo);background:var(--st-demo-soft)} .st-demo .cd{background:var(--st-demo)}
+  .st-nego{color:var(--st-nego);background:var(--st-nego-soft)} .st-nego .cd{background:var(--st-nego)}
+  .st-won{color:var(--st-won);background:var(--st-won-soft)} .st-won .cd{background:var(--st-won)}
+  .st-lost{color:var(--st-lost);background:var(--st-lost-soft)} .st-lost .cd{background:var(--st-lost)}
+  .ch-ok{color:var(--success);background:var(--success-soft)}
+  .ch-wait{color:var(--warning);background:var(--warning-soft)}
+  .ch-bad{color:var(--danger);background:var(--danger-soft)}
+  .ch-gold{color:var(--gold);background:var(--gold-soft)}
+  .ch-mut{color:var(--muted);background:var(--surface-2)}
+
+  .avm{width:26px;height:26px;border-radius:50%;flex:none;display:inline-grid;place-items:center;
+    font-weight:800;font-size:11px;color:#fff}
+
+  /* ---------- KPI ---------- */
+  .kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:13px;margin-bottom:18px}
+  @media(max-width:1000px){.kpis{grid-template-columns:repeat(2,1fr)}}
+  @media(max-width:520px){.kpis{grid-template-columns:1fr}}
+  .kpi{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:15px 16px;
+    box-shadow:var(--shadow);position:relative;overflow:hidden}
+  .kpi::before{content:"";position:absolute;inset-block:0;inset-inline-start:0;width:4px;background:var(--kc,var(--primary))}
+  .kpi .kl{font-size:12px;color:var(--muted);font-weight:600;display:flex;align-items:center;gap:6px}
+  .kpi .kv{font-size:25px;font-weight:800;letter-spacing:-.01em;margin-top:5px}
+  .kpi .kv small{font-size:13px;font-weight:700;color:var(--muted)}
+  .kpi .kf{font-size:11.5px;margin-top:4px;font-weight:700}
+  .up{color:var(--success)} .dn{color:var(--danger)}
+
+  .grid2{display:grid;grid-template-columns:1.5fr 1fr;gap:14px;align-items:start}
+  @media(max-width:900px){.grid2{grid-template-columns:1fr}}
+  .sectitle{font-size:15px;font-weight:800;margin:0 0 2px;display:flex;align-items:center;gap:8px}
+  .sectitle .mini{font-size:11px;font-weight:700;color:var(--muted);background:var(--surface-2);border-radius:6px;padding:1px 7px}
+  .secnote{font-size:12.5px;color:var(--muted);margin:0 0 14px}
+
+  /* tasks list */
+  .tasks{display:flex;flex-direction:column}
+  .task{display:flex;align-items:center;gap:11px;padding:11px 4px;border-bottom:1px solid var(--border)}
+  .task:last-child{border-bottom:0}
+  .task .tk-ic{width:30px;height:30px;border-radius:8px;flex:none;display:grid;place-items:center;font-size:14px}
+  .task .tk-b{flex:1;min-width:0}
+  .task .tk-t{font-size:13.5px;font-weight:700}
+  .task .tk-s{font-size:11.5px;color:var(--muted)}
+  .task .due{font-size:11px;font-weight:800;white-space:nowrap}
+
+  /* spark */
+  .sparkwrap{display:flex;align-items:flex-end;justify-content:space-between;gap:14px}
+  .sparkwrap svg{width:100%;height:64px;overflow:visible}
+
+  /* ---------- pipeline kanban ---------- */
+  .board{display:flex;gap:12px;overflow-x:auto;padding-bottom:12px}
+  .col{flex:0 0 246px;background:var(--surface-2);border:1px solid var(--border);border-radius:var(--r);
+    display:flex;flex-direction:column;max-height:73vh}
+  .col .colh{padding:11px 13px;display:flex;align-items:center;gap:8px;border-bottom:1px solid var(--border)}
+  .col .colh .nm{font-size:13px;font-weight:800}
+  .col .colh .ct{font-size:11px;font-weight:800;color:var(--muted);background:var(--surface);border-radius:100px;padding:1px 8px}
+  .col .colh .sum{margin-inline-start:auto;font-size:11px;color:var(--muted);font-weight:700}
+  .col .cbar{height:3px;background:var(--cc,var(--primary))}
+  .col .body{padding:9px;overflow-y:auto;display:flex;flex-direction:column;gap:9px}
+  .deal{background:var(--surface);border:1px solid var(--border);border-radius:11px;padding:11px 12px;
+    cursor:grab;box-shadow:var(--shadow);transition:transform .12s,box-shadow .12s}
+  .deal:hover{transform:translateY(-2px);box-shadow:var(--shadow-lg)}
+  .deal .dn{font-size:13.5px;font-weight:800;margin-bottom:2px}
+  .deal .dm{font-size:11.5px;color:var(--muted);display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+  .deal .dv{font-size:13px;font-weight:800;margin-top:8px;color:var(--ink)}
+  .deal .dfoot{display:flex;align-items:center;justify-content:space-between;margin-top:9px;gap:8px}
+  .deal .days{font-size:10.5px;color:var(--faint);font-weight:700}
+
+  /* ---------- table ---------- */
+  .twrap{overflow-x:auto}
+  table.tbl{border-collapse:collapse;width:100%;min-width:600px}
+  table.tbl th{font-size:11.5px;color:var(--muted);font-weight:700;text-align:right;padding:11px 13px;
+    border-bottom:1px solid var(--border);white-space:nowrap;background:var(--surface-2)}
+  table.tbl td{font-size:13px;padding:12px 13px;border-bottom:1px solid var(--border);vertical-align:middle}
+  table.tbl tr:last-child td{border-bottom:0}
+  table.tbl tr.clk{cursor:pointer}
+  table.tbl tr.clk:hover td{background:var(--surface-2)}
+  .cellname{font-weight:700}
+  .cellsub{font-size:11px;color:var(--muted);font-weight:500}
+  .feat{display:inline-flex;font-size:10.5px;font-weight:700;color:var(--primary-ink);background:var(--primary-soft);
+    border-radius:6px;padding:1px 7px;margin:1px 2px 1px 0}
+  td.money{font-weight:800;font-variant-numeric:tabular-nums;white-space:nowrap}
+  .neg{color:var(--danger)}
+
+  /* ---------- customer detail ---------- */
+  .backlink{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;font-weight:700;color:var(--muted);
+    cursor:pointer;margin-bottom:12px;border:0;background:none;font-family:inherit}
+  .backlink:hover{color:var(--ink)}
+  .custhead{display:flex;gap:14px;align-items:flex-start;flex-wrap:wrap}
+  .custhead .big{width:52px;height:52px;border-radius:13px;flex:none;display:grid;place-items:center;
+    color:#fff;font-weight:900;font-size:20px;background:var(--st-won)}
+  .custhead h1{font-size:22px;font-weight:800;margin:0}
+  .custhead .meta{font-size:12.5px;color:var(--muted);margin-top:3px;display:flex;gap:12px;flex-wrap:wrap}
+  .custgrid{display:grid;grid-template-columns:1.5fr 1fr;gap:14px;margin-top:16px;align-items:start}
+  @media(max-width:900px){.custgrid{grid-template-columns:1fr}}
+  .timeline{position:relative;padding-inline-start:6px}
+  .tl{display:flex;gap:11px;padding-bottom:16px;position:relative}
+  .tl::before{content:"";position:absolute;inset-inline-start:14px;top:26px;bottom:0;width:2px;background:var(--border)}
+  .tl:last-child::before{display:none}
+  .tl .ti{width:30px;height:30px;border-radius:50%;flex:none;display:grid;place-items:center;font-size:13px;z-index:1}
+  .tl .tb{flex:1;padding-top:3px}
+  .tl .tt{font-size:13px;font-weight:700}
+  .tl .tx{font-size:12px;color:var(--muted);margin-top:1px}
+  .tl .tw{font-size:11px;color:var(--faint);margin-top:3px;font-weight:600}
+  .kv-row{display:flex;justify-content:space-between;gap:10px;padding:9px 0;border-bottom:1px solid var(--border);font-size:12.5px}
+  .kv-row:last-child{border-bottom:0}
+  .kv-row .k{color:var(--muted)} .kv-row .v{font-weight:700;text-align:left}
+  .attrib{background:var(--gold-soft);border:1px solid var(--gold);border-radius:12px;padding:13px;margin-bottom:12px}
+  .attrib .al{font-size:11px;font-weight:800;color:var(--gold);display:flex;align-items:center;gap:6px;margin-bottom:7px}
+  .attrib .an{font-size:14px;font-weight:800}
+  .attrib .ax{font-size:11.5px;color:var(--muted);margin-top:3px}
+  .lock{font-size:10px;background:var(--surface);border:1px solid var(--border);border-radius:5px;padding:1px 6px;color:var(--muted);font-weight:700}
+
+  /* ---------- leaderboard ---------- */
+  .lbrow{display:flex;align-items:center;gap:13px;padding:13px;border-bottom:1px solid var(--border)}
+  .lbrow:last-child{border-bottom:0}
+  .lbrow .rk{width:26px;font-size:15px;font-weight:900;text-align:center;color:var(--faint)}
+  .lbrow.top1 .rk{color:var(--gold)} .lbrow.top2 .rk,.lbrow.top3 .rk{color:var(--primary)}
+  .lbrow .who2{flex:1;min-width:120px}
+  .lbrow .who2 .n{font-size:13.5px;font-weight:800} .lbrow .who2 .t{font-size:11px;color:var(--muted)}
+  .barwrap{flex:1.4;min-width:110px}
+  .bar{height:8px;background:var(--surface-2);border-radius:100px;overflow:hidden}
+  .bar span{display:block;height:100%;border-radius:100px;background:linear-gradient(90deg,var(--primary),#9b7bf2)}
+  .lbrow .barnum{font-size:11px;color:var(--muted);margin-top:4px;font-weight:700}
+  .lbrow .stat{text-align:center;min-width:58px}
+  .lbrow .stat .sv{font-size:15px;font-weight:800} .lbrow .stat .sl{font-size:10px;color:var(--muted)}
+  @media(max-width:760px){.lbrow .stat.hidesm{display:none}.barwrap{display:none}}
+
+  /* ---------- org tree ---------- */
+  .orgtop{display:flex;flex-direction:column;align-items:center;gap:4px;padding:14px}
+  .orgnode{background:var(--surface);border:1px solid var(--border-strong);border-radius:12px;padding:10px 15px;
+    text-align:center;box-shadow:var(--shadow);min-width:150px}
+  .orgnode.boss{border-color:var(--primary);background:var(--primary-soft)}
+  .orgnode .on-n{font-size:13.5px;font-weight:800} .orgnode .on-r{font-size:11px;color:var(--muted)}
+  .orgnode .on-terr{font-size:10.5px;color:var(--primary-ink);font-weight:700;margin-top:3px}
+  .orgrow{display:flex;gap:16px;justify-content:center;flex-wrap:wrap;margin-top:8px}
+  .orgbranch{display:flex;flex-direction:column;align-items:center;gap:8px}
+  .orgkids{display:flex;gap:9px;flex-wrap:wrap;justify-content:center}
+  .orgkids .orgnode{min-width:120px;padding:8px 12px}
+  .connect{width:2px;height:16px;background:var(--border-strong)}
+
+  /* source chips row */
+  .srcrow{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+  .src{display:inline-flex;align-items:center;gap:7px;font-size:12.5px;font-weight:700;
+    border:1px solid var(--border-strong);border-radius:100px;padding:7px 13px;cursor:pointer;background:var(--surface)}
+  .src:hover{background:var(--surface-2)}
+  .src.on{border-color:var(--primary);color:var(--primary-ink);background:var(--primary-soft)}
+
+  .callout{display:flex;gap:10px;background:var(--primary-soft);border:1px solid color-mix(in srgb,var(--primary) 30%,transparent);
+    border-radius:12px;padding:12px 14px;font-size:12.5px;color:var(--ink);margin-bottom:16px}
+  .callout .ci{font-size:16px}
+  .callout b{color:var(--primary-ink)}
+
+  /* ---------- pipeline: view toggle + funnel ---------- */
+  .viewtoggle{display:flex;background:var(--surface-2);border:1px solid var(--border);border-radius:100px;padding:3px}
+  .viewtoggle button{border:0;background:none;color:var(--muted);font-family:inherit;font-weight:700;font-size:12.5px;
+    padding:7px 15px;border-radius:100px;cursor:pointer;white-space:nowrap}
+  .viewtoggle button.on{background:var(--surface);color:var(--ink);box-shadow:var(--shadow)}
+  .pview[hidden]{display:none}
+  .funnelwrap{display:grid;grid-template-columns:418px 1fr;gap:18px;align-items:start}
+  @media(max-width:880px){.funnelwrap{grid-template-columns:1fr}}
+  .funhead{display:flex;align-items:center;justify-content:space-between;gap:10px;background:var(--surface);
+    border:1px solid var(--border);border-radius:12px;padding:11px 15px;margin-bottom:14px;box-shadow:var(--shadow)}
+  .funhead .fh-l{font-size:11px;color:var(--muted);font-weight:700}
+  .funhead .fh-v{font-size:23px;font-weight:900;color:var(--primary-ink);line-height:1;margin-top:2px}
+  .funhead .fh-r{font-size:12px;color:var(--muted);font-weight:700;text-align:left}
+  .funnel{display:flex;flex-direction:column;align-items:center}
+  .fband{position:relative;width:100%;height:64px;border:0;cursor:pointer;color:#fff;font-family:inherit;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;background:var(--hue);
+    clip-path:polygon(var(--t) 0, calc(100% - var(--t)) 0, calc(100% - var(--b)) 100%, var(--b) 100%);
+    transition:filter .16s,transform .16s}
+  .fband:hover{filter:brightness(1.09) drop-shadow(0 5px 12px rgba(0,0,0,.18));z-index:2}
+  .fband.sel{transform:scale(1.025);filter:brightness(1.04) drop-shadow(0 8px 18px rgba(0,0,0,.26));z-index:3}
+  .fband .fb-name{font-size:12.5px;font-weight:800;text-shadow:0 1px 2px rgba(0,0,0,.32)}
+  .fband .fb-count{font-size:19px;font-weight:900;line-height:1.15;text-shadow:0 1px 2px rgba(0,0,0,.32)}
+  .fconn{display:flex;align-items:center;justify-content:center;gap:8px;font-size:11px;font-weight:800;padding:5px 0}
+  .fconn .pc{color:var(--ink);background:var(--surface);border:1px solid var(--border);border-radius:100px;padding:1px 9px}
+  .fconn .dr{color:var(--faint);font-weight:600}
+  .lostbar{display:flex;align-items:center;justify-content:space-between;gap:8px;width:100%;margin-top:14px;
+    background:var(--st-lost-soft);color:var(--st-lost);border:1px dashed var(--border-strong);border-radius:10px;
+    padding:10px 14px;font-family:inherit;font-weight:800;font-size:12px;cursor:pointer}
+  .lostbar:hover{filter:brightness(.97)}
+  .sd-head{display:flex;align-items:center;gap:9px;margin-bottom:13px}
+  .sd-dot{width:13px;height:13px;border-radius:4px;flex:none}
+  .sd-title{font-size:16.5px;font-weight:800}
+  .sd-kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:16px}
+  @media(max-width:520px){.sd-kpis{grid-template-columns:repeat(2,1fr)}}
+  .sd-kpi{background:var(--surface-2);border:1px solid var(--border);border-radius:10px;padding:10px 8px;text-align:center}
+  .sd-kpi .v{font-size:16px;font-weight:800} .sd-kpi .l{font-size:10.5px;color:var(--muted);font-weight:600;margin-top:2px}
+  .sd-deals{display:flex;flex-direction:column;gap:9px}
+  .ftip{position:fixed;z-index:80;direction:rtl;text-align:right;
+    font-family:"Vazirmatn","IRANSans",system-ui,Tahoma,sans-serif;
+    background:var(--ink);color:var(--ground);font-size:11.5px;font-weight:700;padding:9px 12px;border-radius:10px;
+    box-shadow:var(--shadow-lg);pointer-events:none;opacity:0;transform:translateY(4px);transition:opacity .12s;
+    max-width:230px;line-height:1.7}
+  .ftip.show{opacity:1;transform:none}
+  .ftip b{color:#fff}
+
+  /* toast */
+  .toast{position:fixed;inset-block-end:22px;inset-inline-start:50%;transform:translate(50%,120%);
+    background:var(--ink);color:var(--ground);font-size:13px;font-weight:700;padding:11px 18px;border-radius:11px;
+    box-shadow:var(--shadow-lg);z-index:90;transition:transform .3s cubic-bezier(.2,.9,.3,1);max-width:90vw}
+  .toast.show{transform:translate(50%,0)}
+
+  .mgronly{display:none}
+  .app[data-role="mgr"] .mgronly{display:block}
+  .app[data-role="mgr"] .reponly{display:none}
+  .foot{color:var(--faint);font-size:11.5px;text-align:center;margin-top:26px;padding-top:16px;border-top:1px solid var(--border)}
+</style>
+
+<div class="app" data-role="rep" id="app">
+
+  <!-- TOP BAR -->
+  <div class="top">
+    <div class="brand"><span class="logo">M</span>میزرو <span class="sub">سِیلز</span></div>
+    <div class="spacer"></div>
+    <div class="roleswitch" id="roleSwitch">
+      <button class="on" data-role="rep">نمای فروشنده</button>
+      <button data-role="mgr">نمای مدیر فروش</button>
+    </div>
+    <div class="who">
+      <div class="meta" style="text-align:left">
+        <div class="nm" id="whoName">رضا کریمی</div>
+        <div class="rl" id="whoRole">فروشنده — تهران</div>
+      </div>
+      <div class="av" id="whoAv">ر‌ک</div>
+    </div>
+  </div>
+
+  <div class="shell">
+    <!-- SIDEBAR -->
+    <aside class="side">
+      <div class="navgroup">
+        <div class="glabel">فروش من</div>
+        <div class="nav">
+          <button class="on" data-scr="dash"><span class="ic">▦</span>داشبورد</button>
+          <button data-scr="pipe"><span class="ic">▚</span>پایپلاین فروش</button>
+          <button data-scr="cust"><span class="ic">☰</span>پرونده‌ها</button>
+        </div>
+      </div>
+      <div class="navgroup">
+        <div class="glabel">جذب سرنخ</div>
+        <div class="nav">
+          <button data-scr="inbound"><span class="ic">✉</span>سرنخ‌های وبسایت<span class="badge">۳</span></button>
+          <button data-scr="prospect"><span class="ic">◎</span>لیست بازدید</button>
+        </div>
+      </div>
+      <div class="navgroup">
+        <div class="glabel">درآمد</div>
+        <div class="nav">
+          <button data-scr="comm"><span class="ic">₮</span>کمیسیون من</button>
+        </div>
+      </div>
+      <div class="navgroup mgronly">
+        <div class="glabel">مدیریت تیم</div>
+        <div class="nav">
+          <button data-scr="board"><span class="ic">★</span>رتبه‌بندی و عملکرد</button>
+          <button data-scr="org"><span class="ic">⬢</span>تیم فروش</button>
+          <button data-scr="alloc"><span class="ic">⇄</span>تخصیص سرنخ</button>
+        </div>
+      </div>
+
+      <div class="bridge">
+        <div class="bh"><span class="dot"></span>یکپارچه با میزرو</div>
+        <div class="row"><b>پرداخت مشتری</b><span class="arw">←</span>کمیسیون خودکار</div>
+        <div class="row"><b>معاملهٔ برنده</b><span class="arw">←</span>استقرار خودکار</div>
+        <div class="row"><b>فرم وبسایت</b><span class="arw">←</span>سرنخ ورودی</div>
+        <div class="row" style="color:var(--faint);margin-top:8px">سیستم مستقل · کاربران فروش جدا</div>
+      </div>
+    </aside>
+
+    <!-- MAIN -->
+    <main class="main">
+
+      <!-- ===== DASHBOARD ===== -->
+      <section class="screen on" id="scr-dash">
+        <div class="phead">
+          <div>
+            <h1 id="dashHi">سلام رضا 👋</h1>
+            <p class="psub">امروز <b>۵</b> پیگیری داری و <b>۲</b> معامله در مرحلهٔ مذاکره.</p>
+          </div>
+          <button class="btn pri" onclick="toast('فرم افزودن سرنخ باز شد')">＋ سرنخ جدید</button>
+        </div>
+
+        <div class="kpis">
+          <div class="kpi" style="--kc:var(--st-demo)">
+            <div class="kl">◷ ارزش پایپلاین من</div>
+            <div class="kv num">۴۲٫۵ <small>م. تومان</small></div>
+            <div class="kf up">↑ ۸ معاملهٔ باز</div>
+          </div>
+          <div class="kpi" style="--kc:var(--st-won)">
+            <div class="kl">✓ بستهٔ این ماه</div>
+            <div class="kv num">۶ <small>معامله</small></div>
+            <div class="kf up">↑ ۲٪ نسبت به ماه قبل</div>
+          </div>
+          <div class="kpi" style="--kc:var(--gold)">
+            <div class="kl">₮ کمیسیون این ماه</div>
+            <div class="kv num">۳٬۱۸۰٬۰۰۰</div>
+            <div class="kf"><span class="up">۲٬۴۱۰٬۰۰۰ پرداخت‌شده</span> · <span style="color:var(--warning)">۷۷۰٬۰۰۰ در انتظار</span></div>
+          </div>
+          <div class="kpi" style="--kc:var(--st-contact)">
+            <div class="kl">↗ نرخ تبدیل من</div>
+            <div class="kv num">۳۴٪</div>
+            <div class="kf up">رتبهٔ ۲ تیم</div>
+          </div>
+        </div>
+
+        <div class="grid2">
+          <!-- today's tasks -->
+          <div class="card pad">
+            <div class="sectitle">کارهای امروز <span class="mini">۵ پیگیری</span></div>
+            <p class="secnote">این همان «دیتای مشتری برای تماس بعدی» است — هر سرنخ، اقدام بعدی‌اش را یادآوری می‌کند.</p>
+            <div class="tasks">
+              <div class="task">
+                <div class="tk-ic" style="background:var(--st-nego-soft);color:var(--st-nego)">☎</div>
+                <div class="tk-b"><div class="tk-t">تماس با شیرینی‌سرا گل‌رز</div><div class="tk-s">پیگیری قیمت نهایی — مرحلهٔ مذاکره</div></div>
+                <div class="due" style="color:var(--danger)">امروز ۱۱:۰۰</div>
+              </div>
+              <div class="task">
+                <div class="tk-ic" style="background:var(--st-demo-soft);color:var(--st-demo)">◎</div>
+                <div class="tk-b"><div class="tk-t">بازدید حضوری کافه‌گالری رنگ</div><div class="tk-s">ارائهٔ دمو — شیراز، خیابان زند</div></div>
+                <div class="due" style="color:var(--warning)">امروز ۱۵:۳۰</div>
+              </div>
+              <div class="task">
+                <div class="tk-ic" style="background:var(--st-contact-soft);color:var(--st-contact)">✉</div>
+                <div class="tk-b"><div class="tk-t">ارسال پیامک یادآوری به رستوران درویش</div><div class="tk-s">لینک دموی منو</div></div>
+                <div class="due">فردا</div>
+              </div>
+              <div class="task">
+                <div class="tk-ic" style="background:var(--st-new-soft);color:var(--st-new)">☏</div>
+                <div class="tk-b"><div class="tk-t">اولین تماس با کافه مینیمال</div><div class="tk-s">سرنخ ورودی از وبسایت — تهران</div></div>
+                <div class="due">فردا</div>
+              </div>
+              <div class="task">
+                <div class="tk-ic" style="background:var(--success-soft);color:var(--success)">↻</div>
+                <div class="tk-b"><div class="tk-t">تمدید اشتراک کافه لونا</div><div class="tk-s">۹ روز تا انقضا — یادآوری خودکار ارسال شد</div></div>
+                <div class="due" style="color:var(--success)">۹ روز</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- side column -->
+          <div style="display:flex;flex-direction:column;gap:14px">
+            <div class="card pad">
+              <div class="sectitle">روند کمیسیون</div>
+              <p class="secnote">۶ ماه گذشته — رشد پایدار</p>
+              <div class="sparkwrap">
+                <svg viewBox="0 0 240 64" preserveAspectRatio="none" aria-hidden="true">
+                  <defs><linearGradient id="g1" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0" stop-color="var(--primary)" stop-opacity=".28"/>
+                    <stop offset="1" stop-color="var(--primary)" stop-opacity="0"/></linearGradient></defs>
+                  <polygon fill="url(#g1)" points="0,50 40,44 80,46 120,34 160,28 200,20 240,12 240,64 0,64"/>
+                  <polyline fill="none" stroke="var(--primary)" stroke-width="2.5" stroke-linejoin="round"
+                    points="0,50 40,44 80,46 120,34 160,28 200,20 240,12"/>
+                  <circle cx="240" cy="12" r="4" fill="var(--primary)"/>
+                </svg>
+              </div>
+              <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--muted);margin-top:8px;font-weight:700">
+                <span>بهمن</span><span>تیر</span></div>
+            </div>
+
+            <div class="card pad">
+              <div class="sectitle">هدف ماهانه</div>
+              <p class="secnote">۶ از ۸ معامله</p>
+              <div class="bar" style="height:11px"><span style="width:75%"></span></div>
+              <div style="display:flex;justify-content:space-between;margin-top:8px;font-size:12px">
+                <b class="num">۷۵٪</b><span style="color:var(--muted)">۲ معامله تا هدف</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===== PIPELINE ===== -->
+      <section class="screen" id="scr-pipe">
+        <div class="phead">
+          <div><h1>پایپلاین فروش</h1><p class="psub">قیف تبدیل — از سرنخ تا مشتری فعال. روی هر مرحله نگه‌دار (جزئیات) یا کلیک کن (معاملات).</p></div>
+          <div class="viewtoggle" id="viewToggle">
+            <button class="on" data-view="funnel">▽ قیف فروش</button>
+            <button data-view="board">▚ برد کانبان</button>
+          </div>
+        </div>
+
+        <!-- FUNNEL VIEW -->
+        <div class="pview" id="view-funnel">
+          <div class="funnelwrap">
+            <div class="funnelcol">
+              <div class="funhead">
+                <div><div class="fh-l">نرخ تبدیل کل قیف</div><div class="fh-v num">۱۲٪</div></div>
+                <div class="fh-r"><span class="num">۶</span> مشتری از <span class="num">۴۸</span> سرنخ<br><span style="color:var(--faint)">این ماه</span></div>
+              </div>
+              <div class="funnel" id="funnel"></div>
+              <button class="lostbar" onclick="selectStage('lost')">
+                <span>▽ خارج‌شده از قیف</span><span class="num">۹ معامله از دست رفته</span>
+              </button>
+            </div>
+            <div class="card pad" id="stageDetail"></div>
+          </div>
+        </div>
+
+        <!-- BOARD VIEW -->
+        <div class="pview" id="view-board" hidden>
+          <div style="display:flex;gap:8px;margin-bottom:14px">
+            <span class="chip ch-mut reponly">فقط معاملات من</span>
+            <span class="chip ch-gold mgronly">نمای کل تیم</span>
+            <button class="btn sm" onclick="toast('فیلتر شهر')">▾ شهر</button>
+          </div>
+          <div class="board" id="board"></div>
+        </div>
+      </section>
+
+      <!-- ===== INBOUND LEADS ===== -->
+      <section class="screen" id="scr-inbound">
+        <div class="phead">
+          <div><h1>سرنخ‌های ورودی از وبسایت</h1><p class="psub">درخواست‌هایی که از فرم mizro.ir می‌آیند و باید به «نفر درست» تخصیص یابند.</p></div>
+        </div>
+        <div class="callout"><span class="ci">↳</span><div><b>یکپارچگی با میزرو:</b> این‌ها همان لیدهای فرم عمومی وبسایت‌اند که مستقیم به CRM می‌ریزند. قانون تخصیص فعلی: <b>بر اساس شهر</b> — سپس فروشندهٔ همان منطقه.</div></div>
+        <div class="card">
+          <div class="twrap"><table class="tbl">
+            <thead><tr><th>کافه / رستوران</th><th>ویژگی‌های درخواستی</th><th>شهر</th><th>زمان</th><th>وضعیت</th><th></th></tr></thead>
+            <tbody>
+              <tr>
+                <td><div class="cellname">کافه مینیمال</div><div class="cellsub">۰۹۱۲···۴۵۶ · خانم رضایی</div></td>
+                <td><span class="feat">نظر مشتریان</span><span class="feat">سفارش روی میز</span></td>
+                <td>تهران</td><td>۲ ساعت پیش</td>
+                <td><span class="chip ch-wait">تخصیص‌نیافته</span></td>
+                <td><button class="btn sm pri" onclick="toast('به رضا کریمی (تهران) تخصیص یافت')">تخصیص ⇦</button></td>
+              </tr>
+              <tr>
+                <td><div class="cellname">رستوران ماهی سفید</div><div class="cellsub">۰۹۱۷···۲۲۱ · آقای دریانی</div></td>
+                <td><span class="feat">وبسایت</span><span class="feat">منوی دیجیتال</span></td>
+                <td>بندرعباس</td><td>۵ ساعت پیش</td>
+                <td><span class="chip ch-wait">تخصیص‌نیافته</span></td>
+                <td><button class="btn sm pri" onclick="toast('هیچ فروشندهٔ فعالی در بندرعباس نیست → صف حساب مرکزی')">تخصیص ⇦</button></td>
+              </tr>
+              <tr>
+                <td><div class="cellname">آبمیوه طبیعت</div><div class="cellsub">۰۹۳۵···۷۸۹ · آقای نجفی</div></td>
+                <td><span class="feat">باشگاه مشتریان</span></td>
+                <td>کرج</td><td>دیروز</td>
+                <td><span class="chip ch-ok">به نگار رستمی</span></td>
+                <td><button class="btn sm" onclick="showCust()">مشاهده</button></td>
+              </tr>
+            </tbody>
+          </table></div>
+        </div>
+      </section>
+
+      <!-- ===== PROSPECTS ===== -->
+      <section class="screen" id="scr-prospect">
+        <div class="phead">
+          <div><h1>لیست بازدید (پراسپکت)</h1><p class="psub">کافه/رستوران‌های واردشده از نقشه — تخصیص به تیم برای بازدید و ارائه.</p></div>
+          <button class="btn pri" onclick="toast('پنجرهٔ ورود از نقشه باز شد')">⬇ وارد کردن از نقشه</button>
+        </div>
+        <div class="srcrow">
+          <span style="font-size:12px;color:var(--muted);align-self:center;font-weight:700">منبع:</span>
+          <span class="src on" onclick="pickSrc(this)">◈ نشان</span>
+          <span class="src" onclick="pickSrc(this)">◈ بلد</span>
+          <span class="src" onclick="pickSrc(this)">◈ گوگل‌مپ</span>
+          <span class="src" onclick="pickSrc(this)">⊞ فایل CSV</span>
+        </div>
+        <div class="callout"><span class="ci">◎</span><div>واردکردن از نقشه <b>مستقل از منبع</b> است. برای کافه‌های ایرانی <b>نشان/بلد</b> پوشش بهتری دارند. سیستم شماره‌های تکراری را حذف و از <b>ادعای هم‌زمان دو فروشنده</b> جلوگیری می‌کند.</div></div>
+        <div class="card">
+          <div class="twrap"><table class="tbl">
+            <thead><tr><th>کسب‌وکار</th><th>منطقه / آدرس</th><th>تلفن</th><th>فروشندهٔ مسئول</th><th>وضعیت بازدید</th><th></th></tr></thead>
+            <tbody>
+              <tr>
+                <td><div class="cellname">کافه آرام</div><div class="cellsub">از نشان · امتیاز ۴٫۶</div></td>
+                <td>تهران · ونک</td><td class="num">۰۲۱-۸۸···</td>
+                <td><span class="avm" style="background:var(--st-demo)">ر‌ک</span> رضا کریمی</td>
+                <td><span class="chip st-new"><span class="cd"></span>در نوبت</span></td>
+                <td><button class="btn sm" onclick="toast('به‌عنوان بازدید امروز علامت خورد')">علامت بازدید</button></td>
+              </tr>
+              <tr>
+                <td><div class="cellname">رستوران البرز</div><div class="cellsub">از نشان · امتیاز ۴٫۲</div></td>
+                <td>کرج · عظیمیه</td><td class="num">۰۲۶-۳۲···</td>
+                <td><span class="avm" style="background:var(--st-won)">ن‌ر</span> نگار رستمی</td>
+                <td><span class="chip st-contact"><span class="cd"></span>بازدید شد</span></td>
+                <td><button class="btn sm" onclick="showCust()">تبدیل به سرنخ</button></td>
+              </tr>
+              <tr>
+                <td><div class="cellname">کافه ماه</div><div class="cellsub">از نشان · امتیاز ۴٫۸</div></td>
+                <td>تهران · سعادت‌آباد</td><td class="num">۰۲۱-۲۲···</td>
+                <td><span class="chip ch-mut">تخصیص‌نیافته</span></td>
+                <td><span class="chip ch-mut">—</span></td>
+                <td><button class="btn sm pri" onclick="toast('به فروشندهٔ منطقهٔ ۲ تخصیص یافت')">تخصیص ⇦</button></td>
+              </tr>
+              <tr>
+                <td><div class="cellname">کافه‌کتاب پاسداران</div><div class="cellsub">از نشان · <span style="color:var(--danger)">تکراری؟</span></div></td>
+                <td>تهران · پاسداران</td><td class="num">۰۲۱-۲۶···</td>
+                <td><span class="chip ch-bad">هشدار تکرار</span></td>
+                <td><span class="chip ch-mut">—</span></td>
+                <td><button class="btn sm" onclick="toast('با «کافه کتاب» موجود ادغام شد')">بررسی تکرار</button></td>
+              </tr>
+            </tbody>
+          </table></div>
+        </div>
+      </section>
+
+      <!-- ===== CUSTOMER DETAIL ===== -->
+      <section class="screen" id="scr-cust">
+        <button class="backlink" onclick="go('pipe')">→ بازگشت به پایپلاین</button>
+        <div class="custhead">
+          <div class="big">لو</div>
+          <div style="flex:1;min-width:200px">
+            <h1>کافه لونا</h1>
+            <div class="meta">
+              <span>◎ تهران · جردن</span><span>☎ ۰۹۱۲···۹۸۷</span><span>مالک: خانم مرادی</span>
+              <span class="chip st-won"><span class="cd"></span>مشتری فعال</span>
+            </div>
+          </div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <button class="btn sm" onclick="toast('تماس ثبت شد')">☎ ثبت تماس</button>
+            <button class="btn sm" onclick="toast('بازدید زمان‌بندی شد')">◎ بازدید</button>
+            <button class="btn sm pri" onclick="toast('پیامک ارسال شد (از طریق کانکت)')">✉ پیامک</button>
+          </div>
+        </div>
+
+        <div class="custgrid">
+          <!-- timeline -->
+          <div class="card pad">
+            <div class="sectitle">تاریخچهٔ تعامل <span class="mini">۷ رویداد</span></div>
+            <p class="secnote">تمام تماس‌ها، بازدیدها، پیامک‌ها و یادداشت‌ها — حافظهٔ گفتگو با مشتری.</p>
+            <div class="timeline">
+              <div class="tl"><div class="ti" style="background:var(--success-soft);color:var(--success)">₮</div>
+                <div class="tb"><div class="tt">پرداخت اشتراک ماهانه — ۴۹۰٬۰۰۰ تومان</div>
+                <div class="tx">از میزرو دریافت شد → کمیسیون ۷۳٬۵۰۰ تومان برای شما ثبت شد</div><div class="tw">۲ روز پیش · خودکار</div></div></div>
+              <div class="tl"><div class="ti" style="background:var(--st-contact-soft);color:var(--st-contact)">✉</div>
+                <div class="tb"><div class="tt">پیامک یادآوری تمدید ارسال شد</div><div class="tx">«۹ روز تا پایان اشتراک شما»</div><div class="tw">۵ روز پیش · بازاریابی خودکار</div></div></div>
+              <div class="tl"><div class="ti" style="background:var(--st-nego-soft);color:var(--st-nego)">✎</div>
+                <div class="tb"><div class="tt">یادداشت: علاقه‌مند به «سفارش روی میز»</div><div class="tx">در بازدید بعدی معرفی شود — احتمال ارتقا به پلن پرو</div><div class="tw">۲ هفته پیش · رضا کریمی</div></div></div>
+              <div class="tl"><div class="ti" style="background:var(--st-won-soft);color:var(--st-won)">✓</div>
+                <div class="tb"><div class="tt">قرارداد بسته شد — پلن استاندارد</div><div class="tx">منو راه‌اندازی و مالک به‌عنوان صاحب دعوت شد</div><div class="tw">۲۲ اردیبهشت · رضا کریمی</div></div></div>
+              <div class="tl"><div class="ti" style="background:var(--st-demo-soft);color:var(--st-demo)">◎</div>
+                <div class="tb"><div class="tt">بازدید حضوری + ارائهٔ دمو</div><div class="tx">نمونه‌منوی «کافه دنج» را پسندیدند</div><div class="tw">۱۸ اردیبهشت · رضا کریمی</div></div></div>
+              <div class="tl"><div class="ti" style="background:var(--st-new-soft);color:var(--st-new)">☏</div>
+                <div class="tb"><div class="tt">اولین تماس</div><div class="tx">سرنخ از لیست بازدید نشان</div><div class="tw">۱۵ اردیبهشت · رضا کریمی</div></div></div>
+            </div>
+          </div>
+
+          <!-- side: attribution + mizro link -->
+          <div style="display:flex;flex-direction:column;gap:14px">
+            <div class="attrib">
+              <div class="al">★ معرِّف (اسناد کمیسیون) <span class="lock">🔒 غیرقابل‌تغییر</span></div>
+              <div class="an">رضا کریمی</div>
+              <div class="ax">این مشتری برای همیشه به این فروشنده منتسب است. کمیسیون <b>هر پرداخت</b> به او تعلق می‌گیرد.</div>
+            </div>
+
+            <div class="card pad">
+              <div class="sectitle">وضعیت در میزرو</div>
+              <p class="secnote">داده‌های زندهٔ محصول (فقط‌خواندنی)</p>
+              <div class="kv-row"><span class="k">کسب‌وکار</span><span class="v">luna · فعال</span></div>
+              <div class="kv-row"><span class="k">پلن فعلی</span><span class="v">استاندارد</span></div>
+              <div class="kv-row"><span class="k">وضعیت اشتراک</span><span class="v" style="color:var(--warning)">۹ روز تا انقضا</span></div>
+              <div class="kv-row"><span class="k">مجموع پرداختی</span><span class="v num">۲٬۹۴۰٬۰۰۰ ت</span></div>
+              <div class="kv-row"><span class="k">کمیسیون کسب‌شده</span><span class="v num" style="color:var(--gold)">۴۴۱٬۰۰۰ ت</span></div>
+              <div class="kv-row"><span class="k">اسکن منو (۳۰ روز)</span><span class="v num">۱٬۲۴۸</span></div>
+              <button class="btn sm" style="width:100%;margin-top:12px;justify-content:center" onclick="toast('در پنل میزرو باز می‌شود')">باز کردن در میزرو ↗</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===== COMMISSION ===== -->
+      <section class="screen" id="scr-comm">
+        <div class="phead">
+          <div><h1>کمیسیون من</h1><p class="psub">دفتر کمیسیون — از هر پرداخت واقعی مشتری، خودکار محاسبه می‌شود.</p></div>
+          <span class="chip ch-mut">دفتر فقط‌افزودنی · بدون دستکاری دستی</span>
+        </div>
+
+        <div class="kpis">
+          <div class="kpi" style="--kc:var(--gold)"><div class="kl">کل کسب‌شده (امسال)</div><div class="kv num">۲۸٬۶۴۰٬۰۰۰</div><div class="kf" style="color:var(--muted)">تومان</div></div>
+          <div class="kpi" style="--kc:var(--success)"><div class="kl">پرداخت‌شده</div><div class="kv num">۲۵٬۱۰۰٬۰۰۰</div><div class="kf up">تسویه</div></div>
+          <div class="kpi" style="--kc:var(--warning)"><div class="kl">در انتظار تسویه</div><div class="kv num">۳٬۵۸۰٬۰۰۰</div><div class="kf" style="color:var(--warning)">۱۲ رکورد</div></div>
+          <div class="kpi" style="--kc:var(--danger)"><div class="kl">برگشت‌خورده (کلاوبک)</div><div class="kv num">−۴۰٬۰۰۰</div><div class="kf dn">۱ لغو زودهنگام</div></div>
+        </div>
+
+        <div class="card">
+          <div class="pad" style="padding-bottom:0"><div class="sectitle">دفتر کمیسیون</div>
+          <p class="secnote">هر ردیف = یک پرداخت واقعی در میزرو. یک مشتری، هر ماه یک ردیف → «کمیسیون روی هر پرداخت».</p></div>
+          <div class="twrap"><table class="tbl">
+            <thead><tr><th>تاریخ</th><th>مشتری</th><th>مبلغ پرداخت</th><th>درصد</th><th>کمیسیون</th><th>وضعیت</th></tr></thead>
+            <tbody>
+              <tr><td class="num">۱۴ تیر</td><td class="cellname">کافه لونا</td><td class="money num">۴۹۰٬۰۰۰</td><td>۱۵٪</td><td class="money num">۷۳٬۵۰۰</td><td><span class="chip ch-wait">در انتظار</span></td></tr>
+              <tr><td class="num">۱۰ تیر</td><td class="cellname">رستوران باغ ایرانی</td><td class="money num">۹۹۰٬۰۰۰</td><td>۱۵٪</td><td class="money num">۱۴۸٬۵۰۰</td><td><span class="chip ch-wait">در انتظار</span></td></tr>
+              <tr><td class="num">۳ تیر</td><td class="cellname">کافه نقطه</td><td class="money num">۲۹۰٬۰۰۰</td><td>۱۵٪</td><td class="money num">۴۳٬۵۰۰</td><td><span class="chip ch-ok">پرداخت‌شده</span></td></tr>
+              <tr><td class="num">۱۴ خرداد</td><td class="cellname">کافه لونا</td><td class="money num">۴۹۰٬۰۰۰</td><td>۱۵٪</td><td class="money num">۷۳٬۵۰۰</td><td><span class="chip ch-ok">پرداخت‌شده</span></td></tr>
+              <tr><td class="num">۹ خرداد</td><td class="cellname">کافه سایه</td><td class="money num neg">−۲۶۰٬۰۰۰</td><td>۱۵٪</td><td class="money num neg">−۴۰٬۰۰۰</td><td><span class="chip ch-bad">کلاوبک — لغو زودهنگام</span></td></tr>
+              <tr><td class="num">۱ خرداد</td><td class="cellname">رستوران باغ ایرانی</td><td class="money num">۹۹۰٬۰۰۰</td><td>۱۵٪</td><td class="money num">۱۴۸٬۵۰۰</td><td><span class="chip ch-ok">پرداخت‌شده</span></td></tr>
+            </tbody>
+          </table></div>
+        </div>
+      </section>
+
+      <!-- ===== LEADERBOARD (mgr) ===== -->
+      <section class="screen" id="scr-board">
+        <div class="phead">
+          <div><h1>رتبه‌بندی و عملکرد تیم</h1><p class="psub">کدام فروشنده بهتر عمل می‌کند — فروش، تبدیل، و مهم‌تر: حفظ مشتری.</p></div>
+          <button class="btn sm" onclick="toast('بازهٔ زمانی')">▾ این ماه</button>
+        </div>
+        <div class="callout"><span class="ci">★</span><div><b>QA فروش:</b> چون کمیسیون روی <b>هر</b> پرداخت است، ستون «حفظ مشتری» هم‌تراز با فروشنده است — فروشندهٔ خوب فقط نمی‌فروشد، مشتری را زنده نگه می‌دارد.</div></div>
+        <div class="card">
+          <div class="lbrow top1">
+            <div class="rk">۱</div>
+            <div class="who2"><div style="display:flex;align-items:center;gap:8px"><span class="avm" style="background:var(--st-nego)">س‌م</span><div><div class="n">سارا محمدی</div><div class="t">تهران</div></div></div></div>
+            <div class="barwrap"><div class="bar"><span style="width:100%"></span></div><div class="barnum">۴۵٫۲ م. تومان فروش</div></div>
+            <div class="stat"><div class="sv num">۱۵</div><div class="sl">معامله</div></div>
+            <div class="stat hidesm"><div class="sv num">۴۱٪</div><div class="sl">تبدیل</div></div>
+            <div class="stat hidesm"><div class="sv num" style="color:var(--success)">۸۸٪</div><div class="sl">حفظ</div></div>
+          </div>
+          <div class="lbrow top2">
+            <div class="rk">۲</div>
+            <div class="who2"><div style="display:flex;align-items:center;gap:8px"><span class="avm" style="background:var(--st-demo)">ر‌ک</span><div><div class="n">رضا کریمی <span class="chip ch-mut" style="font-size:9px">شما</span></div><div class="t">تهران · سرپرست</div></div></div></div>
+            <div class="barwrap"><div class="bar"><span style="width:85%"></span></div><div class="barnum">۳۸٫۵ م. تومان فروش</div></div>
+            <div class="stat"><div class="sv num">۱۲</div><div class="sl">معامله</div></div>
+            <div class="stat hidesm"><div class="sv num">۳۴٪</div><div class="sl">تبدیل</div></div>
+            <div class="stat hidesm"><div class="sv num" style="color:var(--success)">۹۲٪</div><div class="sl">حفظ</div></div>
+          </div>
+          <div class="lbrow top3">
+            <div class="rk">۳</div>
+            <div class="who2"><div style="display:flex;align-items:center;gap:8px"><span class="avm" style="background:var(--st-won)">ا‌ح</span><div><div class="n">امیر حسینی</div><div class="t">اصفهان · سرپرست</div></div></div></div>
+            <div class="barwrap"><div class="bar"><span style="width:61%"></span></div><div class="barnum">۲۷٫۸ م. تومان فروش</div></div>
+            <div class="stat"><div class="sv num">۹</div><div class="sl">معامله</div></div>
+            <div class="stat hidesm"><div class="sv num">۲۹٪</div><div class="sl">تبدیل</div></div>
+            <div class="stat hidesm"><div class="sv num" style="color:var(--success)">۹۵٪</div><div class="sl">حفظ</div></div>
+          </div>
+          <div class="lbrow">
+            <div class="rk">۴</div>
+            <div class="who2"><div style="display:flex;align-items:center;gap:8px"><span class="avm" style="background:var(--st-contact)">ن‌ر</span><div><div class="n">نگار رستمی</div><div class="t">کرج</div></div></div></div>
+            <div class="barwrap"><div class="bar"><span style="width:43%"></span></div><div class="barnum">۱۹٫۴ م. تومان فروش</div></div>
+            <div class="stat"><div class="sv num">۷</div><div class="sl">معامله</div></div>
+            <div class="stat hidesm"><div class="sv num">۲۶٪</div><div class="sl">تبدیل</div></div>
+            <div class="stat hidesm"><div class="sv num" style="color:var(--success)">۹۰٪</div><div class="sl">حفظ</div></div>
+          </div>
+          <div class="lbrow">
+            <div class="rk">۵</div>
+            <div class="who2"><div style="display:flex;align-items:center;gap:8px"><span class="avm" style="background:var(--st-new)">م‌ص</span><div><div class="n">مهدی صادقی</div><div class="t">شیراز</div></div></div></div>
+            <div class="barwrap"><div class="bar"><span style="width:27%"></span></div><div class="barnum">۱۲٫۱ م. تومان فروش</div></div>
+            <div class="stat"><div class="sv num">۵</div><div class="sl">معامله</div></div>
+            <div class="stat hidesm"><div class="sv num">۲۲٪</div><div class="sl">تبدیل</div></div>
+            <div class="stat hidesm"><div class="sv num" style="color:var(--warning)">۸۴٪</div><div class="sl">حفظ</div></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===== ORG ===== -->
+      <section class="screen" id="scr-org">
+        <div class="phead">
+          <div><h1>تیم فروش</h1><p class="psub">ساختار تیم که مستقل رشد می‌کند — کشوری ← منطقه‌ای ← سرپرست ← فروشنده.</p></div>
+          <button class="btn pri" onclick="toast('فرم افزودن فروشنده باز شد')">＋ افزودن فروشنده</button>
+        </div>
+        <div class="callout"><span class="ci">⬢</span><div>کاربران فروش <b>جدا از کاربران میزرو</b> هستند. فروشندهٔ میدانی هیچ دسترسی‌ای به پنل محصول ندارد — فقط پایپلاین خودش را می‌بیند. فقط نقش‌های «استقرار» به میزرو لینک می‌شوند.</div></div>
+        <div class="card">
+          <div class="orgtop">
+            <div class="orgnode boss"><div class="on-n">کاوه مرادی</div><div class="on-r">مدیر فروش کشوری</div></div>
+            <div class="connect"></div>
+            <div class="orgrow">
+              <div class="orgbranch">
+                <div class="orgnode"><div class="on-n">رضا کریمی</div><div class="on-r">سرپرست تیم</div><div class="on-terr">منطقهٔ تهران</div></div>
+                <div class="connect"></div>
+                <div class="orgkids">
+                  <div class="orgnode"><div class="on-n">سارا محمدی</div><div class="on-r">فروشنده</div></div>
+                  <div class="orgnode"><div class="on-n">نگار رستمی</div><div class="on-r">فروشنده · کرج</div></div>
+                </div>
+              </div>
+              <div class="orgbranch">
+                <div class="orgnode"><div class="on-n">امیر حسینی</div><div class="on-r">سرپرست تیم</div><div class="on-terr">اصفهان / شیراز</div></div>
+                <div class="connect"></div>
+                <div class="orgkids">
+                  <div class="orgnode"><div class="on-n">مهدی صادقی</div><div class="on-r">فروشنده · شیراز</div></div>
+                  <div class="orgnode" style="border-style:dashed;opacity:.7"><div class="on-n">＋ جای خالی</div><div class="on-r">فروشندهٔ اصفهان</div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===== ALLOC (mgr) ===== -->
+      <section class="screen" id="scr-alloc">
+        <div class="phead">
+          <div><h1>تخصیص سرنخ</h1><p class="psub">سرنخ‌های بی‌صاحب را به فروشنده‌ها اختصاص بده — دستی یا بر اساس منطقه.</p></div>
+          <button class="btn sm" onclick="toast('تخصیص خودکار بر اساس شهر اجرا شد')">⚡ تخصیص خودکار</button>
+        </div>
+        <div class="callout"><span class="ci">⇄</span><div>قانون پیش‌فرض: <b>دستی توسط مدیر</b> (نوبت‌گردشی و منطقه‌ای در فاز بعد). سرنخ خودسرویس (بدون فروشنده) → <b>حساب مرکزی</b> تا تخصیص یابد.</div></div>
+        <div class="card">
+          <div class="twrap"><table class="tbl">
+            <thead><tr><th>سرنخ</th><th>منبع</th><th>شهر</th><th>تخصیص به</th><th></th></tr></thead>
+            <tbody>
+              <tr><td class="cellname">کافه مینیمال</td><td>وبسایت</td><td>تهران</td>
+                <td><span class="chip ch-wait">حساب مرکزی</span></td>
+                <td><button class="btn sm pri" onclick="toast('به رضا کریمی تخصیص یافت')">← رضا کریمی</button></td></tr>
+              <tr><td class="cellname">کافه ماه</td><td>نشان</td><td>تهران</td>
+                <td><span class="chip ch-wait">حساب مرکزی</span></td>
+                <td><button class="btn sm pri" onclick="toast('به سارا محمدی تخصیص یافت')">← سارا محمدی</button></td></tr>
+              <tr><td class="cellname">رستوران ماهی سفید</td><td>وبسایت</td><td>بندرعباس</td>
+                <td><span class="chip ch-bad">بدون فروشندهٔ منطقه</span></td>
+                <td><button class="btn sm" onclick="toast('برای پیگیری تلفنی به حساب مرکزی ماند')">پیگیری تلفنی</button></td></tr>
+            </tbody>
+          </table></div>
+        </div>
+      </section>
+
+      <div class="foot">نمونهٔ تعاملی «میزرو سِیلز» — فقط برای بررسی جریان‌ها و بخش‌های کلیدی · داده‌ها ساختگی‌اند</div>
+    </main>
+  </div>
+
+  <div class="toast" id="toast"></div>
+</div>
+
+<script>
+  // ---- screen nav ----
+  function go(scr){
+    document.querySelectorAll('.screen').forEach(s=>s.classList.remove('on'));
+    var el=document.getElementById('scr-'+scr); if(el) el.classList.add('on');
+    document.querySelectorAll('.nav button').forEach(b=>b.classList.toggle('on', b.dataset.scr===scr));
+    document.querySelector('.main').scrollTo?.(0,0);
+    window.scrollTo({top:0,behavior:'smooth'});
+  }
+  document.querySelectorAll('.nav button').forEach(b=>b.addEventListener('click',()=>go(b.dataset.scr)));
+
+  // ---- role switch ----
+  var app=document.getElementById('app');
+  document.querySelectorAll('#roleSwitch button').forEach(b=>b.addEventListener('click',()=>{
+    document.querySelectorAll('#roleSwitch button').forEach(x=>x.classList.remove('on'));
+    b.classList.add('on');
+    var r=b.dataset.role; app.dataset.role=r;
+    if(r==='mgr'){
+      whoName.textContent='کاوه مرادی'; whoRole.textContent='مدیر فروش کشوری'; whoAv.textContent='ک‌م';
+      whoAv.style.background='var(--gold)';
+    }else{
+      whoName.textContent='رضا کریمی'; whoRole.textContent='فروشنده — تهران'; whoAv.textContent='ر‌ک';
+      whoAv.style.background='var(--st-demo)';
+      var cur=document.querySelector('.screen.on');
+      if(cur && ['scr-board','scr-org','scr-alloc'].includes(cur.id)) go('dash');
+    }
+  }));
+
+  // ---- toast ----
+  var tEl=document.getElementById('toast'), tT;
+  function toast(m){ tEl.textContent=m; tEl.classList.add('show'); clearTimeout(tT); tT=setTimeout(()=>tEl.classList.remove('show'),2200); }
+
+  function showCust(){ go('cust'); }
+  function pickSrc(el){ el.parentNode.querySelectorAll('.src').forEach(s=>s.classList.remove('on')); el.classList.add('on'); toast('منبع: '+el.textContent.trim()); }
+
+  // ---- build pipeline board ----
+  var STAGES=[
+    {k:'new',   nm:'سرنخ جدید',   cls:'st-new',    cc:'var(--st-new)'},
+    {k:'contact',nm:'تماس گرفته',  cls:'st-contact',cc:'var(--st-contact)'},
+    {k:'demo',  nm:'دمو / ارائه',  cls:'st-demo',   cc:'var(--st-demo)'},
+    {k:'nego',  nm:'مذاکره',       cls:'st-nego',   cc:'var(--st-nego)'},
+    {k:'won',   nm:'برنده · فعال', cls:'st-won',    cc:'var(--st-won)'},
+    {k:'lost',  nm:'از دست رفته',  cls:'st-lost',   cc:'var(--st-lost)'}
+  ];
+  var DEALS={
+    new:[{n:'کافه مینیمال',c:'تهران · منطقه ۳',v:'۲٫۹ م',d:'۲ روز',a:'ر‌ک',ac:'var(--st-demo)'},
+         {n:'آبمیوه طبیعت',c:'کرج',v:'۲٫۹ م',d:'۱ روز',a:'ن‌ر',ac:'var(--st-won)'}],
+    contact:[{n:'رستوران درویش',c:'اصفهان',v:'۵٫۹ م',d:'۴ روز',a:'ا‌ح',ac:'var(--st-won)'},
+         {n:'کافه کتاب',c:'تهران · منطقه ۶',v:'۲٫۹ م',d:'۳ روز',a:'ر‌ک',ac:'var(--st-demo)'}],
+    demo:[{n:'کافه‌گالری رنگ',c:'شیراز',v:'۵٫۹ م',d:'امروز',a:'م‌ص',ac:'var(--st-new)'},
+         {n:'فست‌فود برگرلند',c:'تهران · منطقه ۲',v:'۹٫۹ م',d:'۶ روز',a:'س‌م',ac:'var(--st-nego)'}],
+    nego:[{n:'شیرینی‌سرا گل‌رز',c:'مشهد',v:'۵٫۹ م',d:'۲ روز',a:'ر‌ک',ac:'var(--st-demo)',hot:1},
+         {n:'رستوران شبهای تهران',c:'تهران',v:'۹٫۹ م',d:'۵ روز',a:'س‌م',ac:'var(--st-nego)'}],
+    won:[{n:'کافه لونا',c:'تهران · جردن',v:'۲٫۹ م',d:'مشتری',a:'ر‌ک',ac:'var(--st-demo)',live:1},
+         {n:'رستوران باغ ایرانی',c:'تهران',v:'۹٫۹ م',d:'مشتری',a:'ر‌ک',ac:'var(--st-demo)',live:1},
+         {n:'کافه نقطه',c:'تهران · منطقه ۷',v:'۲٫۹ م',d:'مشتری',a:'ن‌ر',ac:'var(--st-won)',live:1}],
+    lost:[{n:'کافه سایه',c:'تهران',v:'—',d:'رقیب',a:'س‌م',ac:'var(--st-nego)'}]
+  };
+  var board=document.getElementById('board');
+  STAGES.forEach(st=>{
+    var items=DEALS[st.k]||[];
+    var col=document.createElement('div'); col.className='col';
+    var cards=items.map(function(dl){
+      return '<div class="deal" onclick="showCust()">'+
+        '<div class="dn">'+dl.n+'</div>'+
+        '<div class="dm">◎ '+dl.c+'</div>'+
+        '<div class="dv">'+(dl.v==='—'?'<span style=\"color:var(--faint)\">بدون ارزش</span>':dl.v+' تومان')+'</div>'+
+        '<div class="dfoot"><span class="avm" style="background:'+dl.ac+'">'+dl.a+'</span>'+
+        (dl.hot?'<span class="chip ch-bad" style="font-size:10px">داغ 🔥</span>':dl.live?'<span class="chip st-won" style="font-size:10px"><span class="cd"></span>در میزرو</span>':'<span class="days">'+dl.d+'</span>')+
+        '</div></div>';
+    }).join('');
+    col.innerHTML='<div class="cbar" style="background:'+st.cc+'"></div>'+
+      '<div class="colh"><span class="nm">'+st.nm+'</span><span class="ct num">'+items.length+'</span>'+
+      '<span class="sum">'+(st.k==='lost'?'':(st.k==='won'?'فعال':''))+'</span></div>'+
+      '<div class="body">'+(cards||'<div style="color:var(--faint);font-size:12px;text-align:center;padding:14px">خالی</div>')+'</div>';
+    board.appendChild(col);
+  });
+
+  // ---- pipeline view toggle ----
+  document.querySelectorAll('#viewToggle button').forEach(function(b){
+    b.addEventListener('click',function(){
+      document.querySelectorAll('#viewToggle button').forEach(x=>x.classList.remove('on'));
+      b.classList.add('on');
+      var v=b.dataset.view;
+      document.getElementById('view-funnel').hidden=(v!=='funnel');
+      document.getElementById('view-board').hidden=(v!=='board');
+    });
+  });
+
+  // ---- funnel ----
+  var FMETA={
+    new:    {nm:'سرنخ جدید',   hue:'--st-new',    count:'۴۸', value:'۱۳۹ م', avg:'۲ روز', conv:'—'},
+    contact:{nm:'تماس گرفته',  hue:'--st-contact',count:'۳۲', value:'۹۸ م',  avg:'۴ روز', conv:'۶۷٪'},
+    demo:   {nm:'دمو / ارائه',  hue:'--st-demo',   count:'۱۹', value:'۷۱ م',  avg:'۵ روز', conv:'۵۹٪'},
+    nego:   {nm:'مذاکره',       hue:'--st-nego',   count:'۱۱', value:'۵۲ م',  avg:'۶ روز', conv:'۵۸٪'},
+    won:    {nm:'برنده · فعال', hue:'--st-won',    count:'۶',  value:'۳۱ م',  avg:'—',     conv:'۵۵٪'},
+    lost:   {nm:'از دست رفته',  hue:'--st-lost',   count:'۹',  value:'—',     avg:'۳ روز', conv:'—'}
+  };
+  var FUNNEL_ORDER=[
+    {k:'new',t:0,b:6},{k:'contact',t:6,b:13},{k:'demo',t:13,b:21},{k:'nego',t:21,b:29},{k:'won',t:29,b:35}
+  ];
+  var CONN={contact:['۶۷٪','۱۶ ریزش'],demo:['۵۹٪','۱۳ ریزش'],nego:['۵۸٪','۸ ریزش'],won:['۵۵٪','۵ ریزش']};
+
+  function stageDeals(k){
+    var items=DEALS[k]||[];
+    if(!items.length) return '<div style="color:var(--faint);font-size:12.5px;text-align:center;padding:18px">معامله‌ای در این مرحله نیست</div>';
+    return items.map(function(dl){
+      return '<div class="deal" onclick="showCust()">'+
+        '<div class="dn">'+dl.n+'</div>'+
+        '<div class="dm">◎ '+dl.c+(dl.hot?' · <span style="color:var(--danger);font-weight:800">داغ 🔥</span>':'')+(dl.live?' · <span style="color:var(--st-won);font-weight:800">در میزرو</span>':'')+'</div>'+
+        '<div class="dfoot" style="margin-top:9px"><span class="dv" style="margin:0">'+(dl.v==='—'?'—':dl.v+' ت')+'</span>'+
+        '<span class="avm" style="background:'+dl.ac+'">'+dl.a+'</span></div></div>';
+    }).join('');
+  }
+  function selectStage(k){
+    var m=FMETA[k]; if(!m) return;
+    document.querySelectorAll('.fband').forEach(b=>b.classList.toggle('sel',b.dataset.stage===k));
+    document.getElementById('stageDetail').innerHTML=
+      '<div class="sd-head"><span class="sd-dot" style="background:var('+m.hue+')"></span>'+
+        '<span class="sd-title">'+m.nm+'</span>'+
+        '<span class="chip st-'+k+'" style="margin-inline-start:auto"><span class="cd"></span>'+m.count+' معامله</span></div>'+
+      '<div class="sd-kpis">'+
+        '<div class="sd-kpi"><div class="v num">'+m.count+'</div><div class="l">تعداد</div></div>'+
+        '<div class="sd-kpi"><div class="v num">'+m.value+'</div><div class="l">ارزش (ت)</div></div>'+
+        '<div class="sd-kpi"><div class="v num">'+m.conv+'</div><div class="l">تبدیل از قبل</div></div>'+
+        '<div class="sd-kpi"><div class="v num">'+m.avg+'</div><div class="l">میانگین ماندن</div></div>'+
+      '</div>'+
+      '<div class="sectitle" style="font-size:13px;margin-bottom:11px">نمونهٔ معاملات این مرحله</div>'+
+      '<div class="sd-deals">'+stageDeals(k)+'</div>';
+  }
+  var fn=document.getElementById('funnel');
+  FUNNEL_ORDER.forEach(function(s,i){
+    var m=FMETA[s.k];
+    if(i>0){var c=CONN[s.k];var cn=document.createElement('div');cn.className='fconn';
+      cn.innerHTML='<span class="pc num">'+c[0]+'</span><span class="dr">↓ '+c[1]+'</span>';fn.appendChild(cn);}
+    var bd=document.createElement('button');bd.className='fband';bd.dataset.stage=s.k;
+    bd.style.setProperty('--hue','var('+m.hue+')');bd.style.setProperty('--t',s.t+'%');bd.style.setProperty('--b',s.b+'%');
+    bd.dataset.tip='<b>'+m.nm+'</b> · '+m.count+' معامله<br>ارزش پایپلاین: '+m.value+' تومان<br>میانگین ماندن: '+m.avg+
+      (m.conv!=='—'?'<br>تبدیل از مرحلهٔ قبل: <b>'+m.conv+'</b>':'')+'<br><span style="color:#bbb">کلیک: مشاهدهٔ معاملات</span>';
+    bd.innerHTML='<span class="fb-name">'+m.nm+'</span><span class="fb-count num">'+m.count+'</span>';
+    bd.addEventListener('click',function(){selectStage(s.k)});
+    fn.appendChild(bd);
+  });
+  // funnel hover tooltip
+  var ftip=document.createElement('div');ftip.className='ftip';document.body.appendChild(ftip);
+  fn.addEventListener('mousemove',function(e){
+    var band=e.target.closest('.fband');
+    if(!band){ftip.classList.remove('show');return;}
+    ftip.innerHTML=band.dataset.tip;ftip.classList.add('show');
+    ftip.style.left=Math.min(e.clientX+14,window.innerWidth-244)+'px';
+    ftip.style.top=(e.clientY+16)+'px';
+  });
+  fn.addEventListener('mouseleave',function(){ftip.classList.remove('show')});
+  selectStage('new');
+</script>
