@@ -1,11 +1,16 @@
 // Accounts («پرونده‌ها») — the cafes. Detail = header + interaction timeline +
 // Mizro read-only mirror + immutable معرِّف claim (mock's account page).
 
-import { accountSchema, activitySchema, updateAccountBodySchema } from '@arad-crm/api-contracts';
+import {
+  accountSchema,
+  activitySchema,
+  linkMizroBusinessBodySchema,
+  updateAccountBodySchema,
+} from '@arad-crm/api-contracts';
 import { accounts, activities, attributionClaims, db, orgScope, users } from '@arad-crm/db';
 import { findingsSchema, mergeFindings } from '@arad-crm/vertical-mizro';
-import { NotFoundError, ValidationError } from '@arad/errors';
-import { type SQL, and, desc, eq, ilike, or } from 'drizzle-orm';
+import { ConflictError, ForbiddenError, NotFoundError, ValidationError } from '@arad/errors';
+import { type SQL, and, desc, eq, ilike, ne, or } from 'drizzle-orm';
 import { Hono } from 'hono';
 import { isSeller, requireActor, session } from '../../middleware/session.js';
 
@@ -151,6 +156,57 @@ export const accountsRoutes = new Hono()
         attributes,
         updatedAt: new Date(),
       })
+      .where(and(orgScope(accounts.organizationId, actor.orgId), eq(accounts.id, id)));
+    return c.json({ ok: true });
+  })
+  // Link this account to its Mizro business id 🔒 — the attribution bridge for
+  // manually-onboarded businesses: once set, payment events for that business
+  // match THIS seller-worked account (accounts.mizroBusinessRef) instead of
+  // minting a bare one, so commission reaches the seller (resolved in the worker).
+  .post('/:id/mizro-link', async (c) => {
+    const actor = requireActor(c);
+    const id = c.req.param('id');
+    const body = linkMizroBusinessBodySchema.parse(await c.req.json());
+    const account = (
+      await db
+        .select()
+        .from(accounts)
+        .where(and(orgScope(accounts.organizationId, actor.orgId), eq(accounts.id, id)))
+    )[0];
+    if (!account) throw new NotFoundError('account not found');
+    // 🔒 a seller may only link an account inside their own territory (mirrors visibility)
+    if (isSeller(actor.role) && account.territoryId !== actor.territoryId) {
+      throw new ForbiddenError('این پرونده خارج از منطقهٔ شماست');
+    }
+
+    const ref = body.mizro_business_ref;
+    if (account.mizroBusinessRef === ref) return c.json({ ok: true }); // idempotent
+    if (account.mizroBusinessRef) {
+      throw new ConflictError('این پرونده قبلاً به کسب‌وکار دیگری در میزرو متصل است');
+    }
+    // that business id is already claimed by another account (e.g. a bare account
+    // minted by an earlier payment) — that needs a manual merge, not a silent relink
+    const taken = (
+      await db
+        .select({ id: accounts.id })
+        .from(accounts)
+        .where(
+          and(
+            orgScope(accounts.organizationId, actor.orgId),
+            eq(accounts.mizroBusinessRef, ref),
+            ne(accounts.id, id),
+          ),
+        )
+    )[0];
+    if (taken) {
+      throw new ConflictError('این کسب‌وکار میزرو قبلاً به پروندهٔ دیگری متصل شده است', {
+        conflicting_account_id: taken.id,
+      });
+    }
+
+    await db
+      .update(accounts)
+      .set({ mizroBusinessRef: ref, updatedAt: new Date() })
       .where(and(orgScope(accounts.organizationId, actor.orgId), eq(accounts.id, id)));
     return c.json({ ok: true });
   });

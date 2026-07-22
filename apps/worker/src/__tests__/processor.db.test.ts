@@ -278,4 +278,94 @@ describe('inbox money path', () => {
       );
     expect(entries).toHaveLength(0);
   });
+
+  it('manually-onboarded business (no demo-link ref) → commission to the seller who worked it', async () => {
+    // The seller worked this cafe in the CRM (owns the opportunity); it was then
+    // onboarded manually in Mizro ops and linked back (mizroBusinessRef set).
+    // The payment carries NO attribution_ref → the owner-fallback must credit it.
+    const bizRef = `manual-${runId}`;
+    const acct = (
+      await db
+        .insert(accounts)
+        .values({
+          organizationId: orgId,
+          name: 'کافه دستی',
+          source: 'seller',
+          status: 'in_funnel',
+          mizroBusinessRef: bizRef,
+          createdBy: sellerId,
+        })
+        .returning()
+    )[0];
+    if (!acct) throw new Error('account');
+    await db.insert(opportunities).values({
+      organizationId: orgId,
+      accountId: acct.id,
+      ownerId: sellerId,
+      stage: 'demo_sent',
+      status: 'open',
+    });
+
+    const env = envelope({
+      type: 'payment.received',
+      payload: {
+        payment_id: `paym-${runId}`,
+        business_ref: bizRef,
+        amount_rial: '20000000',
+        net_amount_rial: '18000000',
+        currency: 'IRR',
+        method: 'other', // a manually-recorded (non-gateway) payment in Mizro ops
+        paid_at: new Date().toISOString(),
+        // NOTE: no attribution_ref — the whole point of this case
+      },
+    });
+    const row = await insertInbox(env);
+    await processInboxRow(db, row, orgId);
+
+    const processed = (
+      await db.select().from(integrationEventsInbox).where(eq(integrationEventsInbox.id, row.id))
+    )[0];
+    expect(processed?.status).toBe('processed');
+    expect(processed?.error).toBeNull();
+
+    // claim created via the owner-fallback (auditable, source manual_first_touch)
+    const claim = (
+      await db
+        .select()
+        .from(attributionClaims)
+        .where(
+          and(
+            orgScope(attributionClaims.organizationId, orgId),
+            eq(attributionClaims.accountId, acct.id),
+          ),
+        )
+    )[0];
+    expect(claim?.sellerId).toBe(sellerId);
+    expect(claim?.source).toBe('manual_first_touch');
+
+    // 15% commission on the manual payment → the seller
+    const entries = await db
+      .select()
+      .from(commissionEntries)
+      .where(
+        and(
+          orgScope(commissionEntries.organizationId, orgId),
+          eq(commissionEntries.sourceEventId, env.id as string),
+        ),
+      );
+    expect(entries).toHaveLength(1);
+    expect(entries[0]?.amountRial).toBe(2_700_000n); // 15% of 18,000,000
+    expect(entries[0]?.beneficiaryUserId).toBe(sellerId);
+
+    // and the open opportunity is marked won (sale = payment event)
+    const opp = (
+      await db
+        .select()
+        .from(opportunities)
+        .where(
+          and(orgScope(opportunities.organizationId, orgId), eq(opportunities.accountId, acct.id)),
+        )
+    )[0];
+    expect(opp?.status).toBe('won');
+  });
 });

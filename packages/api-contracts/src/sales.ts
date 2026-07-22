@@ -91,6 +91,14 @@ export const updateAccountBodySchema = z.object({
   attributes: z.record(z.unknown()).optional(),
 });
 
+// Link a CRM account to its Mizro business id, so payment events for that
+// business match this (seller-worked) account instead of minting a bare one —
+// the attribution bridge for manually-onboarded businesses (no demo-link ?ref).
+export const linkMizroBusinessBodySchema = z.object({
+  mizro_business_ref: z.string().trim().min(1).max(200),
+});
+export type LinkMizroBusinessBody = z.infer<typeof linkMizroBusinessBodySchema>;
+
 // ── leads ───────────────────────────────────────────────────────────────────
 
 export const leadSchema = z.object({

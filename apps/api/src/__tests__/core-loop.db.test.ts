@@ -226,6 +226,58 @@ describe('sale = payment event 🔒 (founder req #4)', () => {
   });
 });
 
+describe('mizro business link (attribution bridge for manual onboarding)', () => {
+  let accountId: string;
+  const ref = `mizrobiz-${runId}`;
+
+  it('seller links their account to a Mizro business id (idempotent)', async () => {
+    const introduce = await post('/v1/leads', sellerA.cookie, {
+      business_name: 'کافه اتصال',
+      phone: `0912333${runId.slice(-4)}`,
+      region_text: 'ولنجک',
+    });
+    expect(introduce.status).toBe(201);
+    accountId = ((await introduce.json()) as { account_id: string }).account_id;
+
+    const link = await post(`/v1/accounts/${accountId}/mizro-link`, sellerA.cookie, {
+      mizro_business_ref: ref,
+    });
+    expect(link.status).toBe(200);
+
+    const detail = await app.request(`/v1/accounts/${accountId}`, {
+      headers: { cookie: sellerA.cookie },
+    });
+    const body = (await detail.json()) as { account: { mizro: { business_ref: string | null } } };
+    expect(body.account.mizro.business_ref).toBe(ref);
+
+    // re-linking to the same ref is a no-op, not a conflict
+    const again = await post(`/v1/accounts/${accountId}/mizro-link`, sellerA.cookie, {
+      mizro_business_ref: ref,
+    });
+    expect(again.status).toBe(200);
+  });
+
+  it('🔒 rejects a business id already tied to another account (409)', async () => {
+    const introduce = await post('/v1/leads', sellerA.cookie, {
+      business_name: 'کافه دوم',
+      phone: `0912444${runId.slice(-4)}`,
+      region_text: 'ولنجک',
+    });
+    const other = ((await introduce.json()) as { account_id: string }).account_id;
+    const conflict = await post(`/v1/accounts/${other}/mizro-link`, sellerA.cookie, {
+      mizro_business_ref: ref, // already taken by the first account
+    });
+    expect(conflict.status).toBe(409);
+  });
+
+  it('🔒 out-of-territory link is forbidden', async () => {
+    const link = await post(`/v1/accounts/${accountId}/mizro-link`, sellerB.cookie, {
+      mizro_business_ref: `other-${runId}`,
+    });
+    expect(link.status).toBe(403);
+  });
+});
+
 describe('visibility 🔒', () => {
   it("sellers never see other sellers' commission or org-wide reports", async () => {
     const my = await app.request('/v1/commission/my', { headers: { cookie: sellerB.cookie } });

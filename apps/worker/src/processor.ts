@@ -27,7 +27,7 @@ import {
 } from '@arad-crm/db';
 import { logger } from '@arad/logger';
 import { type ParsedEvent, parseEvent, parseRial } from '@arad/platform-events';
-import { and, asc, eq, inArray, isNull, lte, sql } from 'drizzle-orm';
+import { and, asc, desc, eq, inArray, isNotNull, isNull, lte, sql } from 'drizzle-orm';
 
 const MAX_ATTEMPTS = 5;
 
@@ -78,7 +78,70 @@ const findOrCreateAccountByRef = async (
   return created;
 };
 
-/** Resolve (or first-touch-create 🔒) the attributed seller for an account. */
+/** The settled claim's seller for an account (also re-read after an insert so a
+ *  concurrent first-touch wins deterministically), or null. */
+const claimedSeller = async (db: Db, orgId: string, accountId: string): Promise<string | null> => {
+  const claim = (
+    await db
+      .select({ sellerId: attributionClaims.sellerId })
+      .from(attributionClaims)
+      .where(
+        and(
+          orgScope(attributionClaims.organizationId, orgId),
+          eq(attributionClaims.accountId, accountId),
+        ),
+      )
+  )[0];
+  return claim?.sellerId ?? null;
+};
+
+/** The seller who worked this account in the CRM: opportunity owner → lead
+ *  assignee → account creator. The attribution fallback for businesses that
+ *  never carried a demo-link ref (e.g. onboarded manually in Mizro ops) — a
+ *  bare, un-worked account (no opp/lead/creator) resolves to null. */
+const resolveAccountOwner = async (
+  db: Db,
+  orgId: string,
+  accountId: string,
+): Promise<string | null> => {
+  const opp = (
+    await db
+      .select({ ownerId: opportunities.ownerId })
+      .from(opportunities)
+      .where(
+        and(orgScope(opportunities.organizationId, orgId), eq(opportunities.accountId, accountId)),
+      )
+      .orderBy(desc(opportunities.createdAt))
+      .limit(1)
+  )[0];
+  if (opp?.ownerId) return opp.ownerId;
+  const lead = (
+    await db
+      .select({ assignedTo: leads.assignedTo })
+      .from(leads)
+      .where(
+        and(
+          orgScope(leads.organizationId, orgId),
+          eq(leads.accountId, accountId),
+          isNotNull(leads.assignedTo),
+        ),
+      )
+      .orderBy(desc(leads.createdAt))
+      .limit(1)
+  )[0];
+  if (lead?.assignedTo) return lead.assignedTo;
+  const account = (
+    await db
+      .select({ createdBy: accounts.createdBy })
+      .from(accounts)
+      .where(and(orgScope(accounts.organizationId, orgId), eq(accounts.id, accountId)))
+  )[0];
+  return account?.createdBy ?? null;
+};
+
+/** Resolve (or first-touch-create 🔒) the attributed seller for an account.
+ *  Priority: existing claim → demo-link ref → the seller who worked it in the
+ *  CRM. Every path lands an append-only, immutable first-touch claim. */
 const resolveSeller = async (
   db: Db,
   orgId: string,
@@ -86,57 +149,58 @@ const resolveSeller = async (
   attributionRef: string | undefined,
   touchedAt: Date,
 ): Promise<string | null> => {
-  const claim = (
-    await db
-      .select()
-      .from(attributionClaims)
-      .where(
-        and(
-          orgScope(attributionClaims.organizationId, orgId),
-          eq(attributionClaims.accountId, accountId),
-        ),
-      )
-  )[0];
-  if (claim) return claim.sellerId;
-  if (!attributionRef) return null;
-  const link = (
-    await db
-      .select()
-      .from(attributionLinks)
-      .where(
-        and(
-          orgScope(attributionLinks.organizationId, orgId),
-          eq(attributionLinks.token, attributionRef),
-        ),
-      )
-  )[0];
-  if (!link) return null;
-  // first-touch wins; the unique(org, account) makes concurrent claims safe
+  // 1) an existing claim is immutable first-touch — always wins
+  const existing = await claimedSeller(db, orgId, accountId);
+  if (existing) return existing;
+
+  // 2) demo-link ref → first-touch claim from the seller's link
+  if (attributionRef) {
+    const link = (
+      await db
+        .select()
+        .from(attributionLinks)
+        .where(
+          and(
+            orgScope(attributionLinks.organizationId, orgId),
+            eq(attributionLinks.token, attributionRef),
+          ),
+        )
+    )[0];
+    if (link) {
+      await db
+        .insert(attributionClaims)
+        .values({
+          organizationId: orgId,
+          accountId,
+          sellerId: link.sellerId,
+          linkId: link.id,
+          source: 'event',
+          firstTouchAt: touchedAt,
+        })
+        .onConflictDoNothing({
+          target: [attributionClaims.organizationId, attributionClaims.accountId],
+        });
+      return claimedSeller(db, orgId, accountId);
+    }
+  }
+
+  // 3) no usable ref (e.g. a business onboarded manually in Mizro ops) → credit
+  //    the seller who actually worked it. Still append-only + auditable.
+  const ownerId = await resolveAccountOwner(db, orgId, accountId);
+  if (!ownerId) return null;
   await db
     .insert(attributionClaims)
     .values({
       organizationId: orgId,
       accountId,
-      sellerId: link.sellerId,
-      linkId: link.id,
-      source: 'event',
+      sellerId: ownerId,
+      source: 'manual_first_touch',
       firstTouchAt: touchedAt,
     })
     .onConflictDoNothing({
       target: [attributionClaims.organizationId, attributionClaims.accountId],
     });
-  const settled = (
-    await db
-      .select()
-      .from(attributionClaims)
-      .where(
-        and(
-          orgScope(attributionClaims.organizationId, orgId),
-          eq(attributionClaims.accountId, accountId),
-        ),
-      )
-  )[0];
-  return settled?.sellerId ?? null;
+  return claimedSeller(db, orgId, accountId);
 };
 
 const activePlanVersion = async (db: Db, orgId: string, at: Date) => {
