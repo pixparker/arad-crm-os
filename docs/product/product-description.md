@@ -1,7 +1,8 @@
 # Arad CRM-OS — Product Description & Purpose
 
-> **Repo:** `arad-crm-os` · **Status:** Concluded product description — **handover to CTO** (2026-07-18).
+> **Repo:** `arad-crm-os` · **Status:** Concluded product description (2026-07-18) — **evolved to the portfolio CRM spec 2026-07-26** per the north-star's §9 instruction ("from Mizro's sales tool up to the SMB CRM product"). Core loop **built + tested**; Mizro event loop **integration-verified** (see *Build state*).
 > **Working name:** "Arad CRM-OS" / "Sales OS" (final brand TBD).
+> **Governed by:** `arad-foundation/docs/product/00-arad-business-os-north-star.md` — the portfolio frame (3-layer map, entity-ownership rules, sequencing discipline). Boundary or sequence changes go **there** first.
 > **Audience:** CTO + build team. This is the **business WHAT/WHY + the locked architectural direction + the roadmap.** The technical design (schemas, module internals, enforcement) is the CTO's to own.
 > **Source materials (read alongside):**
 > - Founder idea + a dev's 32-section "Sales OS" spec v0.1 → `arad-crm-os` seed (originally `digital-menu/docs/_ideas/funder/crm-idea.md`).
@@ -26,7 +27,7 @@ Not a contact database. A **sales execution system + CRM**: it collects leads fr
 
 ## 3. Where it sits — the Aradvision platform (brain vs hands)
 
-Arad runs two complementary "OS" products on one shared foundation:
+In the portfolio's 3-layer map (north-star §3) this repo is a **Layer-2 reusable core** — the sales/relationship/commission brain — consumed by Layer-3 verticals (Mizro's field sales today; AradVision-CRM as the second tenant). Within that frame, Arad runs two complementary "OS" products on one shared foundation:
 
 | | Product | Role |
 |---|---|---|
@@ -35,13 +36,14 @@ Arad runs two complementary "OS" products on one shared foundation:
 
 **They are siblings, not parent/child.** The CRM sits *above* commerce and *consumes its events* (`order.paid` → attribute the sale, credit the seller, enrol loyalty, trigger the next-best-offer). It is **not** a module inside Commerce OS, and Commerce is **not** inside the CRM.
 
-**Shared foundation (do NOT rebuild — coordinate with Commerce OS):** auth/OTP · **Connect/providers** (Zarinpal · SMS · WhatsApp — Mizro's E45 pattern; now a 3-consumer shared layer) · a shared **Customer/Identity** core · design-system · notifications · deployment tooling. Whether this lives as a shared-packages repo, submodule, published packages, or an eventual single Aradvision monorepo is the **CTO's topology call** — the requirement is *shared foundation, not duplicated*.
+**Shared foundation (do NOT rebuild — coordinate with Commerce OS):** auth/OTP · **Connect/providers** (Zarinpal · SMS · WhatsApp — Mizro's E45 pattern; now a 3-consumer shared layer) · a shared **Customer/Identity** core · design-system · notifications · deployment tooling. **Topology call made (ADR-001):** `arad-foundation` as a git submodule (`foundation/`), packages under `@arad/*` — auth-otp, `platform-events` (the cross-product event contract, envelope v1, additive-only), errors, logger, i18n. Foundation owns **no business entities and no DB**.
 
 **Boundary rule (keep it):** **Arad CRM-OS is the sales / relationship / loyalty / intelligence brain — not the transaction hands.** Commerce, POS, online-shop, Mizro-ordering are **transaction surfaces (sales-sources)** that connect and feed it. Checkout · payment · inventory · accounting stay **out of the CRM core.**
 
 ## 4. Dual value — one build
 
 - **For Arad/Mizro now:** the operating system for a field sales team — lifts the founder-as-only-seller ceiling, scales the team **controlled**, and plugs conversion leaks.
+- **For Aradvision itself:** **AradVision-CRM** — Arad's own customer/sales tracking (Arad ≠ Mizro; separate businesses) runs as a **vertical/tenant on this same core, not a fork.** Two dogfood tenants, one build — the first proof that the core is genuinely multi-vertical.
 - **As a standalone product later:** a **generic sales core + per-vertical apps** — a **vertical-SaaS factory**. It **scales from a single solo seller** (a shop/online-store owner) up to a **multi-level sales org** (founder → sales managers → sellers). Same build; Mizro is the first customer.
 
 ## 5. Locked decisions
@@ -59,6 +61,8 @@ Arad runs two complementary "OS" products on one shared foundation:
 - **Modular: connectors + industry packages, built on-demand** — no plugin store / SDK upfront.
 - **Nexta stays a separate product** (forms/surveys/assessment), Connector-linked.
 - **Scale pilot-first + controlled** — one city, 2–3 sellers, one commission plan; prove the motion before going wide.
+- **Entity ownership (north-star §6, binding here):** **Mizro `businesses` is the master** for the merchant — the CRM holds a read-only reference (`mizroBusinessRef`) + event-fed mirror, **never a shared table**. The **lead** is CRM-owned; subscriptions + payments stay in **the selling product**; **commission is computed only in the CRM**, from the producer-supplied `net_amount_rial` — no product re-derives another's money.
+- **The event contract is the only cross-product language** (`@arad/platform-events`) — producers emit, the CRM reacts; no reaching into another product's DB, ever.
 
 ## 6. Product structure (4 layers)
 
@@ -101,14 +105,27 @@ The convergence of lifecycle (§9) + flows (§10) + AI: right offer · right cus
 ## 12. Integration (thin, event-based)
 
 - **In (sales-sources → CRM):** `order.paid`/`payment.received` (Commerce, Mizro, POS, shop) · `subscription.*` · `menu.published` · `onboarding.completed` · form/lead events.
+  **The Mizro producer is LIVE (E55, integration-verified 2026-07-26):** Mizro emits `lead.captured` · `business.created` · `onboarding.completed` · `menu.published` · `payment.received/refunded` · `subscription.created/activated/renewed/upgraded/cancelled/expiring` through a signed outbox→inbox pipeline (HMAC, at-least-once, idempotent on envelope id — a 3-day backlog drained losslessly in the verification run).
 - **Out (CRM → systems):** `create-demo` · `create-business-draft` · `request-onboarding` · `create-referral-link`.
 - **Attribution linchpin:** the seller's demo-QR/link stamps *which seller + which customer*; the payment event maps the sale automatically.
 - **Reuse, don't fork:** Connect/providers · customer/identity · auth (shared foundation, §3). Mizro's **E45 Connect · E52 subscriptions · E53 payments · E48 invite/onboard · E54 ops** are the concrete Mizro-side integrations. The Growth-Pipeline (E49) public lead form becomes a **lead source**.
 
+## Build state (2026-07-26) — read the roadmap against this
+
+**Built + tested** (13 test suites; modular monolith per ADR-001/003):
+- **API core** — leads · accounts · activities · opportunities · attribution · commission · reports · org/teams/territories · identity (OTP→JWT) · integrations (signed event door + idempotent inbox + ops replay).
+- **Commission ledger** — versioned plans (`commission_plans`/`_plan_versions`), **append-only `commission_entries`** + status audit; computed from event-supplied `net_amount_rial`.
+- **Seller PWA** (`web-seller`) — daily plan · pipeline · accounts + visit log · new lead · **money panel**. **Admin** (`web-admin`) — dashboard · leads + import · commission · team · performance.
+- **Worker** — inbox sweep folding events into leads/accounts/commission/attribution.
+- **Mizro event loop** — **verified end-to-end 2026-07-26** (fresh `lead.captured` traced form→outbox→signed delivery→inbox→CRM lead+account; replay deduped; bad signature 401; 3-day dark backlog drained losslessly). Detail: `digital-menu` memory `project_e55_crm_event_loop_status`.
+- **Tenancy seam** — `organizations` + `org_members` on every row, per the locked decision (§5).
+
+**Not yet:** production deployment (the Mizro producer flag stays dark in prod until the CRM has one) · Phase-0 process lock with the founder (§13) · a real pilot org (sellers, one commission plan, real payment-event attribution in anger) · everything Phase 2+.
+
 ## 13. Roadmap (value-phased)
 
-- **Phase 0 — Lock the process (paper, no code):** funnel stages · visit form · win/loss reasons · attribution rule · one commission plan · roles.
-- **Phase 1 — Mizro pilot MVP (the core loop):** cafe list + import + dedupe · daily plan + map · fast visit log + outcome taxonomy + mandatory next-action · lead→opportunity→sale · payment-event attribution (single seller) · **one commission plan + append-only ledger + clawback** · seller money panel · basic manager dashboard + funnel. **Start: 1 city, 2–3 sellers.**
+- **Phase 0 — Lock the process (paper, no code):** funnel stages · visit form · win/loss reasons · attribution rule · one commission plan · roles. **⚠️ Still open — now the gating item:** the software outran the process; lock this with the founder before the pilot starts.
+- **Phase 1 — Mizro pilot MVP (the core loop): ✅ software built** (see *Build state*) — cafe list + import + dedupe · daily plan · fast visit log + outcome taxonomy + mandatory next-action · lead→opportunity→sale · payment-event attribution · **one commission plan + append-only ledger + clawback** · seller money panel · basic manager dashboard + funnel. **Remaining = the pilot itself:** prod deploy + Phase-0 lock + **1 city, 2–3 sellers** running it for real.
 - **Phase 2 — Team control:** manager tooling · teams/territories · targets · leaderboard · tiered commission · split attribution · predefined flows · Nexta connector.
 - **Phase 3 — Full customer ops:** onboarding handoff · renewal · upsell/cross-sell · post-sale satisfaction + referral.
 - **Phase 4 — Intelligence:** next-best-offer · AI data-entry assist (voice→structured via Telegram) · NL query · lead scoring · at-risk detection. *(Human-in-the-loop.)*
@@ -154,11 +171,12 @@ The structure was pressure-tested against 8 diverse scenarios and held; the two 
 - **Management:** fewer forgotten leads · fewer commission disputes · better forecastability · **less founder time in the sales loop.**
 - **Product:** capabilities built from real Mizro data · reusable by other verticals without CRM-specific forks.
 
-## 18. For the CTO — start here
+## 18. For the CTO — where this stands (updated 2026-07-26)
 
-1. **Coordinate the shared foundation with Arad Commerce OS** (§3) — decide the topology (shared-packages repo / submodule / published packages / eventual Aradvision monorepo). **Do not duplicate auth · Connect · customer/identity · design-system · deploy.**
-2. **Run Phase 0** — a short founder working session to lock the process (§13). No code until it's locked.
-3. **Scope Phase 1 ruthlessly** — the core loop only, for Mizro, 1 city / 2–3 sellers. Build the **commission ledger with full rigor first**, tested against real payment events.
-4. **Prove the motion before scaling** — consider running the pilot on a spreadsheet in parallel; set an explicit measure → scale/kill gate after ~4–6 weeks.
-5. **Hold everything else as seams** — no 2nd vertical, no AI, no builder, until Mizro's loop is live and proven.
-6. **Review the money doc + dev spec** (source materials, top of this file) and hand the **epic plan + technical architecture** back for a PO/architecture review — especially the permission model, the commission ledger, the shared-foundation boundary, and the event contract with Commerce OS + Mizro.
+Done from the original handover: topology (ADR-001: `arad-foundation` submodule, `@arad/*`) · Phase-1 core-loop software incl. the **commission ledger built with full rigor** · the event contract with Mizro, **verified live**. What's next, in order:
+
+1. **Run Phase 0 with the founder** — lock funnel stages · visit form · win/loss reasons · attribution rule · the one commission plan · roles. It gates the pilot, not the code.
+2. **Production deployment** — deploy the CRM stack (api + worker + both webapps + its own DB per the locked "own deploy" decision), then flip Mizro's `CRM_EVENTS_ENABLED` in prod. Until then the prod outbox queues harmlessly (at-least-once held over a 3-day gap in verification).
+3. **Seed the pilot** — the Mizro org, 2–3 sellers, the Phase-0 commission plan; run **1 city** with an explicit measure → scale/kill gate after ~4–6 weeks.
+4. **Hold everything else as seams** — no 2nd vertical, no AI, no builder, until Mizro's loop is live and proven (north-star §8 discipline).
+5. **Audit `barber-crm`** — vertical-on-core or fork (north-star open decision #4); first fact that proves the factory pattern.
