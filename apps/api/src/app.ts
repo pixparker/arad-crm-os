@@ -15,12 +15,15 @@ import { accountsRoutes } from './modules/accounts/index.js';
 import { activitiesRoutes } from './modules/activities/index.js';
 import { attributionRoutes } from './modules/attribution/index.js';
 import { commissionRoutes } from './modules/commission/index.js';
+import { flowsRoutes } from './modules/flows/index.js';
 import { healthRoutes } from './modules/health/index.js';
 import { identityRoutes } from './modules/identity/index.js';
 import { integrationsRoutes } from './modules/integrations/index.js';
 import { leadsRoutes } from './modules/leads/index.js';
 import { opportunitiesRoutes } from './modules/opportunities/index.js';
+import { opsRoutes } from './modules/ops/index.js';
 import { orgRoutes } from './modules/org/index.js';
+import { quickAddRoutes } from './modules/quick-add/index.js';
 import { reportsRoutes } from './modules/reports/index.js';
 
 export const createApp = () => {
@@ -88,7 +91,12 @@ export const createApp = () => {
   app.route('/v1/attribution', attributionRoutes);
   app.route('/v1/commission', commissionRoutes);
   app.route('/v1/reports', reportsRoutes);
+  app.route('/v1/flows', flowsRoutes);
+  app.route('/v1/quick-add', quickAddRoutes);
   app.route('/v1/integrations', integrationsRoutes);
+  // 🔒 Ops control plane — the OPS identity axis, not a tenant surface
+  // (ADR-014). Served to ops.aradap.ir; every route inside re-checks the axis.
+  app.route('/v1/ops', opsRoutes);
 
   // ── API reference (non-prod only) ────────────────────────────────────────
   if (config.NODE_ENV !== 'production') {

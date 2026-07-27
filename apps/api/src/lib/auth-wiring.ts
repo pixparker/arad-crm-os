@@ -11,6 +11,7 @@ import {
   type SessionDeps,
   type User,
 } from '@arad/auth-otp';
+import { sendOtp as connectSendOtp } from '@arad/connect';
 import { logger } from '@arad/logger';
 import { and, desc, eq, gt, gte, isNull, sql } from 'drizzle-orm';
 
@@ -24,7 +25,7 @@ export const authConfig: AuthConfig = {
   otpTtlSeconds: config.OTP_TTL_SECONDS,
   otpRequestCooldownSeconds: config.OTP_REQUEST_COOLDOWN_SECONDS,
   otpMaxRequestsPerMobileHour: 5,
-  otpMaxRequestsPerIpHour: 30,
+  otpMaxRequestsPerIpHour: config.OTP_MAX_REQUESTS_PER_IP_HOUR,
   otpMaxVerifyAttempts: config.OTP_MAX_VERIFY_ATTEMPTS,
   otpLockoutSeconds: 3600,
   sessionTtlSeconds: config.SESSION_TTL_SECONDS,
@@ -126,11 +127,28 @@ export const authDeps: AuthDeps = {
   userRepo,
   otpSessionRepo,
   rateLimitStore,
+  // 🔒 E01-F05 — real delivery. With SMS_PROVIDER=connect the code goes out
+  // through @arad/connect: provider, credentials and OTP template all resolved
+  // from the `connections` store that ops manages, never from env. A send
+  // failure PROPAGATES (the identity route turns it into a 5xx) — falling back
+  // to a log line would make a delivery outage look like a working login.
   otpSender: {
     async sendOtp({ to, code, ttlSeconds }) {
-      // SMS_PROVIDER=fake — real delivery arrives with @arad/connect (wave-2)
-      logger.info({ to, code, ttlSeconds, provider: config.SMS_PROVIDER }, 'OTP (fake sender)');
-      return { messageId: `fake-${Date.now()}` };
+      if (config.SMS_PROVIDER === 'fake') {
+        logger.info({ to, code, ttlSeconds, provider: 'fake' }, 'OTP (fake sender)');
+        return { messageId: `fake-${Date.now()}` };
+      }
+      const result = await connectSendOtp({ to, code, ttlSeconds });
+      logger.info(
+        {
+          to,
+          provider: result.viaProvider,
+          connectionId: result.viaConnectionId,
+          failover: result.failover ?? false,
+        },
+        'OTP sent',
+      );
+      return { messageId: result.messageId };
     },
   },
   auditLogger: {

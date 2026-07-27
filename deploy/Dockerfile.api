@@ -1,0 +1,60 @@
+# Arad CRM-OS api — Hono server, slim runtime (ADR-002 / ADR-013).
+#
+# Pattern mirrors digital-menu/deploy/Dockerfile.api with one difference:
+# **there is no build step.** CRM library packages ship raw TypeScript source
+# (`main: ./src/index.ts` — CLAUDE.md "Packages ship source"), and the api runs
+# them through tsx. So the pipeline is workspace-install → `pnpm deploy --prod`
+# → run with tsx. Nothing is compiled; typecheck happens in CI, not here.
+#
+# `pnpm deploy --prod` prunes the workspace to @arad-crm/api's prod-only closure
+# at /pruned — workspace packages copied as real directories, not symlinks —
+# dropping dev deps, the other apps' source, and unused workspace packages.
+# tsx therefore MUST be a prod dependency of api (it is; moved 2026-07-27) or
+# the runtime stage has no interpreter.
+#
+# foundation/ is a git submodule holding the @arad/* workspace packages. It must
+# be checked out before build; an empty dir fails `pnpm install` on unresolved
+# workspace:* specifiers.
+
+FROM node:22-alpine AS build
+WORKDIR /app
+
+# Iran-network mirror routing — mirrors Mizro's deploy (registry reachability
+# from laptop builds). Harmless on an open-network build host.
+ENV COREPACK_NPM_REGISTRY=https://registry.npmjs.com
+ENV npm_config_registry=https://registry.npmjs.com
+RUN corepack enable && corepack prepare pnpm@9.15.0 --activate
+
+# Workspace metadata + every workspace member's package.json first, so the
+# install layer caches independently of source edits. Listed explicitly: a
+# package.json change anywhere invalidates the install for all apps, which is
+# correct — lockfile resolution is global.
+COPY pnpm-workspace.yaml pnpm-lock.yaml package.json ./
+COPY apps/api/package.json apps/api/
+COPY apps/worker/package.json apps/worker/
+COPY apps/web-seller/package.json apps/web-seller/
+COPY apps/web-admin/package.json apps/web-admin/
+COPY packages packages
+COPY foundation foundation
+
+RUN pnpm install --frozen-lockfile
+
+COPY . .
+
+# Prune to api's prod closure. @arad-crm/db comes along, so the same image runs
+# migrate/seed via command overrides in compose.
+RUN pnpm --filter @arad-crm/api --prod deploy /pruned
+
+FROM node:22-alpine AS runtime
+ARG IMAGE_TAG=dev
+ARG BUILD_TIME=unknown
+WORKDIR /app
+ENV NODE_ENV=production
+COPY --from=build /pruned /app
+
+# /version.txt for mvpool-local's post-deploy verify.
+RUN mkdir -p public && \
+    printf 'tag=%s\nbuild_time=%s\n' "$IMAGE_TAG" "$BUILD_TIME" > public/version.txt
+
+EXPOSE 4100
+CMD ["node_modules/.bin/tsx", "src/server.ts"]

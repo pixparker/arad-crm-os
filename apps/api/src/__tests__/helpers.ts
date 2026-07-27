@@ -15,7 +15,10 @@ import { issueSession } from '@arad/auth-otp';
 import { sessionDeps } from '../lib/auth-wiring.js';
 import { SESSION_COOKIE } from '../middleware/session.js';
 
-export const runId = `${Date.now()}-${Math.floor(Math.random() * 10_000)}`;
+// Digits only: tests build phone numbers out of `runId.slice(-4)`, and a
+// separator or a short random suffix landed a non-digit in the middle of one —
+// a flake that only appeared when Math.random() rolled a short number.
+export const runId = `${Date.now()}${String(Math.floor(Math.random() * 10_000)).padStart(4, '0')}`;
 let phoneCounter = 0;
 
 export interface World {

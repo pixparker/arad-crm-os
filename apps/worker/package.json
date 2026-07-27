@@ -16,12 +16,12 @@
     "@arad/platform-events": "workspace:*",
     "bullmq": "^5.34.0",
     "drizzle-orm": "^0.36.4",
-    "ioredis": "^5.4.2"
+    "ioredis": "^5.4.2",
+    "tsx": "^4.19.2"
   },
   "devDependencies": {
     "@arad/tsconfig": "workspace:*",
     "@types/node": "^22.10.0",
-    "tsx": "^4.19.2",
     "typescript": "^5.7.2",
     "vitest": "^2.1.8"
   }

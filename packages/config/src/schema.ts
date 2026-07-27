@@ -33,11 +33,27 @@ export const envSchema = z.object({
   OTP_TTL_SECONDS: z.coerce.number().int().positive().default(180),
   OTP_REQUEST_COOLDOWN_SECONDS: z.coerce.number().int().positive().default(60),
   OTP_MAX_VERIFY_ATTEMPTS: z.coerce.number().int().positive().default(5),
+  // Per-IP hourly cap on OTP requests. Configurable because behind a CDN edge
+  // whose ranges aren't yet in Caddy's trusted_proxies, every user resolves to
+  // the same edge IP and shares one bucket (ADR-013 / deploy/caddy) — a cap
+  // sized for one user then locks out the whole team. The per-mobile cap (5/h)
+  // is the real per-user protection; this is defence-in-depth.
+  OTP_MAX_REQUESTS_PER_IP_HOUR: z.coerce.number().int().positive().default(30),
 
-  // 'fake' logs codes to stdout (dev). Real providers arrive with foundation
-  // wave-2 (@arad/connect) — the enum widens then.
+  // 'fake' logs codes to stdout (dev only). 'connect' routes through
+  // @arad/connect: the provider, its credentials and its OTP template all live
+  // in the `connections` store and are managed from the ops panel — never in
+  // env (ADR-014 §3). 🔒 There is deliberately no third value: adding a
+  // provider means registering an adapter, not adding an env vocabulary word.
   // @invariant-allow: local-enum env-config vocabulary, not an API shape
-  SMS_PROVIDER: z.enum(['fake']).default('fake'),
+  SMS_PROVIDER: z.enum(['fake', 'connect']).default('fake'),
+
+  // 🔒 Connect's master key (KEK): base64 of exactly 32 random bytes
+  // (`openssl rand -base64 32`). Seals every per-connection DEK, so LOSING IT
+  // MEANS LOSING EVERY STORED CREDENTIAL — back it up outside the host, and
+  // rotate by re-sealing (the DEKs themselves never change). Required
+  // whenever SMS_PROVIDER=connect; validated by @arad/connect at boot.
+  CONNECT_MASTER_KEY: z.string().optional(),
 
   // ADR-006 integration: HMAC shared secret for the Mizro producer. Unset ⇒
   // the events endpoint refuses (503) — never accept unsigned events.

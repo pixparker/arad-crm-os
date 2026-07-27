@@ -1,0 +1,84 @@
+# Arad CRM-OS — production compose for the bundled `arad-crm` mvpool slug.
+# Copied to /srv/apps/arad-crm/compose.yaml after `mvpool mvp:add arad-crm
+# --type full-stack-queue`. ADR-013 §4.
+#
+# All services share IMAGE_TAG so `mvpool rollback arad-crm <tag>` stays atomic.
+# Postgres and Redis are the pool's shared servers on the `data` network; this
+# slug owns database `arad_crm` and its own Redis DB index (🔒 ADR-002 — never
+# Mizro's). Connection strings live in .env (mode 600, written by mvp:add).
+
+name: mvp-arad-crm
+
+x-image-base: &image-base
+  restart: unless-stopped
+  env_file: .env
+  pull_policy: never # tarball mode — images already loaded by the deploy script
+  networks: [edge, data]
+
+services:
+  api:
+    <<: *image-base
+    image: ${REGISTRY}/arad-crm-api:${IMAGE_TAG}
+    healthcheck:
+      test: ['CMD', 'wget', '-qO-', 'http://localhost:4100/v1/health']
+      interval: 30s
+      timeout: 3s
+      retries: 3
+
+  # Owns the money path: inbox sweep → attribution → opportunity won →
+  # append-only commission entries. No HTTP surface, so `data` network only.
+  worker:
+    <<: *image-base
+    image: ${REGISTRY}/arad-crm-worker:${IMAGE_TAG}
+    networks: [data]
+    depends_on: [api]
+
+  web-seller:
+    <<: *image-base
+    image: ${REGISTRY}/arad-crm-web-seller:${IMAGE_TAG}
+    networks: [edge]
+    depends_on: [api]
+
+  # Arad control plane (ADR-014). Holds cross-tenant credentials — reachable
+  # only via ops.aradap.ir, never from a tenant surface.
+  ops:
+    <<: *image-base
+    image: ${REGISTRY}/arad-crm-ops:${IMAGE_TAG}
+    networks: [edge]
+    depends_on: [api]
+
+  # No public host in E01 — ADR-013 §2 open decision. Kept in the stack so the
+  # image keeps building; add a Caddy block when its host is decided.
+  web-admin:
+    <<: *image-base
+    image: ${REGISTRY}/arad-crm-web-admin:${IMAGE_TAG}
+    networks: [edge]
+    depends_on: [api]
+
+  # Run once per deploy that carries a migration, before api/worker restart:
+  #   docker compose --profile tools run --rm migrate
+  # Packages ship raw TS (CLAUDE.md), so this is tsx against the source that
+  # `pnpm deploy --prod` copied into the api image's node_modules.
+  migrate:
+    image: ${REGISTRY}/arad-crm-api:${IMAGE_TAG}
+    env_file: .env
+    pull_policy: never
+    networks: [data]
+    command:
+      ['node_modules/.bin/tsx', 'node_modules/@arad-crm/db/src/migrate.ts']
+    profiles: [tools]
+
+  # Idempotent pilot seed: org آراد + territory تهران + the ONE commission plan.
+  # 🔒 The plan percent comes from the Phase-0 lock — confirm it before running.
+  #   docker compose --profile tools run --rm seed
+  seed:
+    image: ${REGISTRY}/arad-crm-api:${IMAGE_TAG}
+    env_file: .env
+    pull_policy: never
+    networks: [data]
+    command: ['node_modules/.bin/tsx', 'node_modules/@arad-crm/db/src/seed.ts']
+    profiles: [tools]
+
+networks:
+  edge: { external: true, name: mvpool_edge }
+  data: { external: true, name: mvpool_data }

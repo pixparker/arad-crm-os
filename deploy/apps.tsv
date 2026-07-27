@@ -1,0 +1,36 @@
+# Arad CRM-OS deploy registry — single source of truth (ADR-013).
+#
+# Mirrors digital-menu/deploy/apps.tsv. Adding an app: append a row, drop a
+# deploy/Dockerfile.<app>, add a Caddy block in deploy/caddy/arad-crm.caddy and
+# a service in deploy/compose.yaml. Build/deploy scripts read this file rather
+# than hardcoding app names.
+#
+# Fields (TAB-separated — do not realign with spaces, the parser splits on \t):
+#   app          — short name; matches apps/<app>/ and deploy/Dockerfile.<app>
+#   slug         — mvpool slug. All four share the bundled `arad-crm` slug for
+#                  the pilot (ADR-013 §4); splitting one out later only changes
+#                  this column + its compose service.
+#   image        — image name pushed to the pool registry
+#   public_host  — production hostname (Caddy + post-deploy smoke check)
+#   public_sub   — DNS label under aradap.ir ("-" = no public host)
+#   smoke_path   — path expected to return 200 after deploy
+#   triggers     — extended regex of repo paths that mark this app changed.
+#                  The api row covers worker (one deployable unit, two entrypoints).
+#
+# smoke_path notes:
+#  - /version.txt is baked into every image's runtime stage post-build.
+#  - api uses /v1/health — the existing dedicated liveness route (apps/api/src/modules/health).
+#  - worker has no HTTP surface; "-" means the deploy script skips its smoke check.
+#
+# Shared-package changes (packages/*, foundation/*) rebuild everything: the
+# trigger regexes below are per-app source only, so a shared change must be
+# handled by the caller as "all apps changed" (founder doc §16 release checklist).
+
+# app	slug	image	public_host	public_sub	smoke_path	triggers
+api	arad-crm	arad-crm-api	api.aradap.ir	api	/v1/health	^apps/(api|worker)/
+worker	arad-crm	arad-crm-worker	-	-	-	^apps/(api|worker)/
+web-seller	arad-crm	arad-crm-web-seller	mizro-crm.aradap.ir	mizro-crm	/version.txt	^apps/web-seller/
+ops	arad-crm	arad-crm-ops	ops.aradap.ir	ops	/version.txt	^apps/ops/
+# web-admin has no public host — ADR-013 §2 open decision (fold into the vertical
+# app vs. its own tenant host). Not deployed in E01; the demo needs neither.
+web-admin	arad-crm	arad-crm-web-admin	-	-	-	^apps/web-admin/

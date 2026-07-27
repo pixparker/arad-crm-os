@@ -1,0 +1,38 @@
+# Arad CRM-OS worker — BullMQ consumer + event-inbox sweep, slim runtime.
+# Same no-build / tsx-runtime pattern as Dockerfile.api — see its header for
+# the full rationale. tsx is a prod dependency of @arad-crm/worker so that
+# `pnpm deploy --prod` keeps it.
+#
+# The worker owns the money path (inbox → attribution → opportunity won →
+# commission entries). It has no HTTP surface, so no /version.txt — the tag is
+# visible via IMAGE_TAG env + `docker inspect`.
+
+FROM node:22-alpine AS build
+WORKDIR /app
+
+ENV COREPACK_NPM_REGISTRY=https://registry.npmjs.com
+ENV npm_config_registry=https://registry.npmjs.com
+RUN corepack enable && corepack prepare pnpm@9.15.0 --activate
+
+COPY pnpm-workspace.yaml pnpm-lock.yaml package.json ./
+COPY apps/api/package.json apps/api/
+COPY apps/worker/package.json apps/worker/
+COPY apps/web-seller/package.json apps/web-seller/
+COPY apps/web-admin/package.json apps/web-admin/
+COPY packages packages
+COPY foundation foundation
+
+RUN pnpm install --frozen-lockfile
+
+COPY . .
+
+RUN pnpm --filter @arad-crm/worker --prod deploy /pruned
+
+FROM node:22-alpine AS runtime
+ARG IMAGE_TAG=dev
+ARG BUILD_TIME=unknown
+WORKDIR /app
+ENV NODE_ENV=production
+COPY --from=build /pruned /app
+
+CMD ["node_modules/.bin/tsx", "src/worker.ts"]

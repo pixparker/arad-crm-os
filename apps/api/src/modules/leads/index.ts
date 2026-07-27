@@ -15,6 +15,7 @@ import { ConflictError, ForbiddenError, NotFoundError, ValidationError } from '@
 import { type SQL, and, desc, eq, isNull } from 'drizzle-orm';
 import { Hono } from 'hono';
 import { isSeller, requireActor, requireRole, session } from '../../middleware/session.js';
+import { leadGuidance, leadGuidedFollowup } from './guided.js';
 
 const leadRow = (r: {
   lead: typeof leads.$inferSelect;
@@ -277,4 +278,10 @@ export const leadsRoutes = new Hono()
       }
       return c.json({ ok: true });
     });
-  });
+  })
+
+  // E01-F08 — the guided post-create step. Two routes, one purpose: saving a
+  // lead offers the opportunity and the dated next action instead of dropping
+  // the seller back on a list.
+  .get('/:id/guidance', leadGuidance)
+  .post('/:id/guided-followup', leadGuidedFollowup);

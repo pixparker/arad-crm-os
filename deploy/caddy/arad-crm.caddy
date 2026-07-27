@@ -1,0 +1,97 @@
+# Arad CRM-OS — production Caddy snippet for the bundled `arad-crm` slug.
+# Rendered/copied to /srv/infra/sites/arad-crm.caddy on the pool. ADR-013.
+#
+# Hosts route by Host header to compose service names on the shared
+# `mvpool_edge` network (see deploy/compose.yaml).
+#
+#   mizro-crm.aradap.ir → web-seller  (seller PWA — the installable surface)
+#   ops.aradap.ir       → web-admin   (Arad's internal console)
+#   api.aradap.ir       → api         (CRM API gateway)
+#   id.aradap.ir        → api         (identity origin — alias, not a service)
+#
+# TLS terminates at the ArvanCloud edge (confirmed 2026-07-27 — aradap.ir is
+# registered in Arvan), so every block below is `http://` and this origin serves
+# plain HTTP. Same shape as Mizro. Do not add `https://` here unless the domain
+# is moved off Arvan.
+#
+# 🔒 CLIENT IP — the api rate-limits OTP requests per IP. It reads ONLY
+# `X-Real-IP`, which the reverse_proxy blocks below set from Caddy's computed
+# `{client_ip}` (this overwrites anything a client sent, so it cannot be
+# spoofed). See apps/api/src/lib/client-ip.ts.
+#
+# ⚠️ `{client_ip}` equals the real visitor only when `trusted_proxies` lists the
+# Arvan edge ranges. Until they are filled in below, every request resolves to
+# an Arvan edge IP — all pilot sellers then share ONE rate-limit bucket and will
+# lock each other out of login (OTP_MAX_REQUESTS_PER_IP_HOUR, default 30).
+# Two options before the pilot:
+#   (a) fill trusted_proxies with Arvan's published ranges (preferred), or
+#   (b) raise OTP_MAX_REQUESTS_PER_IP_HOUR in .env so the shared bucket can't
+#       lock the team out (per-mobile cap of 5/hour still protects each user).
+
+(crm_common) {
+    encode zstd gzip
+    log {
+        output stdout
+        format console
+    }
+    header {
+        Strict-Transport-Security "max-age=31536000"
+        X-Content-Type-Options nosniff
+        Referrer-Policy strict-origin-when-cross-origin
+    }
+}
+
+# ── Seller PWA ──────────────────────────────────────────────────────────────
+# The surface sellers install on their phones. Service-worker scope is the
+# whole origin (founder doc §9) — nothing else may be served from this host.
+http://mizro-crm.aradap.ir {
+    import crm_common
+    import infra_error_pages
+    header X-Robots-Tag "noindex, nofollow"
+    reverse_proxy web-seller:80
+}
+
+# ── Arad control plane ──────────────────────────────────────────────────────
+# ADR-013 §2 (revised 2026-07-27) / ADR-014 — apps/ops, NOT a tenant surface.
+# Audience is Arad staff on the ops identity axis; this origin holds cross-tenant
+# credentials, so it is never indexed and never framed.
+# Auth is the app's own OTP + ops-role gate; no basic_auth wall, so the login
+# form stays reachable to a new ops user.
+http://ops.aradap.ir {
+    import crm_common
+    import infra_error_pages
+    header {
+        X-Robots-Tag "noindex, nofollow"
+        X-Frame-Options DENY
+    }
+    reverse_proxy ops:80
+}
+
+# ── API gateway ─────────────────────────────────────────────────────────────
+# Does NOT import infra_error_pages — JSON 5xx bodies must survive to the
+# client (and to the Mizro producer's retry logic, which distinguishes
+# 400 "fix your bug, stop retrying" from 5xx "retry with backoff" per ADR-006).
+http://api.aradap.ir {
+    import crm_common
+    reverse_proxy api:4100 {
+        # TODO(ADR-013): add Arvan's edge ranges so {client_ip} is the real
+        # visitor rather than the edge:
+        #   trusted_proxies static <arvan-range> <arvan-range> ...
+        header_up X-Real-IP {client_ip}
+    }
+}
+
+# ── Identity origin ─────────────────────────────────────────────────────────
+# Founder doc §7 requires an `id.` origin. ADR-013: it is a proxy alias onto
+# the api's auth module, not a separate service — no code split needed. The
+# ac_session cookie is issued on .aradap.ir, so a login here is valid on every
+# surface. A dedicated unified-login UI is deferred; each app has its own
+# /login today and that is sufficient while all surfaces are same-site.
+http://id.aradap.ir {
+    import crm_common
+    reverse_proxy api:4100 {
+        # Same trusted_proxies TODO as api.aradap.ir — this host carries the
+        # OTP endpoints, so its client-IP resolution is the one that matters most.
+        header_up X-Real-IP {client_ip}
+    }
+}

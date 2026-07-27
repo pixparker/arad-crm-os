@@ -10,6 +10,8 @@
 import { sql } from 'drizzle-orm';
 import {
   bigint,
+  boolean,
+  customType,
   index,
   integer,
   jsonb,
@@ -31,6 +33,10 @@ const updatedAt = () =>
   timestamp('updated_at', { withTimezone: true, mode: 'date' }).notNull().defaultNow();
 const tstz = (name: string) => timestamp(name, { withTimezone: true, mode: 'date' });
 const rial = (name: string) => bigint(name, { mode: 'bigint' });
+// node-postgres round-trips bytea as Buffer both ways (Connect's ciphertext).
+const bytea = customType<{ data: Buffer; driverData: Buffer }>({
+  dataType: () => 'bytea',
+});
 
 // ─── organizations (tenancy root — not itself tenant-scoped) ────────────────
 
@@ -41,6 +47,9 @@ export const organizations = pgTable('organizations', {
   name: text('name').notNull(),
   slug: text('slug').notNull().unique(),
   status: organizationStatus('status').notNull().default('active'),
+  // Which vertical pack drives this org's vocabulary (ADR-010). 'mizro' is
+  // vertical #1; ops picks it when registering the business (ADR-014 §5).
+  verticalKey: text('vertical_key').notNull().default('mizro'),
   createdAt: createdAt(),
 });
 
@@ -54,11 +63,42 @@ export const users = pgTable('users', {
   phone: text('phone').notNull().unique(),
   displayName: text('display_name').notNull().default(''),
   status: userStatus('status').notNull().default('invited'),
+  // 🔒 ADR-014 §1 — the OPS axis. Independent of org_members: an ops user is
+  // never a membership row, and a tenant role never grants ops access. The two
+  // are checked by different middleware against different surfaces.
+  isOps: boolean('is_ops').notNull().default(false),
   // @arad/auth-otp session invalidation counter (bump = revoke all sessions)
   sessionVersion: integer('session_version').notNull().default(1),
   lastLoginAt: tstz('last_login_at'),
   createdAt: createdAt(),
 });
+
+// ─── ops identity (ADR-014 §1 — Arad staff, NOT tenant membership) ──────────
+
+export const opsRole = pgEnum('ops_role', [
+  'super_admin',
+  'onboarding_agent',
+  'support',
+  'finance',
+]);
+
+// One user may hold several ops roles. `ops_business_assignments` (scoping an
+// agent to specific businesses) is deliberately deferred — every ops user is
+// global until Arad has enough staff for least-privilege to mean anything
+// (ADR-014 §1); adding it later is additive.
+export const opsUserRoles = pgTable(
+  'ops_user_roles',
+  {
+    id: id(),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id),
+    role: opsRole('role').notNull(),
+    grantedBy: uuid('granted_by').references(() => users.id),
+    createdAt: createdAt(),
+  },
+  (t) => [uniqueIndex('ops_user_roles_user_role_unique').on(t.userId, t.role)],
+);
 
 // OTP login sessions (@arad/auth-otp OtpSessionRepo port shape)
 export const otpSessions = pgTable(
@@ -134,9 +174,11 @@ export const orgMembers = pgTable(
 
 export const auditLog = pgTable('audit_log', {
   id: id(),
-  organizationId: uuid('organization_id')
-    .notNull()
-    .references(() => organizations.id),
+  // NULL = a platform-scoped ops action with no tenant (registering the first
+  // business, creating a connection, editing platform config — ADR-014 §2).
+  // Tenant-scoped writes still always carry the org, and the column keeps this
+  // table inside the org-scope guard's derived tenant-table list.
+  organizationId: uuid('organization_id').references(() => organizations.id),
   actorUserId: uuid('actor_user_id').references(() => users.id),
   action: text('action').notNull(),
   entityType: text('entity_type').notNull(),
@@ -474,3 +516,258 @@ export const commissionEntryStatusAudit = pgTable('commission_entry_status_audit
   reason: text('reason'),
   createdAt: createdAt(),
 });
+
+// ─── platform configuration (@arad/platform-config store — ADR-014 §3) ──────
+// Platform-wide, ops-editable settings. Deliberately NOT tenant-scoped: these
+// configure Arad's own platform (which connection OTP routes through, test
+// recipients), not a customer's workspace. Overrides only — a missing row
+// means "the registered code default", so deleting a row truly resets it.
+
+export const appSettings = pgTable('app_settings', {
+  key: text('key').primaryKey(),
+  value: jsonb('value').notNull(),
+  // Human edit-note the ops UI shows next to the value.
+  description: text('description'),
+  updatedAt: updatedAt(),
+  updatedBy: uuid('updated_by').references(() => users.id),
+});
+
+// ─── connected apps (@arad/connect — ADR-014 §3) ────────────────────────────
+// Credentials are envelope-encrypted: the creds JSON is sealed by a per-row
+// DEK, the DEK sealed by the env-mastered KEK — the four bytea columns are
+// ciphertext + nonces, NEVER plaintext. 🔒 All encrypt/decrypt lives inside
+// @arad/connect; nothing outside apps/api/src/lib/connect-wiring.ts (its
+// ConnectStore port implementation) may query these tables, and NOTHING may
+// select the encrypted columns.
+//
+// Platform-scoped on purpose (no organization_id): Arad operates SMS on behalf
+// of every tenant, and a nullable org column would enrol these tables in the
+// org-scope guard's tenant list while carrying rows that have no tenant.
+// Per-tenant connections are an additive migration (ADR-014 §3 revisit).
+
+export const connections = pgTable(
+  'connections',
+  {
+    id: id(),
+    // 'communication' in E01; 'payment' | 'ai' reserved.
+    type: text('type').notNull(),
+    // 'smsir' first — extended via adapter registration.
+    provider: text('provider').notNull(),
+    label: text('label').notNull(),
+    // 'active' | 'disabled' | 'error'
+    status: text('status').notNull().default('active'),
+    // Materialized from the provider adapter at create time so capability
+    // routing can query without loading adapter code.
+    capabilities: text('capabilities').array().notNull(),
+    // { last_test_at, last_test_result, last_success_at, recent_errors[] }
+    health: jsonb('health').notNull().default({}),
+    // 🔒 Masked display hint ("…1234") — the ONLY credential-derived value the
+    // UI ever sees. Credentials are write-only; rotation means re-entering.
+    credHint: text('cred_hint'),
+    encryptedDek: bytea('encrypted_dek').notNull(),
+    dekNonce: bytea('dek_nonce').notNull(),
+    encryptedCreds: bytea('encrypted_creds').notNull(),
+    credsNonce: bytea('creds_nonce').notNull(),
+    // Which KEK generation sealed encrypted_dek — lets a rotation script tell
+    // rotated rows apart if a rotation is interrupted mid-procedure.
+    kekVersion: integer('kek_version').notNull().default(1),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+    createdByOpsUserId: uuid('created_by_ops_user_id').references(() => users.id),
+    updatedByOpsUserId: uuid('updated_by_ops_user_id').references(() => users.id),
+    deletedAt: tstz('deleted_at'),
+  },
+  (t) => [index('connections_type_status_idx').on(t.type, t.status)],
+);
+
+// 🔒 Immutable credential-lifecycle audit — one row per event, written in the
+// SAME transaction as the store operation (the ConnectStore port's contract).
+// `meta` never contains secrets: every write passes through @arad/connect's
+// scrubber first. Audit rows outlive their connection, which is only ever
+// soft-deleted.
+export const connectionEvents = pgTable(
+  'connection_events',
+  {
+    id: id(),
+    connectionId: uuid('connection_id')
+      .notNull()
+      .references(() => connections.id),
+    // created | creds_rotated | status_changed | tested | send_failed |
+    // failover_triggered | soft_deleted | template_*
+    event: text('event').notNull(),
+    // Null for system events (send_failed, failover_triggered).
+    actorOpsUserId: uuid('actor_ops_user_id').references(() => users.id),
+    meta: jsonb('meta').notNull().default({}),
+    createdAt: createdAt(),
+  },
+  (t) => [index('connection_events_conn_time_idx').on(t.connectionId, t.createdAt)],
+);
+
+// Per-connection message templates. Routing selects a (connection, template)
+// pair for OTP; provider_template_ref is the provider-scoped handle (SMS.ir's
+// numeric id as a string) and code_var_name the provider-side substitution
+// variable. No variable-syntax layer — providers substitute server-side.
+export const connectionTemplates = pgTable(
+  'connection_templates',
+  {
+    id: id(),
+    connectionId: uuid('connection_id')
+      .notNull()
+      .references(() => connections.id),
+    alias: text('alias').notNull(),
+    // 'otp' | 'transactional' | 'marketing' — only 'otp' routes in E01.
+    purpose: text('purpose').notNull(),
+    providerTemplateRef: text('provider_template_ref').notNull(),
+    codeVarName: text('code_var_name'),
+    isActive: boolean('is_active').notNull().default(true),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+    createdBy: uuid('created_by').references(() => users.id),
+  },
+  (t) => [uniqueIndex('connection_templates_alias_unique').on(t.connectionId, t.alias)],
+);
+
+// ─── flows (ADR-015 🔒 suggestion only — no sending, waits or conditions) ────
+// A flow is a named, ordered playbook attached to a lead, opportunity or
+// account. Enrolling an entity makes the system SUGGEST the next step; the
+// seller accepts or overrides. Nothing runs on a timer.
+
+export const flowEntityKind = pgEnum('flow_entity_kind', ['lead', 'opportunity', 'account']);
+
+export const flowStatus = pgEnum('flow_status', ['active', 'archived']);
+
+export const flowEnrollmentStatus = pgEnum('flow_enrollment_status', [
+  'active',
+  'completed',
+  'cancelled',
+]);
+
+// 🔒 A step decision is recorded as accepted or overridden — without it,
+// playbooks are unfalsifiable (ADR-015 §2).
+export const flowStepDecision = pgEnum('flow_step_decision', ['accepted', 'overridden', 'skipped']);
+
+// Configuration, not code (ADR-015 §3): rows are per organization, so a tenant
+// edits a playbook without a deploy. A vertical pack may seed defaults.
+export const flowDefinitions = pgTable(
+  'flow_definitions',
+  {
+    id: id(),
+    organizationId: uuid('organization_id')
+      .notNull()
+      .references(() => organizations.id),
+    key: text('key').notNull(),
+    label: text('label').notNull(),
+    entityKind: flowEntityKind('entity_kind').notNull(),
+    status: flowStatus('status').notNull().default('active'),
+    // The version live enrollments start on. Editing a flow publishes a new
+    // version and moves this pointer; in-flight enrollments keep their own.
+    currentVersionId: uuid('current_version_id'),
+    createdBy: uuid('created_by').references(() => users.id),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [uniqueIndex('flow_definitions_org_key_unique').on(t.organizationId, t.key)],
+);
+
+// 🔒 Immutable step snapshots, versioned like commission plans (ADR-007): a
+// playbook edit must never rewrite what a seller was told to do yesterday.
+export const flowVersions = pgTable(
+  'flow_versions',
+  {
+    id: id(),
+    organizationId: uuid('organization_id')
+      .notNull()
+      .references(() => organizations.id),
+    definitionId: uuid('definition_id')
+      .notNull()
+      .references(() => flowDefinitions.id),
+    versionNo: integer('version_no').notNull(),
+    // [{ order, action_type, offset_days, label }] — @arad-crm/api-contracts
+    // flowStepsSchema validates on write.
+    steps: jsonb('steps').notNull(),
+    createdBy: uuid('created_by').references(() => users.id),
+    createdAt: createdAt(),
+  },
+  (t) => [uniqueIndex('flow_versions_definition_no_unique').on(t.definitionId, t.versionNo)],
+);
+
+export const flowEnrollments = pgTable(
+  'flow_enrollments',
+  {
+    id: id(),
+    organizationId: uuid('organization_id')
+      .notNull()
+      .references(() => organizations.id),
+    entityKind: flowEntityKind('entity_kind').notNull(),
+    entityId: uuid('entity_id').notNull(),
+    flowVersionId: uuid('flow_version_id')
+      .notNull()
+      .references(() => flowVersions.id),
+    // 1-based index into the version's steps; > steps.length ⇒ completed.
+    currentStep: integer('current_step').notNull().default(1),
+    status: flowEnrollmentStatus('status').notNull().default('active'),
+    enrolledBy: uuid('enrolled_by').references(() => users.id),
+    enrolledAt: createdAt(),
+    completedAt: tstz('completed_at'),
+  },
+  (t) => [
+    // One active playbook per entity — a second enrolment would make "the"
+    // suggested next step ambiguous.
+    uniqueIndex('flow_enrollments_org_entity_unique').on(
+      t.organizationId,
+      t.entityKind,
+      t.entityId,
+    ),
+  ],
+);
+
+// 🔒 Append-only. The record of what the system suggested versus what the
+// seller chose — the only evidence for whether a playbook is any good.
+export const flowStepDecisions = pgTable(
+  'flow_step_decisions',
+  {
+    id: id(),
+    organizationId: uuid('organization_id')
+      .notNull()
+      .references(() => organizations.id),
+    enrollmentId: uuid('enrollment_id')
+      .notNull()
+      .references(() => flowEnrollments.id),
+    stepOrder: integer('step_order').notNull(),
+    suggestedActionType: text('suggested_action_type'),
+    suggestedAt: tstz('suggested_at'),
+    chosenActionType: text('chosen_action_type'),
+    chosenAt: tstz('chosen_at'),
+    decision: flowStepDecision('decision').notNull(),
+    actorUserId: uuid('actor_user_id').references(() => users.id),
+    createdAt: createdAt(),
+  },
+  (t) => [index('flow_step_decisions_enrollment_idx').on(t.enrollmentId, t.createdAt)],
+);
+
+// ─── producer bindings (ADR-014 §5 / E01-F10) ───────────────────────────────
+// Which tenant a producer's events belong to. Before this, the worker resolved
+// "the first organization in the table" — correct while exactly one business
+// existed, wrong the moment ops can register a second.
+//
+// Keyed by (producer, external_ref) so two businesses can each run their own
+// instance of the same producer; `external_ref` is the producer-side
+// identifier the webhook authenticates as ('default' while the shared
+// MIZRO_WEBHOOK_SECRET is still the door — ADR-014 §4 replaces it with a
+// connection, at which point the connection id becomes the ref).
+export const producerBindings = pgTable(
+  'producer_bindings',
+  {
+    id: id(),
+    // @arad/platform-events producerSchema: mizro | commerce | crm
+    producer: text('producer').notNull(),
+    externalRef: text('external_ref').notNull().default('default'),
+    organizationId: uuid('organization_id')
+      .notNull()
+      .references(() => organizations.id),
+    label: text('label').notNull().default(''),
+    createdBy: uuid('created_by').references(() => users.id),
+    createdAt: createdAt(),
+  },
+  (t) => [uniqueIndex('producer_bindings_producer_ref_unique').on(t.producer, t.externalRef)],
+);

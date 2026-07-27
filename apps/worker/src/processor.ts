@@ -24,6 +24,7 @@ import {
   opportunities,
   orgScope,
   organizations,
+  producerBindings,
 } from '@arad-crm/db';
 import { logger } from '@arad/logger';
 import { type ParsedEvent, parseEvent, parseRial } from '@arad/platform-events';
@@ -31,12 +32,46 @@ import { and, asc, desc, eq, inArray, isNotNull, isNull, lte, sql } from 'drizzl
 
 const MAX_ATTEMPTS = 5;
 
-// Pilot: single-org deployment — producer→org mapping is the multi-tenant seam.
-const pilotOrgId = async (db: Db): Promise<string> => {
-  // @invariant-allow: orgScope-cross-tenant resolving THE pilot org (integration boundary, pre-org context)
-  const org = (await db.select().from(organizations).limit(1))[0];
-  if (!org) throw new Error('no organization — run pnpm db:seed');
-  return org.id;
+// 🔒 E01-F10 — which tenant a producer's events belong to. This used to be
+// "the first organization in the table", which is correct with exactly one
+// business and silently wrong the moment ops registers a second: every Mizro
+// payment would land in whichever org happened to sort first, and the
+// commission would be paid to the wrong team's seller.
+//
+// Resolution order:
+//   1. an explicit `producer_bindings` row (what ops manages)
+//   2. the ONLY organization, when exactly one exists — dev/pilot convenience,
+//      logged as a warning so it is visible rather than assumed
+//   3. throw. The event lands in the failed inbox for ops to bind and replay,
+//      which is the honest outcome: we do not know whose money this is.
+export const resolveOrgId = async (
+  db: Db,
+  producer: string,
+  externalRef = 'default',
+): Promise<string> => {
+  // @invariant-allow: orgScope-cross-tenant resolving the org FROM the producer binding (integration boundary, pre-org context)
+  const binding = (
+    await db
+      .select({ organizationId: producerBindings.organizationId })
+      .from(producerBindings)
+      .where(
+        and(eq(producerBindings.producer, producer), eq(producerBindings.externalRef, externalRef)),
+      )
+  )[0];
+  if (binding) return binding.organizationId;
+
+  // @invariant-allow: orgScope-cross-tenant single-org fallback at the integration boundary
+  const orgs = await db.select({ id: organizations.id }).from(organizations).limit(2);
+  if (orgs.length === 1 && orgs[0]) {
+    logger.warn(
+      { producer, externalRef, orgId: orgs[0].id },
+      'no producer binding — falling back to the only organization; bind it in ops before registering a second business',
+    );
+    return orgs[0].id;
+  }
+  throw new Error(
+    `no producer binding for ${producer}/${externalRef} and ${orgs.length} organizations exist — bind the producer to a business in the ops panel`,
+  );
 };
 
 const findOrCreateAccountByRef = async (
@@ -513,7 +548,7 @@ export const processInboxRow = async (
   row: typeof integrationEventsInbox.$inferSelect,
   explicitOrgId?: string,
 ): Promise<void> => {
-  const orgId = explicitOrgId ?? (await pilotOrgId(db));
+  const orgId = explicitOrgId ?? (await resolveOrgId(db, row.producer));
   let softError: string | null = null;
   try {
     const parsed = parseEvent(row.payload);

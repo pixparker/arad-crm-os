@@ -58,6 +58,9 @@ Payments never enter the CRM: Zarinpal/card-to-card live in Mizro (E53) / Commer
 | 010 | Verticals: packages + module registry per org; vertical owns its data + privacy regime; core stays lean; custom fields deferred | [ADR-010](decisions/ADR-010-vertical-extension-model.md) |
 | 011 | Quality: two-tier Vitest (+ real-Postgres tests), golden commission scenarios, data-leak tests, ported CI guard scripts, Sentry+pino, append-only audit log | [ADR-011](decisions/ADR-011-quality-observability-audit.md) |
 | 012 | UI across verticals: 3 decoupled layers — per-vertical **theme** (token swap) + shared **component kit** + per-vertical **screens**; verticals not forced onto one look; UI polish is incremental/any-phase; harden the kit once before vertical #2 | [ADR-012](decisions/ADR-012-ui-surface-theming-across-verticals.md) |
+| 013 | Deployment: `aradap.ir` on ArvanCloud + mvp-pool; hosts `mizro-crm` / `ops` / `api` / `id`; one bundled slug; cookie on `.aradap.ir`; client IP via `X-Real-IP` | [ADR-013](decisions/ADR-013-deployment-domains-origins.md) |
+| 014 | Ops control plane (`apps/ops`): ops identity axis separate from tenant membership; tenant provisioning; connected apps via extracted `@arad/connect` with envelope-encrypted credentials | [ADR-014](decisions/ADR-014-ops-control-plane-tenancy-connected-apps.md) |
+| 015 | Flows = versioned, org-scoped **playbooks** that suggest the next action; no sending/waits/conditions in MVP; automation is a later module on the same vocabulary | [ADR-015](decisions/ADR-015-flows-guided-next-action.md) |
 
 **Fit against the founder's five requirements** (fast flow · low bug risk · low maintenance · performance · flexibility): [01-requirements-fit.md](01-requirements-fit.md).
 

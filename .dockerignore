@@ -1,0 +1,63 @@
+# Build context filter for `docker build` (ADR-013). Without this, every image
+# build ships the whole repo (incl. node_modules) to the daemon and `COPY . .`
+# bakes it into the layer.
+#
+# NOTE — `foundation/` is deliberately NOT excluded. It is a git submodule whose
+# packages are workspace members (`pnpm-workspace.yaml`); the build needs its
+# real contents. Ensure it is checked out (`git submodule update --init`) before
+# building — an empty foundation/ fails the install with unresolved @arad/*.
+
+# --- Node.js / pnpm ---------------------------------------------------------
+node_modules/
+**/node_modules/
+.pnpm-store/
+.pnpm-debug.log
+npm-debug.log*
+
+# --- Build outputs (regenerated in the container) ---------------------------
+**/dist/
+**/.next/
+**/.turbo/
+**/.cache/
+**/build/
+**/coverage/
+**/*.tsbuildinfo
+
+# --- VCS + meta -------------------------------------------------------------
+.git/
+.github/
+.gitignore
+.gitmodules
+
+# --- Secrets — never in an image layer (deploy/scripts/secret-grep.sh) ------
+**/.env
+**/.env.*
+!**/.env.example
+
+# --- Editor / OS ------------------------------------------------------------
+.vscode/
+.idea/
+.cursor/
+.DS_Store
+*.swp
+*.swo
+
+# --- Docs + dev-only deploy artefacts ---------------------------------------
+docs/
+README.md
+CONTRIBUTING.md
+CLAUDE.md
+LICENSE
+*.md
+!apps/**/README.md
+!packages/**/README.md
+deploy/dev/
+
+# --- Test / CI noise --------------------------------------------------------
+**/*.test.ts
+**/*.test.tsx
+**/*.db.test.ts
+**/__tests__/
+**/__snapshots__/
+**/vitest.config.*
+.biomecache
