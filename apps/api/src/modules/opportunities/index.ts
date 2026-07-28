@@ -4,7 +4,7 @@
 
 import {
   createOpportunityBodySchema,
-  opportunitySchema,
+  opportunityDetailSchema,
   updateOpportunityBodySchema,
 } from '@arad-crm/api-contracts';
 import { accounts, db, leads, opportunities, orgScope, users } from '@arad-crm/db';
@@ -13,26 +13,14 @@ import { ForbiddenError, NotFoundError, ValidationError } from '@arad/errors';
 import { type SQL, and, desc, eq } from 'drizzle-orm';
 import { Hono } from 'hono';
 import { isSeller, requireActor, session } from '../../middleware/session.js';
+import { accountView } from '../accounts/index.js';
+import { accountTimeline } from '../activities/index.js';
+import { leadView } from '../leads/index.js';
+import { opportunityView } from './service.js';
 
-const toOpp = (
-  o: typeof opportunities.$inferSelect,
-  accountName: string,
-  ownerName: string | null,
-) =>
-  opportunitySchema.parse({
-    id: o.id,
-    account_id: o.accountId,
-    account_name: accountName,
-    owner_id: o.ownerId,
-    owner_name: ownerName,
-    stage: o.stage,
-    status: o.status,
-    amount_estimate_rial: o.amountEstimateRial?.toString() ?? null,
-    win_reason: o.winReason,
-    loss_reason: o.lossReason,
-    won_at: o.wonAt?.toISOString() ?? null,
-    created_at: o.createdAt.toISOString(),
-  });
+export { opportunityView } from './service.js';
+
+const toOpp = opportunityView;
 
 export const opportunitiesRoutes = new Hono()
   .use('*', session())
@@ -92,6 +80,50 @@ export const opportunitiesRoutes = new Hono()
       }
       return c.json(toOpp(opp, account.name, null), 201);
     });
+  })
+  // The deal's page: the deal, its file, the lead it came from, and the history
+  // behind it. 🔒 Sellers read only their own deals — the same rule the list
+  // applies, restated here because an id is not an authorization.
+  .get('/:id', async (c) => {
+    const actor = requireActor(c);
+    const id = c.req.param('id');
+    const row = (
+      await db
+        .select({ opp: opportunities, account: accounts, ownerName: users.displayName })
+        .from(opportunities)
+        .innerJoin(accounts, eq(accounts.id, opportunities.accountId))
+        .leftJoin(users, eq(users.id, opportunities.ownerId))
+        .where(and(orgScope(opportunities.organizationId, actor.orgId), eq(opportunities.id, id)))
+    )[0];
+    if (!row) throw new NotFoundError('opportunity not found');
+    if (isSeller(actor.role) && row.opp.ownerId !== actor.userId) {
+      throw new ForbiddenError('این معامله متعلق به شما نیست');
+    }
+
+    const originLead = row.opp.leadId
+      ? (
+          await db
+            .select({ lead: leads, assigneeName: users.displayName })
+            .from(leads)
+            .leftJoin(users, eq(users.id, leads.assignedTo))
+            .where(and(orgScope(leads.organizationId, actor.orgId), eq(leads.id, row.opp.leadId)))
+        )[0]
+      : undefined;
+
+    return c.json(
+      opportunityDetailSchema.parse({
+        opportunity: toOpp(row.opp, row.account.name, row.ownerName ?? null),
+        account: accountView(row.account),
+        lead: originLead
+          ? leadView({
+              lead: originLead.lead,
+              account: row.account,
+              assigneeName: originLead.assigneeName ?? null,
+            })
+          : null,
+        timeline: await accountTimeline(actor.orgId, row.account.id),
+      }),
+    );
   })
   .patch('/:id', async (c) => {
     const actor = requireActor(c);

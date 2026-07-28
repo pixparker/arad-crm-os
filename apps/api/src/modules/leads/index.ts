@@ -7,38 +7,23 @@ import {
   createLeadBodySchema,
   importLeadsBodySchema,
   importLeadsResponseSchema,
-  leadSchema,
+  leadDetailSchema,
 } from '@arad-crm/api-contracts';
-import { accounts, auditLog, db, leads, orgScope, users } from '@arad-crm/db';
+import { accounts, auditLog, db, leads, opportunities, orgScope, users } from '@arad-crm/db';
 import { normalizeIranianMobile } from '@arad/auth-otp';
 import { ConflictError, ForbiddenError, NotFoundError, ValidationError } from '@arad/errors';
 import { type SQL, and, desc, eq, isNull } from 'drizzle-orm';
 import { Hono } from 'hono';
 import { isSeller, requireActor, requireRole, session } from '../../middleware/session.js';
+import { accountView, assertAccountVisible } from '../accounts/index.js';
+import { accountTimeline } from '../activities/index.js';
+import { opportunityView } from '../opportunities/index.js';
 import { leadGuidance, leadGuidedFollowup } from './guided.js';
+import { leadView } from './service.js';
 
-const leadRow = (r: {
-  lead: typeof leads.$inferSelect;
-  account: typeof accounts.$inferSelect;
-  assigneeName: string | null;
-}) =>
-  leadSchema.parse({
-    id: r.lead.id,
-    account_id: r.account.id,
-    account_name: r.account.name,
-    account_phone: r.account.phone,
-    region_text: r.account.regionText,
-    territory_id: r.account.territoryId,
-    status: r.lead.status,
-    source: r.lead.source,
-    assigned_to: r.lead.assignedTo,
-    assigned_to_name: r.assigneeName,
-    next_action_type: r.lead.nextActionType,
-    next_action_at: r.lead.nextActionAt?.toISOString() ?? null,
-    close_reason: r.lead.closeReason,
-    requested_features: (r.lead.requestedFeatures as string[] | null) ?? null,
-    created_at: r.lead.createdAt.toISOString(),
-  });
+export { leadView } from './service.js';
+
+const leadRow = leadView;
 
 const findByPhone = async (orgId: string, phone: string) =>
   (
@@ -278,6 +263,48 @@ export const leadsRoutes = new Hono()
       }
       return c.json({ ok: true });
     });
+  })
+
+  // The lead's own page: the file, everything that has happened against it, and
+  // the deals it produced — one round trip, because a seller opening this in the
+  // field is on a phone and a slow connection.
+  .get('/:id', async (c) => {
+    const actor = requireActor(c);
+    const id = c.req.param('id');
+    const row = (
+      await db
+        .select({ lead: leads, account: accounts, assigneeName: users.displayName })
+        .from(leads)
+        .innerJoin(accounts, eq(accounts.id, leads.accountId))
+        .leftJoin(users, eq(users.id, leads.assignedTo))
+        .where(and(orgScope(leads.organizationId, actor.orgId), eq(leads.id, id)))
+    )[0];
+    if (!row) throw new NotFoundError('lead not found');
+    // 🔒 territory, or an assignment that overrides it
+    await assertAccountVisible(actor, row.account);
+
+    const opps = await db
+      .select({ opp: opportunities, ownerName: users.displayName })
+      .from(opportunities)
+      .leftJoin(users, eq(users.id, opportunities.ownerId))
+      .where(
+        and(
+          orgScope(opportunities.organizationId, actor.orgId),
+          eq(opportunities.accountId, row.account.id),
+        ),
+      )
+      .orderBy(desc(opportunities.createdAt));
+
+    return c.json(
+      leadDetailSchema.parse({
+        lead: leadRow(row),
+        account: accountView(row.account),
+        timeline: await accountTimeline(actor.orgId, row.account.id),
+        opportunities: opps.map((o) =>
+          opportunityView(o.opp, row.account.name, o.ownerName ?? null),
+        ),
+      }),
+    );
   })
 
   // E01-F08 — the guided post-create step. Two routes, one purpose: saving a

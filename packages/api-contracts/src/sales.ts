@@ -82,6 +82,42 @@ export const accountSchema = z.object({
 });
 export type Account = z.infer<typeof accountSchema>;
 
+// ＋ «مشتری» — a file for a business the seller already knows, created without
+// going through the lead pipeline (E01-F07's registry points this entry here).
+// 🔒 `status` is deliberately NOT in the body: `customer` means a detected
+// payment event and is written by the worker alone. A manually created file
+// starts in the funnel and is promoted by a real sale, never by a form.
+export const createAccountBodySchema = z.object({
+  business_name: z.string().min(2).max(160),
+  phone: z.string().min(5).max(20).optional(),
+  region_text: z.string().max(120).optional(),
+  territory_id: z.string().optional(),
+  business_type: z.string().max(60).optional(),
+  contact_name: z.string().max(120).optional(),
+  contact_role: z.string().max(120).optional(),
+  instagram: z.string().max(120).optional(),
+  address_text: z.string().max(300).optional(),
+  source: z.string().max(40).default('manual'),
+  // merged through the vertical findings schema — invalid keys rejected
+  attributes: z.record(z.unknown()).optional(),
+});
+export type CreateAccountBody = z.infer<typeof createAccountBodySchema>;
+
+// Pre-create duplicate check for the ＋ sheet. 🔒 A file the actor may not read
+// is reported as taken WITHOUT its contents: the seller learns "already
+// registered, not yours" and can ask a manager, instead of either creating a
+// duplicate or being handed another territory's file.
+export const accountLookupResponseSchema = z.object({
+  found: z.boolean(),
+  visible_to_me: z.boolean(),
+  account_id: z.string().nullable(),
+  name: z.string().nullable(),
+  status: accountStatusSchema.nullable(),
+  region_text: z.string().nullable(),
+  message: z.string().nullable(),
+});
+export type AccountLookupResponse = z.infer<typeof accountLookupResponseSchema>;
+
 export const updateAccountBodySchema = z.object({
   contact_name: z.string().max(120).optional(),
   contact_role: z.string().max(120).optional(),
@@ -192,6 +228,7 @@ export const activitySchema = z.object({
   seller_name: z.string().nullable(),
   occurred_at: z.string(),
 });
+export type Activity = z.infer<typeof activitySchema>;
 
 // «امروز من» — the seller's day
 export const todayResponseSchema = z.object({
@@ -227,6 +264,7 @@ export const opportunitySchema = z.object({
   won_at: z.string().nullable(),
   created_at: z.string(),
 });
+export type Opportunity = z.infer<typeof opportunitySchema>;
 
 export const createOpportunityBodySchema = z.object({
   account_id: z.string(),
@@ -241,6 +279,38 @@ export const updateOpportunityBodySchema = z.object({
   win_reason: z.string().max(60).optional(),
   loss_reason: z.string().max(60).optional(),
   loss_note: z.string().max(500).optional(),
+});
+
+// ── detail views ────────────────────────────────────────────────────────────
+// One entity + everything a screen needs to render it, in one round trip. The
+// list endpoints answer "what should I work on"; these answer "what is the
+// story of this one" — the timeline is the CRM's actual product.
+
+export const attributionClaimSchema = z.object({
+  seller_id: z.string(),
+  seller_name: z.string(),
+  first_touch_at: z.string(),
+});
+
+export const accountDetailSchema = z.object({
+  account: accountSchema,
+  timeline: z.array(activitySchema),
+  // ★ معرِّف — 🔒 immutable first touch
+  attribution: attributionClaimSchema.nullable(),
+});
+
+export const leadDetailSchema = z.object({
+  lead: leadSchema,
+  account: accountSchema,
+  timeline: z.array(activitySchema),
+  opportunities: z.array(opportunitySchema),
+});
+
+export const opportunityDetailSchema = z.object({
+  opportunity: opportunitySchema,
+  account: accountSchema,
+  lead: leadSchema.nullable(),
+  timeline: z.array(activitySchema),
 });
 
 // ── attribution ─────────────────────────────────────────────────────────────

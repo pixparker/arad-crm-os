@@ -1,44 +1,38 @@
 // Accounts («پرونده‌ها») — the cafes. Detail = header + interaction timeline +
 // Mizro read-only mirror + immutable معرِّف claim (mock's account page).
+//
+// Creation lives here too: the ＋ menu's «مشتری» entry (E01-F07) files a
+// business the seller already knows, without inventing a lead for it.
 
 import {
-  accountSchema,
-  activitySchema,
+  accountDetailSchema,
+  accountLookupResponseSchema,
+  attributionClaimSchema,
+  createAccountBodySchema,
   linkMizroBusinessBodySchema,
   updateAccountBodySchema,
 } from '@arad-crm/api-contracts';
-import { accounts, activities, attributionClaims, db, orgScope, users } from '@arad-crm/db';
+import { accounts, attributionClaims, db, orgScope, users } from '@arad-crm/db';
 import { findingsSchema, mergeFindings } from '@arad-crm/vertical-mizro';
+import { normalizeIranianMobile } from '@arad/auth-otp';
 import { ConflictError, ForbiddenError, NotFoundError, ValidationError } from '@arad/errors';
 import { type SQL, and, desc, eq, ilike, ne, or } from 'drizzle-orm';
 import { Hono } from 'hono';
 import { isSeller, requireActor, session } from '../../middleware/session.js';
+import { accountTimeline } from '../activities/index.js';
+import { accountView, assertAccountVisible, canSeeAccount, loadAccount } from './service.js';
 
-const toAccount = (a: typeof accounts.$inferSelect) =>
-  accountSchema.parse({
-    id: a.id,
-    name: a.name,
-    business_type: a.businessType,
-    phone: a.phone,
-    contact_name: a.contactName,
-    contact_role: a.contactRole,
-    instagram: a.instagram,
-    address_text: a.addressText,
-    region_text: a.regionText,
-    territory_id: a.territoryId,
-    source: a.source,
-    external_rating: a.externalRating,
-    status: a.status,
-    attributes: (a.attributes as Record<string, unknown>) ?? {},
-    mizro: {
-      business_ref: a.mizroBusinessRef,
-      plan: a.mizroPlan,
-      subscription_status: a.mizroSubscriptionStatus,
-      subscription_ends_at: a.mizroSubscriptionEndsAt?.toISOString() ?? null,
-      total_paid_rial: a.totalPaidRial.toString(),
-    },
-    created_at: a.createdAt.toISOString(),
-  });
+export { accountView, assertAccountVisible, canSeeAccount, loadAccount } from './service.js';
+
+const toAccount = accountView;
+
+const findByPhone = async (orgId: string, phone: string) =>
+  (
+    await db
+      .select()
+      .from(accounts)
+      .where(and(orgScope(accounts.organizationId, orgId), eq(accounts.phone, phone)))
+  )[0];
 
 export const accountsRoutes = new Hono()
   .use('*', session())
@@ -63,24 +57,141 @@ export const accountsRoutes = new Hono()
       .limit(100);
     return c.json({ items: rows.map(toAccount) });
   })
+  // ＋ «مشتری» — a file for a business already known, no lead pipeline involved.
+  .post('/', async (c) => {
+    const actor = requireActor(c);
+    const body = createAccountBodySchema.parse(await c.req.json());
+    const phone = body.phone ? (normalizeIranianMobile(body.phone) ?? body.phone.trim()) : null;
+
+    // Same dedupe rule as lead capture — one business, one file. Two sellers
+    // filing the same cafe under two names is how attribution turns into an
+    // argument nobody can settle from the data.
+    if (phone) {
+      const existing = await findByPhone(actor.orgId, phone);
+      if (existing) {
+        throw new ConflictError('کسب‌وکاری با این شماره از قبل ثبت شده است', {
+          existing_account_id: existing.id,
+          // and whether they can actually open it — the UI needs to choose
+          // between "برو به پرونده" and "از مدیر بخواه"
+          visible_to_me: await canSeeAccount(actor, existing),
+        });
+      }
+    }
+
+    let attributes: Record<string, unknown> = {};
+    if (body.attributes) {
+      const parsed = findingsSchema.safeParse(body.attributes);
+      if (!parsed.success) {
+        throw new ValidationError('invalid vertical attributes', { issues: parsed.error.issues });
+      }
+      attributes = parsed.data;
+    }
+
+    const seller = isSeller(actor.role);
+    // 🔒 A seller files into their OWN territory. Accepting a territory_id from
+    // a seller would let a file (and the pipeline it feeds) be parked in
+    // someone else's patch.
+    if (seller && body.territory_id && body.territory_id !== actor.territoryId) {
+      throw new ForbiddenError('ثبت پرونده در منطقهٔ دیگر مجاز نیست', { rule: 'own_territory' });
+    }
+
+    const rows = await db
+      .insert(accounts)
+      .values({
+        organizationId: actor.orgId,
+        name: body.business_name,
+        phone,
+        regionText: body.region_text ?? null,
+        addressText: body.address_text ?? null,
+        territoryId: seller ? actor.territoryId : (body.territory_id ?? null),
+        ...(body.business_type ? { businessType: body.business_type } : {}),
+        ...(body.contact_name ? { contactName: body.contact_name } : {}),
+        ...(body.contact_role ? { contactRole: body.contact_role } : {}),
+        ...(body.instagram ? { instagram: body.instagram } : {}),
+        attributes,
+        source: seller ? 'seller' : body.source,
+        // 🔒 never 'customer' — that status means a detected payment event and
+        // is written by the worker alone (schema.ts accountStatus).
+        status: 'in_funnel',
+        createdBy: actor.userId,
+      })
+      .returning();
+    const account = rows[0];
+    if (!account) throw new ValidationError('account insert failed');
+    return c.json(toAccount(account), 201);
+  })
+  // Duplicate check BEFORE the form is filled (the ＋ sheet's first field).
+  // Registered ahead of /:id — Hono matches in registration order.
+  .get('/lookup', async (c) => {
+    const actor = requireActor(c);
+    const rawPhone = c.req.query('phone');
+    const name = c.req.query('name');
+    if (!rawPhone && !name) throw new ValidationError('phone or name is required');
+
+    let match: typeof accounts.$inferSelect | undefined;
+    if (rawPhone) {
+      const phone = normalizeIranianMobile(rawPhone) ?? rawPhone.trim();
+      match = await findByPhone(actor.orgId, phone);
+    }
+    if (!match && name) {
+      match = (
+        await db
+          .select()
+          .from(accounts)
+          .where(and(orgScope(accounts.organizationId, actor.orgId), ilike(accounts.name, name)))
+          .limit(1)
+      )[0];
+    }
+
+    if (!match) {
+      return c.json(
+        accountLookupResponseSchema.parse({
+          found: false,
+          visible_to_me: false,
+          account_id: null,
+          name: null,
+          status: null,
+          region_text: null,
+          message: null,
+        }),
+      );
+    }
+
+    // 🔒 Found but out of reach: say that it is taken, and nothing else. The
+    // seller needs to stop typing — not to read another territory's file.
+    if (!(await canSeeAccount(actor, match))) {
+      return c.json(
+        accountLookupResponseSchema.parse({
+          found: true,
+          visible_to_me: false,
+          account_id: null,
+          name: null,
+          status: null,
+          region_text: null,
+          message: 'این کسب‌وکار قبلاً ثبت شده و خارج از دسترس شماست — با مدیر فروش هماهنگ کنید',
+        }),
+      );
+    }
+
+    return c.json(
+      accountLookupResponseSchema.parse({
+        found: true,
+        visible_to_me: true,
+        account_id: match.id,
+        name: match.name,
+        status: match.status,
+        region_text: match.regionText,
+        message: null,
+      }),
+    );
+  })
   .get('/:id', async (c) => {
     const actor = requireActor(c);
     const id = c.req.param('id');
-    const account = (
-      await db
-        .select()
-        .from(accounts)
-        .where(and(orgScope(accounts.organizationId, actor.orgId), eq(accounts.id, id)))
-    )[0];
+    const account = await loadAccount(actor.orgId, id);
     if (!account) throw new NotFoundError('account not found');
-
-    const timeline = await db
-      .select({ activity: activities, sellerName: users.displayName })
-      .from(activities)
-      .leftJoin(users, eq(users.id, activities.sellerId))
-      .where(and(orgScope(activities.organizationId, actor.orgId), eq(activities.accountId, id)))
-      .orderBy(desc(activities.occurredAt))
-      .limit(50);
+    // 🔒 same rule as the list — an id is not an authorization
+    await assertAccountVisible(actor, account);
 
     const claim = (
       await db
@@ -99,44 +210,28 @@ export const accountsRoutes = new Hono()
         )
     )[0];
 
-    return c.json({
-      account: toAccount(account),
-      timeline: timeline.map((t) =>
-        activitySchema.parse({
-          id: t.activity.id,
-          account_id: t.activity.accountId,
-          kind: t.activity.kind,
-          outcome: t.activity.outcome,
-          note: t.activity.note,
-          findings: (t.activity.findings as Record<string, unknown> | null) ?? null,
-          next_action_type: t.activity.nextActionType,
-          next_action_at: t.activity.nextActionAt?.toISOString() ?? null,
-          seller_id: t.activity.sellerId,
-          seller_name: t.sellerName ?? null,
-          occurred_at: t.activity.occurredAt.toISOString(),
-        }),
-      ),
-      // ★ معرِّف — 🔒 immutable attribution
-      attribution: claim
-        ? {
-            seller_id: claim.sellerId,
-            seller_name: claim.sellerName,
-            first_touch_at: claim.at.toISOString(),
-          }
-        : null,
-    });
+    return c.json(
+      accountDetailSchema.parse({
+        account: toAccount(account),
+        timeline: await accountTimeline(actor.orgId, id),
+        // ★ معرِّف — 🔒 immutable attribution
+        attribution: claim
+          ? attributionClaimSchema.parse({
+              seller_id: claim.sellerId,
+              seller_name: claim.sellerName,
+              first_touch_at: claim.at.toISOString(),
+            })
+          : null,
+      }),
+    );
   })
   .patch('/:id', async (c) => {
     const actor = requireActor(c);
     const id = c.req.param('id');
     const body = updateAccountBodySchema.parse(await c.req.json());
-    const account = (
-      await db
-        .select()
-        .from(accounts)
-        .where(and(orgScope(accounts.organizationId, actor.orgId), eq(accounts.id, id)))
-    )[0];
+    const account = await loadAccount(actor.orgId, id);
     if (!account) throw new NotFoundError('account not found');
+    await assertAccountVisible(actor, account);
 
     let attributes = account.attributes as Record<string, unknown>;
     if (body.attributes) {
@@ -167,12 +262,7 @@ export const accountsRoutes = new Hono()
     const actor = requireActor(c);
     const id = c.req.param('id');
     const body = linkMizroBusinessBodySchema.parse(await c.req.json());
-    const account = (
-      await db
-        .select()
-        .from(accounts)
-        .where(and(orgScope(accounts.organizationId, actor.orgId), eq(accounts.id, id)))
-    )[0];
+    const account = await loadAccount(actor.orgId, id);
     if (!account) throw new NotFoundError('account not found');
     // 🔒 a seller may only link an account inside their own territory (mirrors visibility)
     if (isSeller(actor.role) && account.territoryId !== actor.territoryId) {

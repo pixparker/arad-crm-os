@@ -40,6 +40,7 @@ Track column per §5: **① core** (architecture/BE/logic) · **② design** (pr
 | **F08** | Guided post-create: lead → opportunity + next action | ①→②→③ | ✅ ① built | `GET /v1/leads/:id/guidance` + `POST /v1/leads/:id/guided-followup` |
 | **F09** | Flows — playbooks with suggested next step | ①→②→③ | ✅ ① built | `/v1/flows` — versioned definitions, enrolment, suggestion, accepted-vs-overridden decisions |
 | **F10** | Worker org resolution (drop `pilotOrgId`) | ① | ✅ built | `producer_bindings` (producer, external_ref) → org; single-org fallback warns, ambiguity refuses |
+| **F11** | Entity read surface for the ＋ and the detail screens | ① | ✅ built | `POST /v1/accounts` (the ＋'s «مشتری», which pointed at a route that did not exist), `GET /v1/accounts/lookup`, `GET /v1/leads/:id`, `GET /v1/opportunities/:id`; 🔒 the seller-visibility rule now applies to detail reads, not only lists |
 
 **F04 and F05 — the critical path — have no UI dependency at all.** That is what makes the parallel split genuinely worth doing rather than just coordination overhead.
 
@@ -80,6 +81,14 @@ Saving a lead does not dead-end. It offers, in one step: (a) create an opportuni
 
 ### F09 — Flows
 A flow is a **named ordered playbook** attached to a lead, opportunity, or customer — "cold campaign for product X", "active upsell". When an entity is enrolled, the system **suggests** the flow's next step; the seller may accept or override manually. 🔒 E01 ships suggestion only — **no sending, no waits, no conditions** (product description §10/§15 defer the generic builder). ADR-015.
+
+### F11 — The read surface behind the ＋ and the detail screens
+Added after F07–F09 shipped, because the ＋ registry advertised endpoints the api did not have and the app had no way to open what it had just created:
+
+- **`POST /v1/accounts`** — the ＋'s «مشتری» entry pointed at a route that returned 404. Same phone dedupe as lead capture; 🔒 `status` is not on the wire, so `customer` stays the worker's word (a payment event), never a form field; a seller files into their own territory only.
+- **`GET /v1/accounts/lookup?phone=|name=`** — the duplicate check *before* the form is filled. 🔒 A file the actor may not read comes back as `found: true, visible_to_me: false` with a message and **no contents**: the seller learns to stop, not who owns it.
+- **`GET /v1/leads/:id`** and **`GET /v1/opportunities/:id`** — the file, its timeline, and what it produced in one round trip (a phone in the field, on a slow connection).
+- 🔒 **The visibility fix.** `GET /v1/accounts` restricted sellers to their own territory; `GET /v1/accounts/:id` did not — an id pasted or received in a 409 opened any file in the business. All three detail reads now share one rule (`accounts/service.ts`): own territory, **or** an assignment/ownership that grants it, so a manager's deliberate cross-territory assignment still works. Asserted both ways in `entity-reads.db.test.ts`.
 
 ### F10 — Worker org resolution
 [`pilotOrgId()`](../../../../apps/worker/src/processor.ts) selects the first organization in the table. Correct while exactly one business exists; wrong the moment ops can register a second. Resolve the org from the producer connection instead.

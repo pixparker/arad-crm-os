@@ -87,13 +87,13 @@ All CI-enforced by `pnpm verify` — these are not style preferences:
 
 ## 4. Where to start
 
-**Track ① is built (2026-07-28) — F01 through F10, `pnpm verify` green.** What remains is not more backend:
+**Track ① is built (2026-07-28) — F01 through F11, `pnpm verify` green.** What remains is not more backend:
 
 1. **Prove F05 against a real sms.ir account.** Everything else is tested; this is not. Set `SMS_PROVIDER=connect` + a `CONNECT_MASTER_KEY`, register the connection in the ops panel, add its OTP template id, then press «آزمایش» and «ارسال آزمایشی». Until a phone actually rings, treat OTP delivery as unproven.
 2. **Run the deploy scripts against the pool for the first time.** `bash scripts/deploy/deploy.sh ops --dry-run` prints the plan; the real run needs the `arad-crm` slug provisioned, `.env` filled from `deploy/.env.production.example`, and the DNS records live. The scripts are written and syntax-checked, never executed against a host.
 3. **Track ③ (the seller UI)** — the workspace selector, the ＋ sheet and the guided post-create screen, against contracts that are already merged and visible at `/docs`. Wait for the prototype to settle the IA (README §5.1).
 
-The contracts a surface developer needs: `GET /v1/auth/workspaces` + `POST /v1/auth/workspace` (F06), `GET /v1/quick-add` (F07), `GET /v1/leads/:id/guidance` + `POST /v1/leads/:id/guided-followup` (F08), `/v1/flows/*` (F09).
+The contracts a surface developer needs: `GET /v1/auth/workspaces` + `POST /v1/auth/workspace` (F06), `GET /v1/quick-add` (F07), `GET /v1/leads/:id/guidance` + `POST /v1/leads/:id/guided-followup` (F08), `/v1/flows/*` (F09), and the entity reads behind them (F11): `POST /v1/accounts`, `GET /v1/accounts/lookup`, `GET /v1/leads/:id`, `GET /v1/opportunities/:id`.
 
 ## 5. Non-obvious things (found the hard way this session)
 
@@ -105,6 +105,7 @@ Things you would otherwise lose a day to:
 - **Cookie deletion must mirror the cookie's `domain`.** `COOKIE_DOMAIN` is unset in dev and set in prod, so a mismatch here is invisible locally and breaks logout in production.
 - **Org resolution for producer events is now `producer_bindings`** (F10, replacing `pilotOrgId()`). With no binding and exactly one org it falls back and warns; with several it refuses and the event lands in the failed inbox. Registering a second business therefore means binding its producer in the ops panel — the refusal is the reminder.
 - **`audit_log.organization_id` is nullable now.** NULL means a platform-scoped ops action (a connection, a platform setting, an ops-role grant) that belongs to no tenant. Tenant writes still always carry the org, and the column keeps the table inside the org-scope guard's derived list.
+- **Seller visibility is one rule, in [`accounts/service.ts`](../../../../apps/api/src/modules/accounts/service.ts).** Territory **or** an assignment/ownership that overrides it — the second half exists because a manager can assign across territories on purpose, and refusing the read would hand a seller a lead they cannot open. Every detail read (account, lead, opportunity) goes through it; if you add another entity page, use it rather than re-deriving the rule.
 - **Opportunity stage/owner/amount changes are still not audited.** Ops writes are (every one, in the same transaction); this gap is tenant-side and predates E01. If you touch those paths, add the row — business-architecture §11 rule 11 requires it.
 - **The Mizro event loop already works and is verified.** Signed outbox → HMAC inbox → dedupe → commission. Don't "fix" it; if you change the envelope, coordinate with `digital-menu`'s `crm_outbox`.
 - **Docker must be running** for `*.db.test.ts` — that tier is real Postgres, not mocks.

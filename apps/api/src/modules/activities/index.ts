@@ -18,6 +18,9 @@ import { and, desc, eq, gte, inArray, isNotNull, lte, sql } from 'drizzle-orm';
 import { Hono } from 'hono';
 import { isSeller, requireActor, session } from '../../middleware/session.js';
 
+// The module's service surface — how other modules read this history 🔒
+export { accountTimeline } from './service.js';
+
 export const activitiesRoutes = new Hono()
   .use('*', session())
   .post('/', async (c) => {
