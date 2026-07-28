@@ -213,6 +213,67 @@ describe('detail reads 🔒 an id is not an authorization', () => {
   });
 });
 
+// 🔒 "nothing rots" for accounts that never were leads — the ＋'s «مشتری» path.
+describe('«امروز من» covers commitments made without a lead', () => {
+  it('a next action logged against a lead-less account still shows up', async () => {
+    const created = await post('/v1/accounts', sellerA.cookie, {
+      business_name: `کافه بی‌سرنخ ${suffix}`,
+      phone: `0913600${suffix}`,
+      region_text: 'ونک',
+    });
+    expect(created.status).toBe(201);
+    const accountId = ((await created.json()) as { id: string }).id;
+
+    const dueAt = new Date(Date.now() + 3600_000); // later today
+    const logged = await post('/v1/activities', sellerA.cookie, {
+      account_id: accountId,
+      kind: 'visit',
+      note: 'معرفی اولیه',
+      next_action_type: 'follow_up_call',
+      next_action_at: dueAt.toISOString(),
+    });
+    expect(logged.status).toBe(201);
+
+    const today = (await (await get('/v1/activities/today', sellerA.cookie)).json()) as {
+      due_actions: { account_id: string; lead_id: string | null; action_type: string | null }[];
+    };
+    const entry = today.due_actions.find((d) => d.account_id === accountId);
+    expect(entry).toBeDefined();
+    expect(entry?.lead_id).toBeNull(); // account-level, not lead-carried
+    expect(entry?.action_type).toBe('follow_up_call');
+  });
+
+  it('a newer visit supersedes what the previous one promised', async () => {
+    const created = await post('/v1/accounts', sellerA.cookie, {
+      business_name: `کافه جایگزین ${suffix}`,
+      phone: `0913700${suffix}`,
+      region_text: 'ونک',
+    });
+    const accountId = ((await created.json()) as { id: string }).id;
+
+    await post('/v1/activities', sellerA.cookie, {
+      account_id: accountId,
+      kind: 'visit',
+      next_action_type: 'follow_up_call',
+      next_action_at: new Date(Date.now() + 3600_000).toISOString(),
+      occurred_at: new Date(Date.now() - 7200_000).toISOString(),
+    });
+    // The follow-up happened, and it closed the file — the older promise must
+    // not keep the account on today's list.
+    await post('/v1/activities', sellerA.cookie, {
+      account_id: accountId,
+      kind: 'visit',
+      close_reason: 'no_need',
+      occurred_at: new Date().toISOString(),
+    });
+
+    const today = (await (await get('/v1/activities/today', sellerA.cookie)).json()) as {
+      due_actions: { account_id: string }[];
+    };
+    expect(today.due_actions.find((d) => d.account_id === accountId)).toBeUndefined();
+  });
+});
+
 // business-architecture §11 rule 11 — a change to ownership, pipeline state or
 // the attribution bridge leaves a row saying who did it and what it was before.
 describe('tenant-side audit 🔒', () => {

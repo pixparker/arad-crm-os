@@ -14,7 +14,7 @@ import {
   mergeFindings,
 } from '@arad-crm/vertical-mizro';
 import { NotFoundError, ValidationError } from '@arad/errors';
-import { and, desc, eq, gte, inArray, isNotNull, lte, sql } from 'drizzle-orm';
+import { and, desc, eq, gte, inArray, isNotNull, isNull, lte, sql } from 'drizzle-orm';
 import { Hono } from 'hono';
 import { isSeller, requireActor, session } from '../../middleware/session.js';
 
@@ -168,6 +168,54 @@ export const activitiesRoutes = new Hono()
       .orderBy(leads.nextActionAt)
       .limit(50);
 
+    // 🔒 A commitment made on an account with no lead is still a commitment.
+    // The ＋'s «مشتری» files a customer without a pipeline entry, and a visit
+    // logged against it carries its next action on the ACTIVITY row — there is
+    // no lead to hold it. Reading the day from leads alone dropped exactly
+    // those, which is the "nothing rots" invariant failing quietly for every
+    // account that never was a lead.
+    //
+    // The standing commitment is the one on the seller's latest activity for
+    // that account: a newer visit supersedes what the previous one promised.
+    const latestPerAccount = db
+      .select({
+        accountId: activities.accountId,
+        at: sql<Date>`max(${activities.occurredAt})`.as('at'),
+      })
+      .from(activities)
+      .where(
+        and(
+          orgScope(activities.organizationId, actor.orgId),
+          eq(activities.sellerId, actor.userId),
+          isNull(activities.leadId),
+        ),
+      )
+      .groupBy(activities.accountId)
+      .as('latest_per_account');
+
+    const standalone = await db
+      .select({ activity: activities, account: accounts })
+      .from(activities)
+      .innerJoin(
+        latestPerAccount,
+        and(
+          eq(activities.accountId, latestPerAccount.accountId),
+          eq(activities.occurredAt, latestPerAccount.at),
+        ),
+      )
+      .innerJoin(accounts, eq(accounts.id, activities.accountId))
+      .where(
+        and(
+          orgScope(activities.organizationId, actor.orgId),
+          eq(activities.sellerId, actor.userId),
+          isNull(activities.leadId),
+          isNotNull(activities.nextActionAt),
+          lte(activities.nextActionAt, endOfDay),
+        ),
+      )
+      .orderBy(activities.nextActionAt)
+      .limit(50);
+
     const pickedToday = (
       await db
         .select({ n: sql<number>`count(*)::int` })
@@ -197,15 +245,28 @@ export const activitiesRoutes = new Hono()
     return c.json(
       todayResponseSchema.parse({
         date: new Date().toISOString(),
-        due_actions: due.map((d) => ({
-          lead_id: d.lead.id,
-          account_id: d.account.id,
-          account_name: d.account.name,
-          region_text: d.account.regionText,
-          action_type: d.lead.nextActionType,
-          due_at: d.lead.nextActionAt?.toISOString() ?? null,
-          overdue: (d.lead.nextActionAt?.getTime() ?? 0) < startOfDay.getTime(),
-        })),
+        // Both kinds of commitment, one list, soonest first — the seller's day
+        // does not care which table the promise happens to live in.
+        due_actions: [
+          ...due.map((d) => ({
+            lead_id: d.lead.id,
+            account_id: d.account.id,
+            account_name: d.account.name,
+            region_text: d.account.regionText,
+            action_type: d.lead.nextActionType,
+            due_at: d.lead.nextActionAt?.toISOString() ?? null,
+            overdue: (d.lead.nextActionAt?.getTime() ?? 0) < startOfDay.getTime(),
+          })),
+          ...standalone.map((s) => ({
+            lead_id: null,
+            account_id: s.account.id,
+            account_name: s.account.name,
+            region_text: s.account.regionText,
+            action_type: s.activity.nextActionType,
+            due_at: s.activity.nextActionAt?.toISOString() ?? null,
+            overdue: (s.activity.nextActionAt?.getTime() ?? 0) < startOfDay.getTime(),
+          })),
+        ].sort((a, b) => (a.due_at ?? '').localeCompare(b.due_at ?? '')),
         open_opportunities: openOpps?.n ?? 0,
         picked_today: pickedToday?.n ?? 0,
       }),
