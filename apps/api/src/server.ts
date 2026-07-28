@@ -24,8 +24,25 @@ const main = async (): Promise<void> => {
   await startConnect();
 
   const app = createApp();
-  serve({ fetch: app.fetch, port: config.API_PORT }, (info) => {
+  const server = serve({ fetch: app.fetch, port: config.API_PORT }, (info) => {
     logger.info({ port: info.port, smsProvider: config.SMS_PROVIDER }, 'arad-crm-api listening');
+  });
+
+  // Without a listener, a bind failure surfaces as an unhandled 'error' event:
+  // twenty lines of node internals whose only real content is the port number.
+  // The common cause is an ORPHANED dev api — `tsx watch` supervisors outlive a
+  // Ctrl-C'd `pnpm dev` and quietly hold the port — so the message says how to
+  // find it rather than making the next person go read `lsof` docs.
+  server.on('error', (err: NodeJS.ErrnoException) => {
+    if (err.code === 'EADDRINUSE') {
+      logger.error(
+        { port: config.API_PORT, hint: `lsof -nP -iTCP:${config.API_PORT} -sTCP:LISTEN` },
+        `port ${config.API_PORT} is already in use — something else (most likely an older dev api that outlived its terminal) is holding it. Find it with the command in \`hint\` and kill that pid, or set API_PORT to a free port.`,
+      );
+      process.exit(1);
+    }
+    logger.error({ err }, 'arad-crm-api server error');
+    process.exit(1);
   });
 };
 
