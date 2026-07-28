@@ -123,10 +123,31 @@ const otpSessionRepo: AuthDeps['otpSessionRepo'] = {
 // the api scales past one process.
 const rateLimitStore = new MemoryRateLimitStore();
 
+// 🔒 The pinned QA code. Two independent conditions, both required, neither
+// inferred from the other: NOT production, and the fake sender. `config` refuses
+// to parse at all if DEV_OTP_CODE is set in production, so this is the second
+// of two locks rather than the only one.
+//
+// `undefined` here means @arad/auth-otp falls back to its CSPRNG generator —
+// the property is omitted, not set to a no-op, so there is no code path where a
+// half-configured override yields a weak code.
+const devOtpCode =
+  config.NODE_ENV !== 'production' && config.SMS_PROVIDER === 'fake' && config.DEV_OTP_CODE !== ''
+    ? config.DEV_OTP_CODE
+    : null;
+
+if (devOtpCode) {
+  logger.warn(
+    { code: devOtpCode },
+    'OTP codes are PINNED to a fixed value for QA — development only, and the api refuses to boot this way in production',
+  );
+}
+
 export const authDeps: AuthDeps = {
   userRepo,
   otpSessionRepo,
   rateLimitStore,
+  ...(devOtpCode ? { codeGenerator: () => devOtpCode } : {}),
   // 🔒 E01-F05 — real delivery. With SMS_PROVIDER=connect the code goes out
   // through @arad/connect: provider, credentials and OTP template all resolved
   // from the `connections` store that ops manages, never from env. A send
