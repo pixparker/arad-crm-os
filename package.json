@@ -2,7 +2,7 @@
   "name": "arad-crm-os",
   "version": "0.0.0",
   "private": true,
-  "description": "Arad CRM-OS — sales execution system + CRM. Headless horizontal core + vertical apps; Mizro is vertical #1. See docs/architecture/00-overview.md.",
+  "description": "Arad CRM-OS \u2014 sales execution system + CRM. Headless horizontal core + vertical apps; Mizro is vertical #1. See docs/architecture/00-overview.md.",
   "engines": {
     "node": ">=22.0.0",
     "pnpm": ">=9.0.0"
@@ -15,6 +15,7 @@
     "dev:worker": "pnpm --filter @arad-crm/worker dev",
     "dev:seller": "pnpm --filter @arad-crm/web-seller dev",
     "dev:admin": "pnpm --filter @arad-crm/web-admin dev",
+    "dev:ops": "pnpm --filter @arad-crm/ops dev",
     "lint": "biome lint .",
     "format": "biome format --write .",
     "check": "biome check .",

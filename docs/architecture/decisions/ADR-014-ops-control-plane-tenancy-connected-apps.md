@@ -1,6 +1,7 @@
 # ADR-014 — Ops control plane, tenant provisioning & connected apps
 
-> **Status:** `approved` (founder via demo-01, 2026-07-27) · **Owner:** CTO · **Date:** 2026-07-27
+> **Status:** `implemented` (E01, 2026-07-28) · **Owner:** CTO · **Date:** 2026-07-27
+> **Built:** `apps/ops` + `/v1/ops/*` · `users.is_ops` + `ops_user_roles` · `connections`/`connection_events`/`connection_templates`/`app_settings` · `producer_bindings`. Foundation wave 2 landed (`@arad/connect`, `@arad/platform-config`, `@arad/ops-tenant`). **Not yet exercised against a real provider account or the production pool.**
 > **Driver:** [demo-01-mizro](../../founder/demos/demo-01-mizro.md) — "same as our ops panel in Mizro". Revises [ADR-013 §2](ADR-013-deployment-domains-origins.md) (which deferred `apps/ops`) and triggers [ADR-001](ADR-001-repo-topology.md) foundation **wave 2**.
 
 ## Context

@@ -1,6 +1,7 @@
 # ADR-015 — Flows & the guided next action
 
-> **Status:** `approved` (founder via demo-01, 2026-07-27) · **Owner:** CTO · **Date:** 2026-07-27
+> **Status:** `implemented` (E01, 2026-07-28) · **Owner:** CTO · **Date:** 2026-07-27
+> **Built:** `apps/api/src/modules/flows/` + `/v1/flows/*` — versioned definitions, polymorphic enrolment, one suggested next action, and an append-only accepted/overridden record. Suggestion only: nothing sends, waits or branches.
 > **Driver:** [demo-01-mizro](../../founder/demos/demo-01-mizro.md) §"make things easier" — per-lead flows (cold campaign for product X, active upsell), each with defined next steps; the system suggests the flow's next step unless the seller picks another.
 > Relates to: product description §10 (staged flows, *never* a generic builder in MVP) · §15 guardrails · founder framework §14 (automation model) · business architecture §11 rule 12 (*the system must guide the user to the next action*).
 

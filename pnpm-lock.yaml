@@ -106,6 +106,61 @@ importers:
         specifier: ^2.1.8
         version: 2.1.9(@types/node@22.20.1)
 
+  apps/ops:
+    dependencies:
+      '@arad-crm/api-contracts':
+        specifier: workspace:*
+        version: link:../../packages/api-contracts
+      '@arad-crm/ui':
+        specifier: workspace:*
+        version: link:../../packages/ui
+      '@arad-crm/web-shared':
+        specifier: workspace:*
+        version: link:../../packages/web-shared
+      '@tanstack/react-query':
+        specifier: ^5.62.0
+        version: 5.101.2(react@19.2.7)
+      next:
+        specifier: ^15.1.3
+        version: 15.5.20(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
+      react:
+        specifier: ^19.0.0
+        version: 19.2.7
+      react-dom:
+        specifier: ^19.0.0
+        version: 19.2.7(react@19.2.7)
+      zod:
+        specifier: ^3.24.1
+        version: 3.25.76
+    devDependencies:
+      '@arad/tsconfig':
+        specifier: workspace:*
+        version: link:../../foundation/packages/tsconfig
+      '@types/node':
+        specifier: ^22.10.0
+        version: 22.20.1
+      '@types/react':
+        specifier: ^19.0.0
+        version: 19.2.17
+      '@types/react-dom':
+        specifier: ^19.0.0
+        version: 19.2.3(@types/react@19.2.17)
+      autoprefixer:
+        specifier: ^10.4.20
+        version: 10.5.4(postcss@8.5.19)
+      postcss:
+        specifier: ^8.4.49
+        version: 8.5.19
+      tailwindcss:
+        specifier: ^3.4.17
+        version: 3.4.19(tsx@4.23.1)(yaml@2.9.0)
+      typescript:
+        specifier: ^5.7.2
+        version: 5.9.3
+      vitest:
+        specifier: ^2.1.8
+        version: 2.1.9(@types/node@22.20.1)
+
   apps/web-admin:
     dependencies:
       '@arad-crm/api-contracts':
@@ -531,10 +586,17 @@ importers:
         version: 2.1.9(@types/node@22.20.1)
 
   packages/ui:
+    dependencies:
+      react:
+        specifier: ^19.0.0
+        version: 19.2.7
     devDependencies:
       '@arad/tsconfig':
         specifier: workspace:*
         version: link:../../foundation/packages/tsconfig
+      '@types/react':
+        specifier: ^19.0.0
+        version: 19.2.17
       tailwindcss:
         specifier: ^3.4.17
         version: 3.4.19(tsx@4.23.1)(yaml@2.9.0)

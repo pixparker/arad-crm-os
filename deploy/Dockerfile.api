@@ -31,6 +31,7 @@ RUN corepack enable && corepack prepare pnpm@9.15.0 --activate
 # correct — lockfile resolution is global.
 COPY pnpm-workspace.yaml pnpm-lock.yaml package.json ./
 COPY apps/api/package.json apps/api/
+COPY apps/ops/package.json apps/ops/
 COPY apps/worker/package.json apps/worker/
 COPY apps/web-seller/package.json apps/web-seller/
 COPY apps/web-admin/package.json apps/web-admin/

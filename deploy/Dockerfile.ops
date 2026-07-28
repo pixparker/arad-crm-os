@@ -1,0 +1,63 @@
+# Arad CRM-OS ops — the Arad control plane at ops.aradap.ir (ADR-014 §2).
+# Internal staff surface: no PWA, no design pass, no public indexing.
+#
+# Unlike api/worker this DOES build: Next compiles to `.next/standalone`
+# (`output: 'standalone'` + `outputFileTracingRoot` at the monorepo root in
+# next.config.ts — without the tracing root, Next omits the workspace packages
+# and the standalone server crashes on a missing @arad-crm/* import).
+#
+# Self-contained on purpose (no shared base image): builds identically from a
+# laptop, a build server, or CI. With buildx layer cache the duplicated install
+# stage across the four Dockerfiles is free after the first build.
+
+FROM node:22-alpine AS build
+WORKDIR /app
+
+ENV COREPACK_NPM_REGISTRY=https://registry.npmjs.com
+ENV npm_config_registry=https://registry.npmjs.com
+RUN corepack enable && corepack prepare pnpm@9.15.0 --activate
+
+COPY pnpm-workspace.yaml pnpm-lock.yaml package.json ./
+COPY apps/api/package.json apps/api/
+COPY apps/ops/package.json apps/ops/
+COPY apps/worker/package.json apps/worker/
+COPY apps/web-seller/package.json apps/web-seller/
+COPY apps/web-admin/package.json apps/web-admin/
+COPY packages packages
+COPY foundation foundation
+
+RUN pnpm install --frozen-lockfile
+
+COPY . .
+
+# Baked into the client bundle so the running app can compare itself against
+# /version.json. Build-args are stage-scoped — re-declared in runtime below,
+# and the two defaults MUST match or a no-arg build reports "update available"
+# forever (a real Mizro incident; see its Dockerfile.web-panel).
+ARG IMAGE_TAG=dev
+ENV NEXT_PUBLIC_BUILD_TAG=$IMAGE_TAG
+
+# The API origin is read at build time by the client bundle (ADR-013:
+# https://api.aradap.ir in production).
+ARG NEXT_PUBLIC_API_BASE_URL=
+ENV NEXT_PUBLIC_API_BASE_URL=$NEXT_PUBLIC_API_BASE_URL
+
+RUN pnpm --filter @arad-crm/ops build
+
+FROM node:22-alpine AS runtime
+ARG IMAGE_TAG=dev
+ARG BUILD_TIME=unknown
+WORKDIR /app
+ENV NODE_ENV=production HOSTNAME=0.0.0.0 PORT=80
+COPY --from=build /app/apps/ops/.next/standalone ./
+COPY --from=build /app/apps/ops/.next/static ./apps/ops/.next/static
+# Next standalone output excludes public/ — copy it explicitly so the fonts
+# resolve at runtime.
+COPY --from=build /app/apps/ops/public ./apps/ops/public
+RUN printf 'tag=%s\nbuild_time=%s\n' "$IMAGE_TAG" "$BUILD_TIME" \
+      > apps/ops/public/version.txt \
+ && printf '{"tag":"%s","buildTime":"%s"}\n' "$IMAGE_TAG" "$BUILD_TIME" \
+      > apps/ops/public/version.json
+
+EXPOSE 80
+CMD ["node", "apps/ops/server.js"]

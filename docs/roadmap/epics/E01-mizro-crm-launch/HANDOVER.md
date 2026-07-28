@@ -36,9 +36,22 @@ SEED_OWNER_PHONE=09163349938 pnpm db:seed   # org آراد + تهران + commis
 pnpm dev:api                           # :4100   — API + Scalar docs at /docs
 pnpm dev:seller                        # :3101   — seller PWA
 pnpm dev:admin                         # :3102   — manager console
+pnpm dev:ops                           # :3103   — Arad control plane (ADR-014)
 ```
 
-**Log in:** enter the seeded phone at `localhost:3101/login`, then read the OTP code from the api's terminal output (`OTP (fake sender)`). Until F05 lands, that is the only way to get a code — by design, not breakage.
+**Ops panel:** it needs an ops user, and ops roles are granted from inside the
+panel — so the first one comes from the seed:
+
+```bash
+SEED_OPS_PHONE=09163349938 pnpm db:seed   # + super_admin on the ops axis
+```
+
+🔒 That phone is now BOTH a tenant user (if you also seeded it as owner) and an
+Arad operator — two rows on two axes, deliberately. Logging into
+`localhost:3103` gives no workspace, and logging into `:3101` gives no control
+plane.
+
+**Log in:** enter the seeded phone at `localhost:3101/login`, then read the OTP code from the api's terminal output (`OTP (fake sender)`). That is the dev path and stays the dev path: `SMS_PROVIDER=fake` never sends. For real delivery set `SMS_PROVIDER=connect` + `CONNECT_MASTER_KEY`, then register the sms.ir connection in the ops panel — the api refuses to boot with `connect` and no valid master key, which is deliberate (a silently-fake OTP path is how an outage hides).
 
 Ports are deliberately offset from Mizro's (api 4000, web 3001-3006, pg 5432, redis 6379) so both stacks run side by side. **Never reuse Mizro's ports.**
 
@@ -74,18 +87,13 @@ All CI-enforced by `pnpm verify` — these are not style preferences:
 
 ## 4. Where to start
 
-**Do not start at F01.** Start where the risk is.
+**Track ① is built (2026-07-28) — F01 through F10, `pnpm verify` green.** What remains is not more backend:
 
-**F04 (Connect + platform-config extraction) is the critical path and the largest single item.** It gates F05, and nothing reaches a real seller until OTP delivery works. If F04 slips, the epic slips. Everything else is parallelizable around it.
+1. **Prove F05 against a real sms.ir account.** Everything else is tested; this is not. Set `SMS_PROVIDER=connect` + a `CONNECT_MASTER_KEY`, register the connection in the ops panel, add its OTP template id, then press «آزمایش» and «ارسال آزمایشی». Until a phone actually rings, treat OTP delivery as unproven.
+2. **Run the deploy scripts against the pool for the first time.** `bash scripts/deploy/deploy.sh ops --dry-run` prints the plan; the real run needs the `arad-crm` slug provisioned, `.env` filled from `deploy/.env.production.example`, and the DNS records live. The scripts are written and syntax-checked, never executed against a host.
+3. **Track ③ (the seller UI)** — the workspace selector, the ＋ sheet and the guided post-create screen, against contracts that are already merged and visible at `/docs`. Wait for the prototype to settle the IA (README §5.1).
 
-Suggested first week:
-
-1. **Read + run** (§1, §2) — get `pnpm verify` green locally, log in with a fake OTP.
-2. **F04 step 1: extract the two clean packages** — `platform-config` and `ops-tenant` from `digital-menu/packages/`. Zero product coupling; a real extraction with no design decisions, so it's the ideal way to learn the foundation two-commit flow.
-3. **F04 step 2: `connect` + `providers/sms` with port injection.** This is the hard part — `@mizro/db` and `@mizro/config` must become injected ports, the way `auth-otp` already is (read `foundation/packages/auth-otp` first; it is the worked example).
-4. **F05** — swap the stdout `otpSender` in [`apps/api/src/lib/auth-wiring.ts`](../../../../apps/api/src/lib/auth-wiring.ts) for a Connect-backed sender.
-
-In parallel, if there are two developers: **F02/F03 (ops panel + provisioning) do not need Connect.** An ops user can log in with a fake OTP from the logs the whole time they're built.
+The contracts a surface developer needs: `GET /v1/auth/workspaces` + `POST /v1/auth/workspace` (F06), `GET /v1/quick-add` (F07), `GET /v1/leads/:id/guidance` + `POST /v1/leads/:id/guided-followup` (F08), `/v1/flows/*` (F09).
 
 ## 5. Non-obvious things (found the hard way this session)
 
@@ -95,8 +103,9 @@ Things you would otherwise lose a day to:
 - **Both Next apps need `output: 'standalone'` AND `outputFileTracingRoot` at the monorepo root.** Without the tracing root, Next traces only the app's own subtree and silently omits the workspace packages — the standalone server then crashes on a missing `@arad-crm/*` import.
 - **Never read raw `x-forwarded-for`.** Behind Arvan→Caddy it is a client-prependable proxy *chain*. Use [`clientIp()`](../../../../apps/api/src/lib/client-ip.ts), which reads only `X-Real-IP`.
 - **Cookie deletion must mirror the cookie's `domain`.** `COOKIE_DOMAIN` is unset in dev and set in prod, so a mismatch here is invisible locally and breaks logout in production.
-- **`pilotOrgId()` in the worker selects the first organization in the table.** Correct today; wrong the moment ops can register a second business. That is F10, and it must land before business #2 exists.
-- **`audit_log` is currently written in only two places** (org team-add, lead assign). Opportunity stage/owner/amount changes are *not* audited. If you touch those paths, add the audit row — business-architecture §11 rule 11 requires it.
+- **Org resolution for producer events is now `producer_bindings`** (F10, replacing `pilotOrgId()`). With no binding and exactly one org it falls back and warns; with several it refuses and the event lands in the failed inbox. Registering a second business therefore means binding its producer in the ops panel — the refusal is the reminder.
+- **`audit_log.organization_id` is nullable now.** NULL means a platform-scoped ops action (a connection, a platform setting, an ops-role grant) that belongs to no tenant. Tenant writes still always carry the org, and the column keeps the table inside the org-scope guard's derived list.
+- **Opportunity stage/owner/amount changes are still not audited.** Ops writes are (every one, in the same transaction); this gap is tenant-side and predates E01. If you touch those paths, add the row — business-architecture §11 rule 11 requires it.
 - **The Mizro event loop already works and is verified.** Signed outbox → HMAC inbox → dedupe → commission. Don't "fix" it; if you change the envelope, coordinate with `digital-menu`'s `crm_outbox`.
 - **Docker must be running** for `*.db.test.ts` — that tier is real Postgres, not mocks.
 

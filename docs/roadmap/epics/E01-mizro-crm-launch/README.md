@@ -1,6 +1,6 @@
 # E01 — Mizro CRM launch (control plane → login → guided capture)
 
-> **Status:** 🔴 **BUILD NOW** · **Owner:** CTO · **Date:** 2026-07-27
+> **Status:** 🟡 **track ① built, awaiting the design track** · **Owner:** CTO · **Date:** 2026-07-27 (built 2026-07-28)
 > **Source:** [`docs/founder/demos/demo-01-mizro.md`](../../../founder/demos/demo-01-mizro.md) — the founder's walkthrough is the acceptance script.
 > **Architecture:** [ADR-013](../../../architecture/decisions/ADR-013-deployment-domains-origins.md) (revised) · [ADR-014](../../../architecture/decisions/ADR-014-ops-control-plane-tenancy-connected-apps.md) (new) · [ADR-015](../../../architecture/decisions/ADR-015-flows-guided-next-action.md) (new)
 > **UI/UX:** designed in the prototype repo — this doc specifies *behaviour and data*, not screens.
@@ -28,18 +28,18 @@ Straight from the demo — E01 is done when this runs end to end:
 
 Track column per §5: **① core** (architecture/BE/logic) · **② design** (prototype repo) · **③ surface** (CRM UI consuming ① via ②).
 
-| # | Feature | Track | New? | Notes |
+| # | Feature | Track | State | Notes |
 |---|---|---|---|---|
-| **F01** | Fire-and-forget prod deploy scripts | ① | new | `scripts/deploy/deploy-{ops,mizro-crm}-prod.sh`, mirroring `digital-menu/deploy/deploy-prod-*.sh` |
-| **F02** | `apps/ops` control-plane app + ops identity/roles | ①+③ | **new app** | ADR-014 §2. Kit-built, no design pass — see §5.3 |
-| **F03** | Business provisioning + user↔business membership | ①+③ | partial | `organizations`/`org_members` exist; no ops UI/API, no multi-business UX |
-| **F04** | Connected apps + typed platform config | ① | **new** | ADR-014 §3 — **foundation wave 2** extraction. No UI dependency |
-| **F05** | Real OTP delivery via the sms.ir connection | ① | **blocker** | replaces the stdout `otpSender`. No UI dependency |
-| **F06** | Workspace resolution + selector | ①→③ | new | 1 business ⇒ direct; N ⇒ selector (founder framework §8) |
-| **F07** | Unified ＋ quick-add | ①→②→③ | new | lead · customer · opportunity · touch · info |
-| **F08** | Guided post-create: lead → opportunity + next action | ①→②→③ | new | the demo's step 8 |
-| **F09** | Flows — playbooks with suggested next step | ①→②→③ | **new** | ADR-015 |
-| **F10** | Worker org resolution (drop `pilotOrgId`) | ① | fix | required once >1 business can exist |
+| **F01** | Fire-and-forget prod deploy scripts | ① | ✅ built | `scripts/deploy/deploy-{ops,mizro-crm}-prod.sh` + the `deploy.sh` engine. Detaches, logs to `deploy/logs/`, `--dry-run` prints the plan. **Not yet run against the pool** |
+| **F02** | `apps/ops` control-plane app + ops identity/roles | ①+③ | ✅ built | `apps/ops` (:3103) + `/v1/ops/*`. `users.is_ops` + `ops_user_roles`; first ops user via `SEED_OPS_PHONE` |
+| **F03** | Business provisioning + user↔business membership | ①+③ | ✅ built | register a business, create users by phone, assign across businesses, suspend/disable |
+| **F04** | Connected apps + typed platform config | ① | ✅ built | `@arad/connect` + `@arad/platform-config` extracted (wave 2); `connections`/`connection_events`/`connection_templates`/`app_settings` |
+| **F05** | Real OTP delivery via the sms.ir connection | ① | ✅ built | `SMS_PROVIDER=connect` routes through Connect. **Unproven against a real sms.ir account** — that is the demo's first live step |
+| **F06** | Workspace resolution + selector | ①→③ | ✅ ① built | 1 ⇒ direct · N ⇒ 409 `workspace_selection_required` + `/v1/auth/workspaces` · 0 ⇒ 403 `no_workspace`. Selector UI is track ③ |
+| **F07** | Unified ＋ quick-add | ①→②→③ | ✅ ① built | typed registry at `GET /v1/quick-add`; the ＋ sheet itself is track ③ |
+| **F08** | Guided post-create: lead → opportunity + next action | ①→②→③ | ✅ ① built | `GET /v1/leads/:id/guidance` + `POST /v1/leads/:id/guided-followup` |
+| **F09** | Flows — playbooks with suggested next step | ①→②→③ | ✅ ① built | `/v1/flows` — versioned definitions, enrolment, suggestion, accepted-vs-overridden decisions |
+| **F10** | Worker org resolution (drop `pilotOrgId`) | ① | ✅ built | `producer_bindings` (producer, external_ref) → org; single-org fallback warns, ambiguity refuses |
 
 **F04 and F05 — the critical path — have no UI dependency at all.** That is what makes the parallel split genuinely worth doing rather than just coordination overhead.
 
@@ -165,8 +165,19 @@ Reusable primitives the surface developer builds go into `@arad-crm/ui`; only sc
 
 ## 7. Definition of done
 
-- The §2 script runs end to end on production hosts, from a clean pool.
-- `pnpm verify` green, including the `*.db.test.ts` tier.
-- An ops action that creates a business, a user, or a connection writes an `audit_log` row.
-- A credential never appears in a log, an API response, or an image layer (`secret-grep` + review).
-- A second business can be registered without any code change.
+- [ ] The §2 script runs end to end on production hosts, from a clean pool. **Open** — nothing here has touched the pool yet; F01 is written and dry-run-verified, not exercised.
+- [x] `pnpm verify` green, including the `*.db.test.ts` tier (2026-07-28).
+- [x] An ops action that creates a business, a user, or a connection writes an `audit_log` row — asserted in `apps/api/src/__tests__/ops-control-plane.db.test.ts`.
+- [x] A credential never appears in a log, an API response, or an image layer — `secret-grep` green; the store test asserts the plaintext key appears in neither the stored row nor the audit meta nor a provider error message.
+- [x] A second business can be registered without any code change — ops registers it, binds its producer, and assigns users; the worker resolves the org from the binding.
+
+## 8. What is built, and what is not (2026-07-28)
+
+**Built (track ①, and the ops surface):** everything in the §3 table. `pnpm verify` is green with 20 new db tests covering the two identity axes, provisioning, workspace resolution, the guided post-create and flow overrides.
+
+**Not built, deliberately:**
+
+- **The seller-facing UI for F06–F09** — the workspace selector, the ＋ sheet, and the guided post-create screen. The contracts they consume are merged and visible at `/docs`; the prototype settles the IA first (§5.1, §5.3).
+- **Anything on the production pool.** No image has been built for or shipped to `aradap`, no DNS record touched, no `.env` written. The first real run of `deploy-ops-prod.sh` is also the first test of it.
+- **The sms.ir round trip.** Connect's send path, template resolution and failover are unit-tested against a fake adapter; no real API key has been exercised. Registering the connection and pressing «آزمایش» in the ops panel is the moment F05 is actually proven.
+- **`ops_business_assignments`** (per-business ops scoping) and **the webhook-as-connection** migration (ADR-014 §4) — both explicitly deferred.

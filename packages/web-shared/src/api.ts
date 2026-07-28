@@ -27,7 +27,15 @@ export interface ApiFetchOptions extends Omit<RequestInit, 'body'> {
   idempotencyKey?: string;
 }
 
-const baseUrl = (): string => process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4100';
+// 🔒 Name must match what the Dockerfiles bake in (deploy/Dockerfile.web-*:
+// NEXT_PUBLIC_API_BASE_URL). Next inlines these at BUILD time, so a mismatch
+// is invisible in dev — where the localhost fallback is correct — and silently
+// points production at localhost. NEXT_PUBLIC_API_URL stays accepted as an
+// alias so an existing local .env keeps working.
+const baseUrl = (): string =>
+  process.env.NEXT_PUBLIC_API_BASE_URL ??
+  process.env.NEXT_PUBLIC_API_URL ??
+  'http://localhost:4100';
 
 export const apiFetch = async <T>(path: string, options: ApiFetchOptions = {}): Promise<T> => {
   const { body, idempotencyKey, headers, ...rest } = options;

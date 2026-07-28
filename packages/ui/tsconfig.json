@@ -1,4 +1,4 @@
 {
-  "extends": "@arad/tsconfig/node.json",
+  "extends": "@arad/tsconfig/react-lib.json",
   "include": ["src"]
 }

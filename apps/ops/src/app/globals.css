@@ -1,0 +1,51 @@
+@import "@arad-crm/ui/styles/tokens.css";
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@font-face {
+  font-family: "Vazirmatn";
+  src: url("/fonts/vazirmatn/Vazirmatn-Regular.woff2") format("woff2");
+  font-weight: 400;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Vazirmatn";
+  src: url("/fonts/vazirmatn/Vazirmatn-Medium.woff2") format("woff2");
+  font-weight: 500;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Vazirmatn";
+  src: url("/fonts/vazirmatn/Vazirmatn-Bold.woff2") format("woff2");
+  font-weight: 700;
+  font-display: swap;
+}
+
+body {
+  background: var(--ac-bg);
+  color: var(--ac-fg);
+  font-family: var(--ac-font-fa);
+}
+
+/* Subtle token-derived tints (chips, row highlights). The preset colors are
+ * raw CSS vars, so Tailwind opacity modifiers can't apply — color-mix keeps
+ * these derived from tokens (brand swap still lands in tokens.css only). */
+@layer utilities {
+  .tint-primary {
+    background-color: color-mix(in srgb, var(--ac-primary) 10%, transparent);
+  }
+  .tint-success {
+    background-color: color-mix(in srgb, var(--ac-success) 10%, transparent);
+  }
+  .tint-warning {
+    background-color: color-mix(in srgb, var(--ac-warning) 10%, transparent);
+  }
+  .tint-danger {
+    background-color: color-mix(in srgb, var(--ac-danger) 10%, transparent);
+  }
+  .tint-warning-row {
+    background-color: color-mix(in srgb, var(--ac-warning) 5%, transparent);
+  }
+}

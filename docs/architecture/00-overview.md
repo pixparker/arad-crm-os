@@ -48,7 +48,7 @@ Payments never enter the CRM: Zarinpal/card-to-card live in Mizro (E53) / Commer
 |---|---|---|
 | 001 | Standalone `arad-crm-os` monorepo + new `arad-foundation` repo (extracted Mizro Tier-1 packages, `@arad/*`) mounted as git submodule; Mizro migrates staged | [ADR-001](decisions/ADR-001-repo-topology.md) |
 | 002 | Stack mirrors Mizro: pnpm/Turbo/Biome, TS-strict, Hono+Zod-OpenAPI, Next 15/React 19, Drizzle+Postgres 16 (own DB), BullMQ/Redis, Vitest; deploy on mvp-pool pipeline | [ADR-002](decisions/ADR-002-stack-tooling-deploy.md) |
-| 003 | Modular monolith; module map = platform-core / sales-core / verticals; boundaries CI-enforced; 4 apps (api, worker, web-seller, web-admin) | [ADR-003](decisions/ADR-003-modular-monolith.md) |
+| 003 | Modular monolith; module map = platform-core / sales-core / verticals; boundaries CI-enforced; 5 apps (api, worker, web-seller, web-admin, ops) | [ADR-003](decisions/ADR-003-modular-monolith.md) |
 | 004 | Multi-tenancy: `organization_id` on every tenant row, app-level `orgScope()` + AST guard, no RLS for now | [ADR-004](decisions/ADR-004-multi-tenancy.md) |
 | 005 | Identity: reuse `@arad/auth-otp` (phone OTP + JWT cookie); authZ = static role catalog + per-module policy layer with own/team/org scopes | [ADR-005](decisions/ADR-005-identity-authz.md) |
 | 006 | Integration: versioned event contract in `@arad/platform-events`; signed webhook + idempotent inbox + reconciliation; commands via Mizro partner API | [ADR-006](decisions/ADR-006-event-integration.md) |
@@ -73,16 +73,19 @@ arad-crm-os/
 │  ├─ api/                      # Hono; src/modules/<module>/ (routes+service+policy)
 │  ├─ worker/                   # BullMQ jobs: reminders, cadences, reconciliation, rollups
 │  ├─ web-seller/               # Next 15 PWA — «امروز من», visit flow, money panel
-│  └─ web-admin/                # Next 15 — manager/owner dashboards, funnel, approvals
+│  ├─ web-admin/                # Next 15 — manager/owner dashboards, funnel, approvals
+│  └─ ops/                      # Next 15 — Arad control plane (ADR-014): businesses,
+│                               #   users, ops roles, connections, platform settings, audit
 ├─ packages/
 │  ├─ db/                       # Drizzle schema + migrations + orgScope()
 │  ├─ api-contracts/            # Zod SOT for all API shapes
 │  ├─ commission/               # ledger engine (pure + db), golden tests
+│  ├─ ui/                       # ADR-012 kit: tokens + tailwind preset + shared primitives
 │  └─ verticals/mizro/          # cafe vertical: entities, visit fields, pipeline config, handlers
 ├─ docs/ · scripts/check-*.ts · deploy/ · turbo.json · pnpm-workspace.yaml
 ```
 
-Module map (ADR-003): **platform-core** = identity · org/teams · audit · notifications · integrations(inbox/outbound) · files(seam). **sales-core** = accounts&contacts · leads · opportunities&pipeline · activities(visits/next-actions) · products&offers · attribution · commission · targets · reporting. **vertical** = mizro.
+Module map (ADR-003): **platform-core** = identity · org/teams · audit · notifications · integrations(inbox/outbound) · ops(control plane, ADR-014) · files(seam). **sales-core** = accounts&contacts · leads · opportunities&pipeline · activities(visits/next-actions) · flows(ADR-015) · quick-add · products&offers · attribution · commission · targets · reporting. **vertical** = mizro.
 
 ## 5. Phase-1 build order (money-lens, per product doc §18)
 
