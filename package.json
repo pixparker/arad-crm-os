@@ -23,6 +23,7 @@
     "test": "turbo run test",
     "verify": "pnpm check && pnpm typecheck && pnpm lint:org-scope && pnpm lint:contracts-enums && pnpm lint:ledger-integrity && pnpm lint:migration-drift && pnpm secret-grep && pnpm test",
     "lint:org-scope": "tsx scripts/check-org-scope.ts",
+    "env:check": "tsx scripts/check-prod-env.ts",
     "lint:ledger-integrity": "tsx scripts/check-ledger-integrity.ts",
     "lint:contracts-enums": "tsx scripts/check-contracts-enums.ts",
     "lint:migration-drift": "tsx scripts/check-migration-drift.ts",

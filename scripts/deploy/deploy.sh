@@ -136,6 +136,31 @@ run() {
     "$@"
 }
 
+# ─── step 0: the host's env has the keys the images need ─────────────────────
+# Checked BEFORE building, because a missing JWT_SECRET or CONNECT_MASTER_KEY
+# costs a full build+ship+restart to discover otherwise, and its symptoms (500s
+# on login, no OTP) are several steps from the cause.
+#
+# 🔒 Key NAMES only — the values never leave the host. Fill and verify the file
+# itself with `pnpm env:check <file>` before uploading it.
+REQUIRED_ENV_KEYS=(JWT_SECRET COOKIE_DOMAIN WEB_ORIGINS SMS_PROVIDER CONNECT_MASTER_KEY DATABASE_URL REDIS_URL)
+lib::log info "checking /srv/apps/${SLUG}/.env for required keys"
+if (( DRY_RUN == 1 )); then
+    printf '    %sssh %s "grep -c ... /srv/apps/%s/.env" (keys: %s)%s\n' \
+        "$LIB_C_DIM" "$MVPOOL_HOST" "$SLUG" "${REQUIRED_ENV_KEYS[*]}" "$LIB_C_RESET" >&2
+else
+    missing="$(ssh "$MVPOOL_HOST" "set -e
+        cd /srv/apps/${SLUG}
+        for k in ${REQUIRED_ENV_KEYS[*]}; do
+            grep -qE \"^\${k}=.+\" .env || printf '%s ' \"\$k\"
+        done")"
+    if [[ -n "${missing// /}" ]]; then
+        lib::log error "missing or empty in /srv/apps/${SLUG}/.env: ${missing}"
+        lib::log error "fix the host env first (template: deploy/.env.production.example)"
+        exit 1
+    fi
+fi
+
 # ─── step 1: build ───────────────────────────────────────────────────────────
 # Self-contained Dockerfiles (deploy/Dockerfile.<app>) build from the repo root
 # so the workspace packages and the foundation submodule are in context.
