@@ -91,7 +91,7 @@ export default function OpsUsersPage() {
       }
       footer={
         revoke.error ? (
-          <p className="rounded-xl bg-rose-50 px-4 py-3 text-sm text-rose-700">
+          <p className="rounded-xl bg-danger-soft px-4 py-3 text-sm text-danger">
             {errorMessage(revoke.error)}
           </p>
         ) : null
@@ -129,7 +129,7 @@ export default function OpsUsersPage() {
           }
         />
       ) : (
-        <div className="divide-y divide-slate-100">
+        <div className="divide-y divide-border">
           {staff.data.map((s, i) => {
             const gradient = pickAvatarGradient(i);
             const label = s.display_name || s.phone;
@@ -144,7 +144,7 @@ export default function OpsUsersPage() {
                     <span dir="ltr" className="font-mono">
                       {s.phone}
                     </span>
-                    {s.display_name && <span className="text-slate-500">· {s.display_name}</span>}
+                    {s.display_name && <span className="text-fg-muted">· {s.display_name}</span>}
                   </span>
                 }
                 meta={[`از ${faDateOf(s.created_at)}`]}
@@ -169,7 +169,7 @@ export default function OpsUsersPage() {
                         title={`حذف نقش ${OPS_ROLE_LABELS[r]}`}
                         disabled={revoke.isPending}
                         onClick={() => void askRevoke(s.id, label, r)}
-                        className="flex items-center gap-1 rounded-lg px-2 py-1.5 text-xs text-slate-400 transition hover:bg-rose-50 hover:text-rose-600 disabled:opacity-50"
+                        className="flex items-center gap-1 rounded-lg px-2 py-1.5 text-xs text-fg-faint transition hover:bg-danger-soft hover:text-danger disabled:opacity-50"
                       >
                         <X className="h-3 w-3" />
                         {OPS_ROLE_LABELS[r]}
@@ -225,7 +225,7 @@ export default function OpsUsersPage() {
             onValueChange={(v) => setRole(v as OpsRole)}
             options={OPS_ROLES.map((r) => ({ value: r, label: OPS_ROLE_LABELS[r] }))}
           />
-          {grant.error && <p className="text-sm text-rose-600">{errorMessage(grant.error)}</p>}
+          {grant.error && <p className="text-sm text-danger">{errorMessage(grant.error)}</p>}
         </form>
       </Modal>
     </ListPage>

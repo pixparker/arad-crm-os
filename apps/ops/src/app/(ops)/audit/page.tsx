@@ -36,7 +36,7 @@ export default function AuditPage() {
       header: 'زمان',
       priority: 'secondary',
       cell: (r) => (
-        <span className="whitespace-nowrap text-slate-500">{faDateTimeOf(r.created_at)}</span>
+        <span className="whitespace-nowrap text-fg-muted">{faDateTimeOf(r.created_at)}</span>
       ),
     },
     {
@@ -44,7 +44,7 @@ export default function AuditPage() {
       header: 'عمل',
       priority: 'primary',
       cell: (r) => (
-        <span dir="ltr" className="font-mono text-slate-900">
+        <span dir="ltr" className="font-mono text-fg">
           {r.action}
         </span>
       ),
@@ -53,7 +53,7 @@ export default function AuditPage() {
       key: 'entity',
       header: 'موجودیت',
       cell: (r) => (
-        <span dir="ltr" className="font-mono text-slate-500">
+        <span dir="ltr" className="font-mono text-fg-muted">
           {r.entity_type}
         </span>
       ),
@@ -61,7 +61,7 @@ export default function AuditPage() {
     {
       key: 'org',
       header: 'کسب‌وکار',
-      cell: (r) => r.organization_name ?? <span className="text-slate-300">— پلتفرم —</span>,
+      cell: (r) => r.organization_name ?? <span className="text-fg-faint">— پلتفرم —</span>,
     },
     {
       key: 'actor',
@@ -76,11 +76,11 @@ export default function AuditPage() {
       key: 'detail',
       header: 'جزئیات',
       cell: (r) => (
-        <details className="text-slate-500">
+        <details className="text-fg-muted">
           <summary className="cursor-pointer select-none">نمایش</summary>
           <pre
             dir="ltr"
-            className="ops-themed-scroll mt-1 max-h-64 max-w-md overflow-auto rounded-lg bg-slate-50 p-2 text-[11px] leading-5"
+            className="ops-themed-scroll mt-1 max-h-64 max-w-md overflow-auto rounded-lg bg-surface-2 p-2 text-[11px] leading-5"
           >
             {JSON.stringify({ before: r.before, after: r.after }, null, 2)}
           </pre>

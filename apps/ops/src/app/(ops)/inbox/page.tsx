@@ -59,7 +59,7 @@ export default function InboxPage() {
       header: 'زمان',
       priority: 'secondary',
       cell: (r) => (
-        <span className="whitespace-nowrap text-slate-500">{faDateTimeOf(r.received_at)}</span>
+        <span className="whitespace-nowrap text-fg-muted">{faDateTimeOf(r.received_at)}</span>
       ),
     },
     {
@@ -67,7 +67,7 @@ export default function InboxPage() {
       header: 'رویداد',
       priority: 'primary',
       cell: (r) => (
-        <span dir="ltr" className="font-mono text-slate-900">
+        <span dir="ltr" className="font-mono text-fg">
           {r.producer}/{r.type}@v{r.version}
         </span>
       ),
@@ -92,11 +92,11 @@ export default function InboxPage() {
       header: 'خطا',
       cell: (r) =>
         r.error ? (
-          <span dir="ltr" className="block max-w-xs truncate text-rose-600" title={r.error}>
+          <span dir="ltr" className="block max-w-xs truncate text-danger" title={r.error}>
             {r.error}
           </span>
         ) : (
-          <span className="text-slate-300">—</span>
+          <span className="text-fg-faint">—</span>
         ),
     },
     {
@@ -107,7 +107,7 @@ export default function InboxPage() {
           type="button"
           disabled={replay.isPending || r.status === 'processed' || r.status === 'pending'}
           onClick={() => replay.mutate(r.id)}
-          className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-medium text-slate-500 transition hover:bg-slate-100 hover:text-slate-700 disabled:cursor-not-allowed disabled:opacity-40"
+          className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-medium text-fg-muted transition hover:bg-surface-2 hover:text-fg disabled:cursor-not-allowed disabled:opacity-40"
         >
           <RotateCcw className="h-3.5 w-3.5" />
           پخش مجدد
@@ -158,12 +158,12 @@ export default function InboxPage() {
       footer={
         <>
           {(replayFailed.error || replay.error) && (
-            <p className="rounded-xl bg-rose-50 px-4 py-3 text-sm text-rose-700">
+            <p className="rounded-xl bg-danger-soft px-4 py-3 text-sm text-danger">
               {errorMessage(replayFailed.error ?? replay.error)}
             </p>
           )}
           {replayFailed.data && (
-            <p className="rounded-xl bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
+            <p className="rounded-xl bg-success-soft px-4 py-3 text-sm text-success">
               {faNumber(replayFailed.data.replayed)} رویداد دوباره در صف قرار گرفت.
             </p>
           )}

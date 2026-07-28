@@ -26,8 +26,8 @@ import type { ReactNode } from 'react';
 
 function Card({ title, children }: { title: string; children: ReactNode }) {
   return (
-    <section className="rounded-2xl border border-slate-100 bg-white p-5 shadow-card">
-      <h2 className="text-sm font-semibold text-slate-900">{title}</h2>
+    <section className="rounded-2xl border border-border bg-surface p-5 shadow-card">
+      <h2 className="text-sm font-semibold text-fg">{title}</h2>
       <div className="mt-4 space-y-2">{children}</div>
     </section>
   );
@@ -52,36 +52,34 @@ function CheckRow({
   return (
     <Link
       href={href}
-      className="group flex items-center gap-3 rounded-xl border border-slate-100 p-3 transition hover:border-slate-200 hover:bg-slate-50"
+      className="group flex items-center gap-3 rounded-xl border border-border p-3 transition hover:border-border-strong hover:bg-surface-2"
     >
       <span
         className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${
-          ok ? 'bg-emerald-50 text-emerald-600' : 'bg-amber-50 text-amber-600'
+          ok ? 'bg-success-soft text-success' : 'bg-warning-soft text-warning'
         }`}
       >
         <Icon className="h-4 w-4" />
       </span>
       <span className="min-w-0 flex-1">
-        <span className="block truncate text-sm font-medium text-slate-900">{label}</span>
-        <span className="block truncate text-xs text-slate-500">{hint}</span>
+        <span className="block truncate text-sm font-medium text-fg">{label}</span>
+        <span className="block truncate text-xs text-fg-muted">{hint}</span>
       </span>
       <StatusBadge
         tone={ok ? 'emerald' : 'amber'}
         label={ok ? 'آماده' : 'انجام نشده'}
         {...(ok ? {} : { variant: 'pulse' as const })}
       />
-      <ChevronLeft className="h-4 w-4 shrink-0 rotate-180 text-slate-300 transition group-hover:text-slate-400" />
+      <ChevronLeft className="h-4 w-4 shrink-0 rotate-180 text-fg-faint transition group-hover:text-fg-muted" />
     </Link>
   );
 }
 
 function Stat({ label, value, danger }: { label: string; value: string; danger?: boolean }) {
   return (
-    <div className="flex items-center justify-between rounded-xl border border-slate-100 px-3 py-2.5">
-      <span className="text-sm text-slate-500">{label}</span>
-      <span
-        className={`text-sm font-semibold tabular-nums ${danger ? 'text-rose-600' : 'text-slate-900'}`}
-      >
+    <div className="flex items-center justify-between rounded-xl border border-border px-3 py-2.5">
+      <span className="text-sm text-fg-muted">{label}</span>
+      <span className={`text-sm font-semibold tabular-nums ${danger ? 'text-danger' : 'text-fg'}`}>
         {value}
       </span>
     </div>
@@ -174,14 +172,14 @@ export default function OpsOverviewPage() {
           {failedCount > 0 && (
             <Link
               href="/inbox"
-              className="flex items-center justify-center gap-1.5 rounded-xl bg-rose-50 px-3 py-2.5 text-xs font-semibold text-rose-700 transition hover:bg-rose-100"
+              className="flex items-center justify-center gap-1.5 rounded-xl bg-danger-soft px-3 py-2.5 text-xs font-semibold text-danger transition hover:opacity-90"
             >
               <CircleDashed className="h-3.5 w-3.5" />
               بررسی صندوق رویداد
             </Link>
           )}
           {ready === 4 && failedCount === 0 && (
-            <p className="flex items-center justify-center gap-1.5 rounded-xl bg-emerald-50 px-3 py-2.5 text-xs font-semibold text-emerald-700">
+            <p className="flex items-center justify-center gap-1.5 rounded-xl bg-success-soft px-3 py-2.5 text-xs font-semibold text-success">
               <CheckCircle2 className="h-3.5 w-3.5" />
               همه‌چیز سرجای خودش است
             </p>

@@ -23,13 +23,60 @@
   font-display: swap;
 }
 
-/* @arad/ops-kit's brand contract: three variables, nothing else. Pointing them
- * at the product tokens means a brand swap still lands in tokens.css alone
- * (ADR-009) and the kit follows without knowing this product exists. */
+/* @arad/ops-kit's theme contract, answered entirely in terms of --ac-* tokens.
+ * Nothing here is a colour literal, so a brand swap still lands in tokens.css
+ * alone (ADR-009) and the kit follows without knowing this product exists.
+ *
+ * Matching only the accent is not enough. The neutral ramp is most of the
+ * pixels on a control plane, and the kit shipped with Tailwind slate — a cool
+ * blue-grey — while this product's neutrals are violet-tinted (#f7f7fb ground,
+ * #1a1a24 ink). Side by side with the seller app the panel read as a different
+ * product with a matching button. The ramp below is what fixes that. */
 :root {
+  /* accent */
   --ops-color-primary: var(--ac-primary);
   --ops-color-primary-dark: var(--ac-primary-ink);
-  --ops-color-bg-soft: var(--ac-surface-2);
+  --ops-color-bg-soft: var(--ac-bg);
+
+  /* grounds */
+  --ops-color-surface: var(--ac-surface);
+  --ops-color-surface-glass: color-mix(in srgb, var(--ac-surface) 78%, transparent);
+  /* The scrim tints toward the canopy rather than pure black, so a modal dims
+   * the page into the product's own dark rather than into a photographer's. */
+  --ops-color-scrim: color-mix(in srgb, var(--ac-canopy) 55%, transparent);
+
+  /* Neutral ramp. The first six steps land on real tokens — the product's
+   * surface/border/ink scale happens to sit within a few ΔE of slate's, so the
+   * kit's own contrast hierarchy survives the swap intact. Steps 600–800 have
+   * no token of their own (nothing else in the product needs an ink between
+   * "muted" and "full"), so they interpolate rather than inventing hexes that
+   * would then need maintaining alongside tokens.css. */
+  --ops-neutral-50: var(--ac-bg);
+  --ops-neutral-100: var(--ac-surface-2);
+  --ops-neutral-200: var(--ac-border);
+  --ops-neutral-300: var(--ac-border-strong);
+  --ops-neutral-400: var(--ac-fg-faint);
+  --ops-neutral-500: var(--ac-fg-muted);
+  --ops-neutral-600: color-mix(in srgb, var(--ac-fg) 55%, var(--ac-fg-muted));
+  --ops-neutral-700: color-mix(in srgb, var(--ac-fg) 78%, var(--ac-fg-muted));
+  --ops-neutral-800: color-mix(in srgb, var(--ac-fg) 92%, var(--ac-fg-muted));
+  --ops-neutral-900: var(--ac-fg);
+
+  /* The nav rail gets the canopy — the same dark slab the seller app puts
+   * behind login and its app bar. One shared token, so the two surfaces are
+   * the same navy rather than two navies that nearly agree. */
+  --ops-sidebar-gradient: var(--ac-canopy-gradient);
+
+  /* Elevation and corners. The kit's defaults are a tight 1px shadow and the
+   * stock Tailwind radius scale; the product floats its cards on a wider,
+   * softer shadow and rounds them harder. Cards that sit on both scales in one
+   * screenshot are the tell that a panel was assembled from two kits. */
+  --ops-shadow-card: var(--ac-shadow);
+  --ops-shadow-card-hover: var(--ac-shadow-lg);
+  --ops-radius-md: var(--ac-radius-sm);
+  --ops-radius-lg: var(--ac-radius-sm);
+  --ops-radius-xl: var(--ac-radius-md);
+  --ops-radius-2xl: var(--ac-radius-lg);
 }
 
 body {

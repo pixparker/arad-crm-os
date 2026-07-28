@@ -164,7 +164,7 @@ export default function ConnectionsPage() {
           {test.data && (
             <p
               className={`rounded-xl px-4 py-3 text-sm ${
-                test.data.ok ? 'bg-emerald-50 text-emerald-700' : 'bg-rose-50 text-rose-700'
+                test.data.ok ? 'bg-success-soft text-success' : 'bg-danger-soft text-danger'
               }`}
             >
               {test.data.ok
@@ -173,7 +173,7 @@ export default function ConnectionsPage() {
             </p>
           )}
           {test.error && (
-            <p className="rounded-xl bg-rose-50 px-4 py-3 text-sm text-rose-700">
+            <p className="rounded-xl bg-danger-soft px-4 py-3 text-sm text-danger">
               {errorMessage(test.error)}
             </p>
           )}
@@ -208,7 +208,7 @@ export default function ConnectionsPage() {
           }
         />
       ) : (
-        <div className="divide-y divide-slate-100">
+        <div className="divide-y divide-border">
           {connections.data.map((c, i) => {
             const gradient = pickAvatarGradient(i);
             const state = STATUS[c.status] ?? { tone: 'slate' as const, label: c.status };
@@ -245,7 +245,7 @@ export default function ConnectionsPage() {
                       title="آزمایش اتصال"
                       disabled={test.isPending}
                       onClick={() => test.mutate({ id: c.id })}
-                      className="rounded-lg p-2 text-slate-400 transition hover:bg-slate-100 hover:text-slate-600 disabled:opacity-40"
+                      className="rounded-lg p-2 text-fg-faint transition hover:bg-surface-2 hover:text-fg-muted disabled:opacity-40"
                     >
                       <Send className="h-4 w-4" />
                     </button>
@@ -256,7 +256,7 @@ export default function ConnectionsPage() {
                         setRotateFor(c);
                         setRotateCredsValues({});
                       }}
-                      className="rounded-lg p-2 text-slate-400 transition hover:bg-slate-100 hover:text-slate-600"
+                      className="rounded-lg p-2 text-fg-faint transition hover:bg-surface-2 hover:text-fg-muted"
                     >
                       <KeyRound className="h-4 w-4" />
                     </button>
@@ -264,7 +264,7 @@ export default function ConnectionsPage() {
                       type="button"
                       title="قالب‌ها و رخدادها"
                       onClick={() => setDetailFor(c)}
-                      className="rounded-lg p-2 text-slate-400 transition hover:bg-slate-100 hover:text-slate-600"
+                      className="rounded-lg p-2 text-fg-faint transition hover:bg-surface-2 hover:text-fg-muted"
                     >
                       <SlidersHorizontal className="h-4 w-4" />
                     </button>
@@ -277,7 +277,7 @@ export default function ConnectionsPage() {
                           status: c.status === 'active' ? 'disabled' : 'active',
                         })
                       }
-                      className="rounded-lg px-2.5 py-1.5 text-xs font-medium text-slate-500 transition hover:bg-slate-100 hover:text-slate-700 disabled:opacity-50"
+                      className="rounded-lg px-2.5 py-1.5 text-xs font-medium text-fg-muted transition hover:bg-surface-2 hover:text-fg disabled:opacity-50"
                     >
                       {c.status === 'active' ? 'غیرفعال' : 'فعال'}
                     </button>
@@ -333,7 +333,7 @@ export default function ConnectionsPage() {
               onChange={(k, v) => setCreds((prev) => ({ ...prev, [k]: v }))}
             />
           )}
-          {create.error && <p className="text-sm text-rose-600">{errorMessage(create.error)}</p>}
+          {create.error && <p className="text-sm text-danger">{errorMessage(create.error)}</p>}
         </form>
       </Modal>
 
@@ -363,7 +363,7 @@ export default function ConnectionsPage() {
               onChange={(k, v) => setRotateCredsValues((prev) => ({ ...prev, [k]: v }))}
             />
           )}
-          {rotate.error && <p className="text-sm text-rose-600">{errorMessage(rotate.error)}</p>}
+          {rotate.error && <p className="text-sm text-danger">{errorMessage(rotate.error)}</p>}
         </form>
       </Modal>
 
@@ -377,18 +377,18 @@ export default function ConnectionsPage() {
       >
         <div className="space-y-5">
           <section className="space-y-3">
-            <h3 className="text-sm font-semibold text-slate-900">قالب‌های پیامک</h3>
-            <p className="text-xs leading-5 text-slate-500">
+            <h3 className="text-sm font-semibold text-fg">قالب‌های پیامک</h3>
+            <p className="text-xs leading-5 text-fg-muted">
               سرویس‌های OTP ابری با شناسهٔ قالبِ ثبت‌شده در پنل خودشان کار می‌کنند؛ متن آزاد پذیرفته
               نمی‌شود.
             </p>
             {templates.data?.length ? (
-              <ul className="divide-y divide-slate-100 overflow-hidden rounded-xl border border-slate-100">
+              <ul className="divide-y divide-border overflow-hidden rounded-xl border border-border">
                 {templates.data.map((t) => (
                   <li key={t.id} className="flex flex-wrap items-center gap-2 p-3">
                     <span className="min-w-0 flex-1">
-                      <span className="block text-sm font-medium text-slate-900">{t.alias}</span>
-                      <span dir="ltr" className="block font-mono text-xs text-slate-500">
+                      <span className="block text-sm font-medium text-fg">{t.alias}</span>
+                      <span dir="ltr" className="block font-mono text-xs text-fg-muted">
                         #{t.provider_template_ref}
                       </span>
                     </span>
@@ -416,14 +416,12 @@ export default function ConnectionsPage() {
                 ))}
               </ul>
             ) : (
-              <p className="rounded-xl bg-slate-50 px-3 py-2.5 text-xs text-slate-500">
+              <p className="rounded-xl bg-surface-2 px-3 py-2.5 text-xs text-fg-muted">
                 قالبی ثبت نشده.
               </p>
             )}
             {templateTest.data && (
-              <p
-                className={`text-xs ${templateTest.data.ok ? 'text-emerald-600' : 'text-rose-600'}`}
-              >
+              <p className={`text-xs ${templateTest.data.ok ? 'text-success' : 'text-danger'}`}>
                 {templateTest.data.ok
                   ? 'پیامک آزمایشی ارسال شد — گوشی را ببینید.'
                   : `ناموفق: ${templateTest.data.error ?? 'نامشخص'}`}
@@ -431,7 +429,7 @@ export default function ConnectionsPage() {
             )}
 
             <form
-              className="flex flex-wrap items-end gap-2 rounded-xl border border-slate-100 p-3"
+              className="flex flex-wrap items-end gap-2 rounded-xl border border-border p-3"
               onSubmit={(e) => {
                 e.preventDefault();
                 if (!detailFor) return;
@@ -466,25 +464,25 @@ export default function ConnectionsPage() {
               </GradientButton>
             </form>
             {createTemplate.error && (
-              <p className="text-xs text-rose-600">{errorMessage(createTemplate.error)}</p>
+              <p className="text-xs text-danger">{errorMessage(createTemplate.error)}</p>
             )}
           </section>
 
           <section className="space-y-2">
-            <h3 className="text-sm font-semibold text-slate-900">رخدادها</h3>
+            <h3 className="text-sm font-semibold text-fg">رخدادها</h3>
             {events.data?.length ? (
-              <ul className="ops-themed-scroll max-h-56 divide-y divide-slate-100 overflow-y-auto rounded-xl border border-slate-100">
+              <ul className="ops-themed-scroll max-h-56 divide-y divide-border overflow-y-auto rounded-xl border border-border">
                 {events.data.map((ev) => (
                   <li key={ev.id} className="flex items-center justify-between gap-2 px-3 py-2">
-                    <span dir="ltr" className="font-mono text-xs text-slate-900">
+                    <span dir="ltr" className="font-mono text-xs text-fg">
                       {ev.event}
                     </span>
-                    <span className="text-xs text-slate-500">{faDateTimeOf(ev.created_at)}</span>
+                    <span className="text-xs text-fg-muted">{faDateTimeOf(ev.created_at)}</span>
                   </li>
                 ))}
               </ul>
             ) : (
-              <p className="rounded-xl bg-slate-50 px-3 py-2.5 text-xs text-slate-500">
+              <p className="rounded-xl bg-surface-2 px-3 py-2.5 text-xs text-fg-muted">
                 رخدادی ثبت نشده.
               </p>
             )}

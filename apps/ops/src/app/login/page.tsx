@@ -5,6 +5,7 @@
 // the layout does, so a tenant user who logs in gets a clear refusal instead
 // of a login form that silently never succeeds.
 
+import { BrandMark } from '@/components/brand-mark';
 import { qk } from '@/lib/api';
 import { faNumber, normalizeDigits } from '@/lib/format';
 import { FormError, btnPrimary, inputClass } from '@arad-crm/ui';
@@ -95,10 +96,18 @@ export default function OpsLoginPage() {
   const error = fieldError ?? apiError(requestOtp.error ?? verify.error);
 
   return (
-    <main className="flex min-h-dvh items-center justify-center px-4">
-      <div className="w-full max-w-sm rounded-md border border-border bg-surface p-6 shadow-card">
-        <h1 className="text-lg font-bold">کنترل‌پنل آراد</h1>
-        <p className="mt-1 text-xs text-fg-muted">
+    // The canopy — the same dark slab the seller app puts behind ITS login and
+    // the panel puts behind the nav rail. An operator who signs into both in
+    // one morning should not see two different products.
+    <main className="flex min-h-dvh items-center justify-center bg-canopy px-4">
+      <div className="w-full max-w-sm rounded-lg border border-border bg-surface p-6 shadow-pop">
+        <div className="flex items-center gap-2.5">
+          <span className="flex h-9 w-9 items-center justify-center rounded-md bg-gradient-primary text-primary-fg">
+            <BrandMark />
+          </span>
+          <h1 className="text-lg font-bold">کنترل‌پنل آراد</h1>
+        </div>
+        <p className="mt-3 text-xs text-fg-muted">
           {step === 'mobile'
             ? 'شمارهٔ موبایل خود را وارد کنید'
             : `کد پیامک‌شده به ${normalizedMobile} را وارد کنید`}
@@ -128,7 +137,10 @@ export default function OpsLoginPage() {
               onChange={(e) => setCode(e.target.value)}
               inputMode="numeric"
               autoComplete="one-time-code"
-              placeholder="کد ۵ رقمی"
+              // FOUR, not five — `@arad/auth-otp` CODE_LENGTH is 4. A field
+              // that asks for a fifth digit reads as "you mistyped" to someone
+              // who entered the code correctly.
+              placeholder="کد ۴ رقمی"
               className={inputClass}
               aria-label="کد ورود"
             />

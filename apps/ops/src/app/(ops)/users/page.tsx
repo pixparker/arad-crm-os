@@ -171,7 +171,7 @@ export default function UsersPage() {
           }
         />
       ) : (
-        <div className="divide-y divide-slate-100">
+        <div className="divide-y divide-border">
           {users.data.map((u, i) => {
             const gradient = pickAvatarGradient(i);
             return (
@@ -185,7 +185,7 @@ export default function UsersPage() {
                     <span dir="ltr" className="font-mono">
                       {u.phone}
                     </span>
-                    {u.display_name && <span className="text-slate-500">· {u.display_name}</span>}
+                    {u.display_name && <span className="text-fg-muted">· {u.display_name}</span>}
                     {u.is_ops && <StatusBadge tone="violet" label="اپراتور" />}
                   </span>
                 }
@@ -219,7 +219,7 @@ export default function UsersPage() {
                         onClick={() =>
                           remove.mutate({ userId: u.id, organizationId: m.organization_id })
                         }
-                        className="flex items-center gap-1 rounded-lg px-2 py-1.5 text-xs text-slate-400 transition hover:bg-rose-50 hover:text-rose-600 disabled:opacity-50"
+                        className="flex items-center gap-1 rounded-lg px-2 py-1.5 text-xs text-fg-faint transition hover:bg-danger-soft hover:text-danger disabled:opacity-50"
                       >
                         <X className="h-3 w-3" />
                         {m.organization_name}
@@ -229,7 +229,7 @@ export default function UsersPage() {
                       type="button"
                       title="اتصال به کسب‌وکار"
                       onClick={() => openAssign(u)}
-                      className="rounded-lg p-2 text-slate-400 transition hover:bg-slate-100 hover:text-slate-600"
+                      className="rounded-lg p-2 text-fg-faint transition hover:bg-surface-2 hover:text-fg-muted"
                     >
                       <Building2 className="h-4 w-4" />
                     </button>
@@ -242,7 +242,7 @@ export default function UsersPage() {
                           status: u.status === 'disabled' ? 'active' : 'disabled',
                         })
                       }
-                      className="rounded-lg px-2.5 py-1.5 text-xs font-medium text-slate-500 transition hover:bg-slate-100 hover:text-slate-700 disabled:opacity-50"
+                      className="rounded-lg px-2.5 py-1.5 text-xs font-medium text-fg-muted transition hover:bg-surface-2 hover:text-fg disabled:opacity-50"
                     >
                       {u.status === 'disabled' ? 'فعال‌سازی' : 'غیرفعال‌سازی'}
                     </button>
@@ -293,7 +293,7 @@ export default function UsersPage() {
           <Field label="نام نمایشی">
             <Input value={displayName} onChange={(e) => setDisplayName(e.target.value)} />
           </Field>
-          {create.error && <p className="text-sm text-rose-600">{errorMessage(create.error)}</p>}
+          {create.error && <p className="text-sm text-danger">{errorMessage(create.error)}</p>}
         </form>
       </Modal>
 
@@ -335,7 +335,7 @@ export default function UsersPage() {
             onValueChange={(v) => setAssignRole(v as Role)}
             options={TENANT_ROLES.map((r) => ({ value: r, label: TENANT_ROLE_LABELS[r] }))}
           />
-          {assign.error && <p className="text-sm text-rose-600">{errorMessage(assign.error)}</p>}
+          {assign.error && <p className="text-sm text-danger">{errorMessage(assign.error)}</p>}
         </form>
       </Modal>
     </ListPage>

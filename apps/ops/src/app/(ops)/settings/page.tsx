@@ -67,14 +67,14 @@ function SettingRow({ setting }: { setting: SettingView }) {
     <div className="flex flex-col gap-3 px-5 py-4 lg:flex-row lg:items-start">
       <div className="min-w-0 flex-1">
         <p className="flex flex-wrap items-center gap-2">
-          <span dir="ltr" className="font-mono text-sm font-medium text-slate-900">
+          <span dir="ltr" className="font-mono text-sm font-medium text-fg">
             {setting.key}
           </span>
           {setting.is_overridden && <StatusBadge tone="violet" label="تغییر داده شده" />}
           {readOnly && <StatusBadge tone="slate" label="فقط‌خواندنی" />}
         </p>
-        <p className="mt-1 text-xs leading-5 text-slate-500">{setting.description}</p>
-        <p className="mt-1 text-[11px] text-slate-400">
+        <p className="mt-1 text-xs leading-5 text-fg-muted">{setting.description}</p>
+        <p className="mt-1 text-[11px] text-fg-faint">
           <span dir="ltr">{setting.type}</span> · آخرین تغییر {faDateTimeOf(setting.updated_at)}
         </p>
       </div>
@@ -89,7 +89,7 @@ function SettingRow({ setting }: { setting: SettingView }) {
                 disabled={readOnly}
                 aria-label={setting.key}
               />
-              <span className="text-sm text-slate-600">{draft === 'true' ? 'روشن' : 'خاموش'}</span>
+              <span className="text-sm text-fg-muted">{draft === 'true' ? 'روشن' : 'خاموش'}</span>
             </span>
           ) : setting.type === 'enum' ? (
             <SelectField
@@ -112,7 +112,7 @@ function SettingRow({ setting }: { setting: SettingView }) {
               className="font-mono"
             />
           )}
-          {save.error && <p className="mt-1 text-xs text-rose-600">{errorMessage(save.error)}</p>}
+          {save.error && <p className="mt-1 text-xs text-danger">{errorMessage(save.error)}</p>}
         </div>
 
         <button
@@ -126,7 +126,7 @@ function SettingRow({ setting }: { setting: SettingView }) {
               // A malformed json draft never reaches the API.
             }
           }}
-          className="rounded-lg p-2 text-slate-400 transition hover:bg-emerald-50 hover:text-emerald-600 disabled:cursor-not-allowed disabled:opacity-30"
+          className="rounded-lg p-2 text-fg-faint transition hover:bg-success-soft hover:text-success disabled:cursor-not-allowed disabled:opacity-30"
         >
           <Check className="h-4 w-4" />
         </button>
@@ -137,7 +137,7 @@ function SettingRow({ setting }: { setting: SettingView }) {
           onClick={() =>
             reset.mutate(setting.key, { onSuccess: (r) => setDraft(asDraft(r.value)) })
           }
-          className="rounded-lg p-2 text-slate-400 transition hover:bg-slate-100 hover:text-slate-600 disabled:cursor-not-allowed disabled:opacity-30"
+          className="rounded-lg p-2 text-fg-faint transition hover:bg-surface-2 hover:text-fg-muted disabled:cursor-not-allowed disabled:opacity-30"
         >
           <RotateCcw className="h-4 w-4" />
         </button>
@@ -189,16 +189,16 @@ export default function SettingsPage() {
       }
     >
       {settings.isPending ? (
-        <div className="rounded-2xl border border-slate-100 bg-white p-5 shadow-card">
-          <div className="h-4 w-1/3 animate-pulse rounded bg-slate-100" />
+        <div className="rounded-2xl border border-border bg-surface p-5 shadow-card">
+          <div className="h-4 w-1/3 animate-pulse rounded bg-surface-2" />
           <div className="mt-4 space-y-3">
             {[0, 1, 2, 3].map((i) => (
-              <div key={i} className="h-10 animate-pulse rounded-lg bg-slate-50" />
+              <div key={i} className="h-10 animate-pulse rounded-lg bg-surface-2" />
             ))}
           </div>
         </div>
       ) : settings.error ? (
-        <div className="rounded-2xl border border-slate-100 bg-white shadow-card">
+        <div className="rounded-2xl border border-border bg-surface shadow-card">
           <EmptyState
             icon={Settings2}
             headline="تنظیمات بارگیری نشد"
@@ -215,7 +215,7 @@ export default function SettingsPage() {
           />
         </div>
       ) : rows.length === 0 ? (
-        <div className="rounded-2xl border border-slate-100 bg-white shadow-card">
+        <div className="rounded-2xl border border-border bg-surface shadow-card">
           <EmptyState
             icon={Settings2}
             headline="تنظیمی یافت نشد"
@@ -227,15 +227,15 @@ export default function SettingsPage() {
           {groups.map((group) => (
             <section
               key={group}
-              className="overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-card"
+              className="overflow-hidden rounded-2xl border border-border bg-surface shadow-card"
             >
               <h2
                 dir="ltr"
-                className="border-b border-slate-100 bg-slate-50/60 px-5 py-2.5 text-start font-mono text-xs font-semibold text-slate-500"
+                className="border-b border-border bg-surface-2 px-5 py-2.5 text-start font-mono text-xs font-semibold text-fg-muted"
               >
                 {group}
               </h2>
-              <div className="divide-y divide-slate-100">
+              <div className="divide-y divide-border">
                 {rows
                   .filter((s) => s.group === group)
                   .map((s) => (

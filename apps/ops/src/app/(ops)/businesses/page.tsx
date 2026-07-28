@@ -115,7 +115,7 @@ export default function BusinessesPage() {
           }
         />
       ) : (
-        <div className="divide-y divide-slate-100">
+        <div className="divide-y divide-border">
           {businesses.data.map((b, i) => {
             const bound = bindings.data?.filter((x) => x.organization_id === b.id) ?? [];
             const gradient = pickAvatarGradient(i);
@@ -153,7 +153,7 @@ export default function BusinessesPage() {
                         setBindFor(b);
                         setExternalRef('default');
                       }}
-                      className="rounded-lg p-2 text-slate-400 transition hover:bg-slate-100 hover:text-slate-600"
+                      className="rounded-lg p-2 text-fg-faint transition hover:bg-surface-2 hover:text-fg-muted"
                     >
                       <Link2 className="h-4 w-4" />
                     </button>
@@ -166,7 +166,7 @@ export default function BusinessesPage() {
                           status: b.status === 'active' ? 'suspended' : 'active',
                         })
                       }
-                      className="rounded-lg px-2.5 py-1.5 text-xs font-medium text-slate-500 transition hover:bg-slate-100 hover:text-slate-700 disabled:opacity-50"
+                      className="rounded-lg px-2.5 py-1.5 text-xs font-medium text-fg-muted transition hover:bg-surface-2 hover:text-fg disabled:opacity-50"
                     >
                       {b.status === 'active' ? 'تعلیق' : 'فعال‌سازی'}
                     </button>
@@ -216,7 +216,7 @@ export default function BusinessesPage() {
               placeholder="mizro"
             />
           </Field>
-          {create.error && <p className="text-sm text-rose-600">{errorMessage(create.error)}</p>}
+          {create.error && <p className="text-sm text-danger">{errorMessage(create.error)}</p>}
         </form>
       </Modal>
 
@@ -237,7 +237,7 @@ export default function BusinessesPage() {
         }
       >
         <form id="bind-producer" onSubmit={submitBind} className="space-y-4">
-          <p className="text-sm leading-6 text-slate-500">
+          <p className="text-sm leading-6 text-fg-muted">
             تعیین می‌کند رویدادهای پرداخت میزرو به کدام کسب‌وکار تعلق دارند. بدون آن، وقتی بیش از یک
             کسب‌وکار وجود داشته باشد پردازش رویداد متوقف می‌شود — به‌جای آنکه کمیسیون به تیم اشتباه
             برسد.
@@ -250,7 +250,7 @@ export default function BusinessesPage() {
               dir="ltr"
             />
           </Field>
-          {bind.error && <p className="text-sm text-rose-600">{errorMessage(bind.error)}</p>}
+          {bind.error && <p className="text-sm text-danger">{errorMessage(bind.error)}</p>}
         </form>
       </Modal>
     </ListPage>

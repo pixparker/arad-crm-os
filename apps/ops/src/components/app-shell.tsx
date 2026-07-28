@@ -10,6 +10,7 @@
 // and running the platform («اتصال‌ها، تنظیمات، رخدادها، صندوق»). A support
 // agent and a super-admin open this panel for different halves of it.
 
+import { BrandMark } from '@/components/brand-mark';
 import { useLogout } from '@/lib/api';
 import { OPS_ROLE_LABELS } from '@/lib/format';
 import type { OpsMeResponse } from '@arad-crm/api-contracts';
@@ -30,7 +31,12 @@ import type { ReactNode } from 'react';
 // The kit takes the active-state classes per item so a consumer can theme the
 // sidebar without the kit knowing a palette. One pair for the whole nav here:
 // a control plane is not a place to be colourful.
-const ACTIVE = { activeBg: 'bg-white/10', activeText: 'text-white' } as const;
+//
+// The fill is the brand at 22% rather than white at 10%. On the canopy those
+// are near-identical in lightness, but the hover state is already `bg-white/10`
+// — so a white active fill made "where I am" and "where the pointer is" the
+// same swatch. Tinting the active item is what tells them apart.
+const ACTIVE = { activeBg: 'bg-ops-primary-tint', activeText: 'text-white' } as const;
 
 const NAV: NavSection[] = [
   { items: [{ to: '/', label: 'نمای کلی', icon: LayoutDashboard, end: true, ...ACTIVE }] },
@@ -58,28 +64,13 @@ const NAV: NavSection[] = [
   },
 ];
 
-function BrandMark() {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" className="h-5 w-5 text-white">
-      <path
-        d="M4 19 12 4l8 15"
-        stroke="currentColor"
-        strokeWidth="2.2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <path d="M8 14h8" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" />
-    </svg>
-  );
-}
-
 export function AppShell({ me, children }: { me: OpsMeResponse; children: ReactNode }) {
   const router = useRouter();
   const logout = useLogout();
 
   return (
     <OpsShell
-      brand={<BrandMark />}
+      brand={<BrandMark className="h-5 w-5 text-white" />}
       brandLabel="کنترل‌پنل آراد"
       nav={NAV}
       user={{
