@@ -95,6 +95,36 @@ describe('＋ «مشتری» — POST /v1/accounts (E01-F07 registry entry)', ()
   });
 });
 
+describe('lead capture carries the vertical vocabulary', () => {
+  it('stores the requested products and the source', async () => {
+    const res = await post('/v1/leads', sellerA.cookie, {
+      business_name: `کافه محصول ${suffix}`,
+      phone: `0913800${suffix}`,
+      region_text: 'ونک',
+      source: 'expo',
+      requested_features: ['digital_menu', 'table_order'],
+    });
+    expect(res.status).toBe(201);
+    const body = (await res.json()) as { requested_features: string[] | null; source: string };
+    expect(body.requested_features).toEqual(['digital_menu', 'table_order']);
+    // 🔒 a seller-introduced lead is stamped `seller` whatever the form said —
+    // the source IS the attribution claim
+    expect(body.source).toBe('seller');
+  });
+
+  it('refuses a product code the vertical does not define', async () => {
+    const res = await post('/v1/leads', sellerA.cookie, {
+      business_name: `کافه ناشناخته ${suffix}`,
+      phone: `0913850${suffix}`,
+      region_text: 'ونک',
+      requested_features: ['crypto_mining'],
+    });
+    expect(res.status).toBe(400);
+    const body = (await res.json()) as { meta?: { allowed?: string[] } };
+    expect(body.meta?.allowed).toContain('digital_menu');
+  });
+});
+
 describe('duplicate lookup — GET /v1/accounts/lookup', () => {
   it('reports a reachable file with its name', async () => {
     const res = await get(`/v1/accounts/lookup?phone=0913100${suffix}`, sellerA.cookie);

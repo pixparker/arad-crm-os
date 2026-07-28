@@ -26,12 +26,18 @@ const KINDS: { code: Kind; label: string }[] = [
 
 export default function QuickLogPage() {
   const params = useParams<{ id: string }>();
-  const leadId = useSearchParams().get('lead');
+  const search = useSearchParams();
+  const leadId = search.get('lead');
+  // The ＋ sheet arrives with the kind already chosen («ثبت تماس» vs «ثبت
+  // بازدید») — asking again would be asking the same question twice.
+  const kindParam = search.get('kind');
+  const initialKind: Kind =
+    kindParam === 'call' || kindParam === 'note' || kindParam === 'visit' ? kindParam : 'visit';
   const router = useRouter();
   const toast = useToast();
   const idempotencyKey = useRef(crypto.randomUUID()).current;
 
-  const [kind, setKind] = useState<Kind>('visit');
+  const [kind, setKind] = useState<Kind>(initialKind);
   const [outcome, setOutcome] = useState<string>('');
   const [segment, setSegment] = useState('');
   const [offerHint, setOfferHint] = useState('');

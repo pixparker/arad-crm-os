@@ -31,7 +31,9 @@ export function BottomNav() {
 
   // Sub-flows carry their own bottom CTA; a nav bar under it is two primary
   // actions arguing.
-  if (pathname === '/leads/new' || pathname.endsWith('/log')) return null;
+  const isSubFlow =
+    pathname.endsWith('/new') || pathname.endsWith('/log') || pathname.startsWith('/log/');
+  if (isSubFlow) return null;
 
   const isActive = (href: string): boolean =>
     href === '/' ? pathname === '/' : pathname === href || pathname.startsWith(`${href}/`);

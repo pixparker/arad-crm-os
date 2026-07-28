@@ -10,6 +10,12 @@ import {
   leadDetailSchema,
 } from '@arad-crm/api-contracts';
 import { accounts, db, leads, opportunities, orgScope, users } from '@arad-crm/db';
+import {
+  LEAD_SOURCES,
+  REQUESTED_PRODUCTS,
+  isLeadSource,
+  isRequestedProduct,
+} from '@arad-crm/vertical-mizro';
 import { normalizeIranianMobile } from '@arad/auth-otp';
 import { ConflictError, ForbiddenError, NotFoundError, ValidationError } from '@arad/errors';
 import { type SQL, and, desc, eq, isNull } from 'drizzle-orm';
@@ -48,6 +54,21 @@ export const leadsRoutes = new Hono()
         existing_account_id: existing.id,
       });
     }
+    // Vertical vocabulary, not free text 🔒 — an unknown code is a client bug,
+    // and silently storing it makes the funnel report quietly wrong.
+    const requested = body.requested_features ?? [];
+    const unknown = requested.filter((code) => !isRequestedProduct(code));
+    if (unknown.length > 0) {
+      throw new ValidationError(`محصول ناشناخته: ${unknown.join('، ')}`, {
+        allowed: REQUESTED_PRODUCTS.map((p) => p.code),
+      });
+    }
+    if (body.source !== 'manual' && !isLeadSource(body.source)) {
+      throw new ValidationError(`منبع ناشناخته: ${body.source}`, {
+        allowed: LEAD_SOURCES.map((s) => s.code),
+      });
+    }
+
     const sellerIntroduced = isSeller(actor.role);
     return db.transaction(async (tx) => {
       const accountRows = await tx
@@ -82,6 +103,7 @@ export const leadsRoutes = new Hono()
                 nextActionAt: new Date(),
               }
             : { status: 'new' as const }),
+          ...(requested.length > 0 ? { requestedFeatures: requested } : {}),
           createdBy: actor.userId,
         })
         .returning();

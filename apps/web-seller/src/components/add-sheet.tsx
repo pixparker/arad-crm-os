@@ -31,11 +31,11 @@ type Entry = QuickAddRegistry['entries'][number];
 // Where each registry entry's form lives in this app. `null` = not built yet.
 const ROUTES: Record<string, string | null> = {
   lead: '/leads/new',
-  opportunity: null,
-  customer: null,
-  note: null,
-  call: null,
-  visit: null,
+  opportunity: '/opportunities/new',
+  customer: '/accounts/new',
+  note: '/log/new?kind=note',
+  call: '/log/new?kind=call',
+  visit: '/log/new?kind=visit',
 };
 
 const ICONS: Record<Entry['icon'], ReactNode> = {

@@ -165,6 +165,10 @@ export const createLeadBodySchema = z.object({
   contact_name: z.string().max(120).optional(),
   business_type: z.string().max(60).optional(),
   source: z.string().max(40).default('manual'),
+  // What the café asked for — vertical product codes, validated against the
+  // vertical's list in the route. Free text here would be a field no report
+  // can ever group by.
+  requested_features: z.array(z.string().max(40)).max(10).optional(),
 });
 
 export const importLeadsBodySchema = z.object({

@@ -13,15 +13,20 @@ export const mizroVertical: VerticalManifest = {
 };
 
 export {
+  LEAD_SOURCES,
   LOSS_REASONS,
+  NEXT_ACTION_OFFSETS,
   NEXT_ACTION_TYPES,
+  REQUESTED_PRODUCTS,
   OPPORTUNITY_STAGES,
   VISIT_OUTCOMES,
   WIN_REASONS,
+  isLeadSource,
   isLossReason,
   isNextActionType,
   isOpportunityStage,
   isOutcome,
+  isRequestedProduct,
   isWinReason,
   type OutcomeDef,
 } from './presets.js';

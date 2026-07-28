@@ -15,6 +15,7 @@ import {
 import { accounts, db, leads, opportunities, orgScope } from '@arad-crm/db';
 import {
   LOSS_REASONS,
+  NEXT_ACTION_OFFSETS,
   NEXT_ACTION_TYPES,
   OPPORTUNITY_STAGES,
   isLossReason,
@@ -27,17 +28,6 @@ import type { Context } from 'hono';
 import { writeAudit } from '../../lib/tenant-audit.js';
 import { requireActor } from '../../middleware/session.js';
 import { availableFlows, enroll, recordDecision, suggestNextAction } from '../flows/index.js';
-
-// Server-supplied so a vertical can retune them without an app release. The
-// founder's own examples: «۲ هفتهٔ دیگر», «شنبه».
-const NEXT_ACTION_OFFSETS = [
-  { key: 'today', label: 'امروز', days: 0 },
-  { key: 'tomorrow', label: 'فردا', days: 1 },
-  { key: 'in_3_days', label: '۳ روز دیگر', days: 3 },
-  { key: 'next_week', label: 'هفتهٔ آینده', days: 7 },
-  { key: 'in_2_weeks', label: '۲ هفتهٔ دیگر', days: 14 },
-  { key: 'next_month', label: 'ماه آینده', days: 30 },
-] as const;
 
 // Extracted handlers lose Hono's path-param typing, so the id is asserted
 // once here rather than non-null-asserted at each call site.

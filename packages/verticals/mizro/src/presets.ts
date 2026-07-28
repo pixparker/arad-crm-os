@@ -82,6 +82,41 @@ export const NEXT_ACTION_TYPES: readonly { code: string; label: string }[] = [
   { code: 'onboarding_handoff', label: 'تحویل به استقرار' },
 ] as const;
 
+// Where a lead came from (prototype screen ۰۳ §۱). `seller` is not offered as a
+// choice: the api sets it when a seller introduces a lead themselves, and that
+// is the attribution claim — not something a form may assert.
+export const LEAD_SOURCES: readonly { code: string; label: string }[] = [
+  { code: 'website_form', label: 'فرم وبسایت' },
+  { code: 'map', label: 'نقشه (نشان/بلد)' },
+  { code: 'referral', label: 'معرفی مشتری' },
+  { code: 'inbound_call', label: 'تماس ورودی' },
+  { code: 'expo', label: 'نمایشگاه' },
+  { code: 'manual', label: 'سایر' },
+] as const;
+
+// What the café asked for. Multi-select, and it feeds the price conversation —
+// so it is vertical vocabulary, not free text a report can never group.
+export const REQUESTED_PRODUCTS: readonly { code: string; label: string }[] = [
+  { code: 'digital_menu', label: 'منوی دیجیتال' },
+  { code: 'table_order', label: 'سفارش روی میز' },
+  { code: 'reviews', label: 'نظر مشتریان' },
+  { code: 'loyalty', label: 'باشگاه مشتریان' },
+  { code: 'website', label: 'وبسایت' },
+] as const;
+
+// «کِی؟» — the quick offsets on the next-action scheduler. Server-supplied to
+// the guidance endpoint AND used by the capture form before a lead exists, so
+// both sides offer the same choices. The founder's own examples: «۲ هفتهٔ
+// دیگر», «شنبه» (which the app resolves against the Persian week).
+export const NEXT_ACTION_OFFSETS: readonly { key: string; label: string; days: number }[] = [
+  { key: 'today', label: 'امروز', days: 0 },
+  { key: 'tomorrow', label: 'فردا', days: 1 },
+  { key: 'in_3_days', label: '۳ روز دیگر', days: 3 },
+  { key: 'next_week', label: 'هفتهٔ آینده', days: 7 },
+  { key: 'in_2_weeks', label: '۲ هفتهٔ دیگر', days: 14 },
+  { key: 'next_month', label: 'ماه آینده', days: 30 },
+] as const;
+
 // Opportunity pipeline stages (post-qualification part of the 14-stage funnel)
 export const OPPORTUNITY_STAGES: readonly { code: string; label: string }[] = [
   { code: 'qualified', label: 'واجد شرایط' },
@@ -133,3 +168,6 @@ export const isOpportunityStage = (code: string): boolean =>
   OPPORTUNITY_STAGES.some((s) => s.code === code);
 export const isLossReason = (code: string): boolean => LOSS_REASONS.some((r) => r.code === code);
 export const isWinReason = (code: string): boolean => WIN_REASONS.some((r) => r.code === code);
+export const isLeadSource = (code: string): boolean => LEAD_SOURCES.some((s) => s.code === code);
+export const isRequestedProduct = (code: string): boolean =>
+  REQUESTED_PRODUCTS.some((p) => p.code === code);
