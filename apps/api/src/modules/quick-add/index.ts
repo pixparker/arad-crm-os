@@ -7,6 +7,12 @@
 // Entries are never hidden by role: an entry the actor may not use ships with
 // `enabled: false` so the menu stays the same shape for everyone and the UI
 // can explain why rather than silently omitting an option.
+//
+// 🔒 The registry is also the contract for the sheet's LAYOUT (group) and its
+// icons — so a vertical adds an entry by adding a row here, and the app needs
+// no release. What is NOT here does not exist: the prototype draws «سفارش»,
+// «کار / یادآور» and «واردکردن از نقشه», and none of the three has an
+// endpoint, so the sheet must not offer them (see the epic §6).
 
 import { quickAddRegistrySchema } from '@arad-crm/api-contracts';
 import { Hono } from 'hono';
@@ -16,43 +22,77 @@ export const quickAddRoutes = new Hono().use('*', session()).get('/', async (c) 
   const actor = requireActor(c);
   const seller = isSeller(actor.role);
   const manager = actor.role === 'sales_manager' || actor.role === 'owner_admin';
+  const canCreate = seller || manager;
 
   return c.json(
     quickAddRegistrySchema.parse({
       entries: [
         {
+          key: 'lead',
           kind: 'lead',
-          label: 'سرنخ جدید',
+          group: 'create',
+          icon: 'lead',
+          label: 'سرنخ',
           hint: 'کسب‌وکاری که تازه پیدا کرده‌اید',
           endpoint: '/v1/leads',
-          enabled: seller || manager,
+          defaults: {},
+          enabled: canCreate,
         },
         {
-          kind: 'customer',
-          label: 'مشتری',
-          hint: 'پرونده‌ای که از قبل می‌شناسید',
-          endpoint: '/v1/accounts',
-          enabled: seller || manager,
-        },
-        {
+          key: 'opportunity',
           kind: 'opportunity',
+          group: 'create',
+          icon: 'opportunity',
           label: 'فرصت',
           hint: 'نیاز و تناسب تأیید شده',
           endpoint: '/v1/opportunities',
-          enabled: seller || manager,
+          defaults: {},
+          enabled: canCreate,
         },
         {
-          kind: 'touch',
-          label: 'تماس / بازدید',
-          hint: 'چیزی که همین حالا اتفاق افتاد',
+          key: 'customer',
+          kind: 'customer',
+          group: 'create',
+          icon: 'customer',
+          label: 'مشتری',
+          hint: 'پرونده‌ای که از قبل می‌شناسید',
+          endpoint: '/v1/accounts',
+          defaults: {},
+          enabled: canCreate,
+        },
+        {
+          key: 'note',
+          kind: 'info',
+          group: 'create',
+          icon: 'note',
+          label: 'یادداشت',
+          hint: 'نکته یا واقعیتی دربارهٔ مشتری',
           endpoint: '/v1/activities',
+          defaults: { kind: 'note' },
+          enabled: true,
+        },
+        // Same endpoint, two entries — a call and a visit are the same row in
+        // `activities` and two different things to a seller standing outside a café.
+        {
+          key: 'call',
+          kind: 'touch',
+          group: 'activity',
+          icon: 'call',
+          label: 'ثبت تماس',
+          hint: 'نتیجهٔ تماس + قدم بعدی',
+          endpoint: '/v1/activities',
+          defaults: { kind: 'call' },
           enabled: true,
         },
         {
-          kind: 'info',
-          label: 'اطلاعات',
-          hint: 'نکته یا واقعیتی دربارهٔ مشتری',
+          key: 'visit',
+          kind: 'touch',
+          group: 'activity',
+          icon: 'visit',
+          label: 'ثبت بازدید',
+          hint: 'حضور در محل + نتیجه',
           endpoint: '/v1/activities',
+          defaults: { kind: 'visit' },
           enabled: true,
         },
       ],

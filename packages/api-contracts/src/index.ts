@@ -5,4 +5,5 @@ export * from './sales.js';
 export * from './money.js';
 export * from './ops.js';
 export * from './flows.js';
+export * from './dashboard.js';
 export * from './quick-add.js';

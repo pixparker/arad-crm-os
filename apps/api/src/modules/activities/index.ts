@@ -16,6 +16,7 @@ import {
 import { NotFoundError, ValidationError } from '@arad/errors';
 import { and, desc, eq, gte, inArray, isNotNull, isNull, lte, sql } from 'drizzle-orm';
 import { Hono } from 'hono';
+import { endOfDayTehran, startOfDayTehran } from '../../lib/tehran-time.js';
 import { isSeller, requireActor, session } from '../../middleware/session.js';
 
 // The module's service surface — how other modules read this history 🔒
@@ -147,10 +148,10 @@ export const activitiesRoutes = new Hono()
   // «امروز من» — the seller's day (product doc §7)
   .get('/today', async (c) => {
     const actor = requireActor(c);
-    const endOfDay = new Date();
-    endOfDay.setHours(23, 59, 59, 999);
-    const startOfDay = new Date();
-    startOfDay.setHours(0, 0, 0, 0);
+    // 🔒 Tehran's day, not the server's — see lib/tehran-time.ts. In a UTC
+    // container `setHours(0,…)` starts "today" at 03:30 Tehran.
+    const startOfDay = startOfDayTehran();
+    const endOfDay = endOfDayTehran();
 
     const due = await db
       .select({ lead: leads, account: accounts })

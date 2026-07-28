@@ -1,0 +1,98 @@
+/* Mizro «سِیلز» skin — vertical #1's brand layer (ADR-009).
+ *
+ * tokens.css is the PRODUCT default and stays the shape of the system; this
+ * file only repaints it for the tenant-facing app. Ops and admin keep the
+ * default skin, because they are Arad's surfaces, not Mizro's.
+ *
+ * Values are the locked Mizro brand tokens carried over verbatim from the
+ * prototype (prototypes/apps/mizro-crm/index.html, skin «A · Navy canopy +
+ * teal accent») — navy #01182F chrome, white content sheet, teal #18B099 as
+ * the single action colour. Light theme only: the prototype has no dark
+ * variant, and inventing one here would be a design decision, not a port.
+ *
+ * 🔒 No raw hex in components. If a screen needs a colour that is not here,
+ * that is a token conversation, not a one-off. */
+
+:root {
+  /* surfaces */
+  --ac-bg: #f1f4f8;
+  --ac-surface: #ffffff;
+  --ac-surface-2: #f2f4f7;
+  --ac-surface-3: #e9eef4;
+  --ac-border: #d9e2ec;
+  --ac-border-strong: #c3d0de;
+
+  /* ink */
+  --ac-fg: #01182f;
+  --ac-fg-muted: #627d98;
+  --ac-fg-faint: #8fa3b8;
+
+  /* teal — the single action colour */
+  --ac-primary: #18b099;
+  --ac-primary-ink: #117b6b;
+  --ac-primary-soft: #e5f7f4;
+  --ac-primary-fg: #ffffff;
+  --ac-primary-grad-to: #2ac9af;
+
+  /* amber, used sparingly (badges, «مشتری طلایی») */
+  --ac-gold: #b4770b;
+  --ac-gold-soft: #fff4e2;
+
+  /* semantic */
+  --ac-success: #16a34a;
+  --ac-success-soft: #e4f6ea;
+  --ac-warning: #b4770b;
+  --ac-warning-soft: #fdf2dc;
+  --ac-danger: #dc2626;
+  --ac-danger-soft: #fce9e9;
+  --ac-info: #2563eb;
+  --ac-info-soft: #e7eefd;
+
+  /* the navy canopy — login backdrop, app bar, dark sheet headers */
+  --ac-canopy: #01182f;
+  --ac-canopy-2: #08243f;
+  --ac-canopy-3: #0e3255;
+  --ac-on-canopy: #ffffff;
+  --ac-on-canopy-muted: #9fb4cb;
+  /* two radial glows over the navy ramp — the teal one anchors the brand,
+   * the blue one keeps the top-start corner from going flat */
+  --ac-canopy-gradient: radial-gradient(
+      120% 90% at 88% -10%,
+      rgba(24, 176, 153, 0.34) 0%,
+      rgba(24, 176, 153, 0) 58%
+    ), radial-gradient(90% 70% at 10% 0%, rgba(37, 99, 235, 0.18) 0%, rgba(37, 99, 235, 0) 60%),
+    linear-gradient(168deg, var(--ac-canopy-3) 0%, var(--ac-canopy-2) 42%, var(--ac-canopy) 100%);
+
+  /* pipeline stages — a navy→teal ramp, so the funnel reads as one motion
+   * instead of six unrelated hues */
+  --ac-st-new: #2563eb;
+  --ac-st-new-soft: #e7eefd;
+  --ac-st-contact: #0e7490;
+  --ac-st-contact-soft: #e0f2f7;
+  --ac-st-demo: #0f8f8f;
+  --ac-st-demo-soft: #e0f5f4;
+  --ac-st-nego: #b4770b;
+  --ac-st-nego-soft: #fdf2dc;
+  --ac-st-won: #16a34a;
+  --ac-st-won-soft: #e4f6ea;
+  --ac-st-lost: #8fa3b8;
+  --ac-st-lost-soft: #eef2f6;
+
+  /* shape + elevation */
+  --ac-radius-sm: 10px;
+  --ac-radius-md: 14px;
+  --ac-radius-lg: 20px;
+  --ac-radius-xl: 28px;
+  --ac-radius-full: 999px;
+  --ac-shadow: 0 1px 2px rgba(1, 24, 47, 0.06), 0 4px 14px rgba(1, 24, 47, 0.08);
+  --ac-shadow-lg: 0 12px 32px rgba(1, 24, 47, 0.14);
+  --ac-shadow-primary: 0 8px 20px rgba(24, 176, 153, 0.32);
+
+  --ac-ease: cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+/* The prototype is light-only. Without this, a phone set to dark mode would
+ * get the product's dark palette under Mizro's layout — a skin nobody designed. */
+[data-theme="dark"] {
+  color-scheme: light;
+}

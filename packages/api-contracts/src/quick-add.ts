@@ -17,12 +17,37 @@ export const quickAddKindSchema = z.enum([
 ]);
 export type QuickAddKind = z.infer<typeof quickAddKindSchema>;
 
+// The sheet lays out two blocks: «ثبت جدید» as tiles, «ثبت فعالیت روی یک
+// پرونده» as rows. Which block an entry belongs to is a property of the entry,
+// not of the layout — otherwise adding one means editing the app.
+export const quickAddGroupSchema = z.enum(['create', 'activity']);
+
+// Icon *keys*, not markup: the app owns the drawing, the registry owns which
+// one. A new entry with an unknown key renders with the neutral icon rather
+// than breaking the sheet.
+export const quickAddIconSchema = z.enum([
+  'lead',
+  'customer',
+  'opportunity',
+  'note',
+  'call',
+  'visit',
+]);
+
 export const quickAddEntrySchema = z.object({
+  // Stable identifier — unique per entry, because two entries can share a
+  // `kind` (a call and a visit are both `touch`).
+  key: z.string(),
   kind: quickAddKindSchema,
+  group: quickAddGroupSchema,
+  icon: quickAddIconSchema,
   label: z.string(),
   hint: z.string(),
   // Where the client POSTs this entry's form.
   endpoint: z.string(),
+  // Fields the form starts with — how one endpoint serves several entries
+  // (`{ kind: 'call' }` vs `{ kind: 'visit' }` on /v1/activities).
+  defaults: z.record(z.string()),
   // False when the actor's role may not create this kind — the entry still
   // ships so the menu is stable, and the UI greys it rather than hiding it.
   enabled: z.boolean(),

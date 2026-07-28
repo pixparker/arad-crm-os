@@ -8,6 +8,7 @@
   "exports": {
     ".": "./src/index.ts",
     "./styles/tokens.css": "./styles/tokens.css",
+    "./styles/brand-mizro.css": "./styles/brand-mizro.css",
     "./tailwind-preset": "./src/tailwind-preset.ts"
   },
   "scripts": {

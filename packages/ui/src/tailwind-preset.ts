@@ -43,6 +43,16 @@ export const aradCrmPreset: Partial<Config> = {
         'st-won-soft': tokenColor('st-won-soft'),
         'st-lost': tokenColor('st-lost'),
         'st-lost-soft': tokenColor('st-lost-soft'),
+        info: tokenColor('info'),
+        'info-soft': tokenColor('info-soft'),
+        // The dark chrome a vertical skin may define (Mizro's navy canopy:
+        // login, app bar, sheets). Neutral in the default theme, so an app
+        // that uses them without a brand layer still renders.
+        canopy: tokenColor('canopy'),
+        'canopy-2': tokenColor('canopy-2'),
+        'canopy-3': tokenColor('canopy-3'),
+        'on-canopy': tokenColor('on-canopy'),
+        'on-canopy-muted': tokenColor('on-canopy-muted'),
       },
       borderRadius: {
         sm: 'var(--ac-radius-sm)',
@@ -58,6 +68,9 @@ export const aradCrmPreset: Partial<Config> = {
       },
       backgroundImage: {
         'gradient-primary': 'linear-gradient(135deg, var(--ac-primary), var(--ac-primary-grad-to))',
+        // The canopy — the dark slab a brand layer paints behind login and the
+        // app bar. One token so every surface that uses it stays identical.
+        canopy: 'var(--ac-canopy-gradient)',
       },
       fontFamily: {
         fa: ['Vazirmatn', 'Tahoma', 'sans-serif'],

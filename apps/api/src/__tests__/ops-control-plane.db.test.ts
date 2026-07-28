@@ -282,18 +282,30 @@ describe('quick-add + guided post-create (F07/F08)', () => {
     seller = await makeMember(world, 'visitor_seller', world.territoryA);
   });
 
-  it('serves the ＋ registry with role-aware entries', async () => {
+  it('serves the ＋ registry with role-aware entries, grouped for the sheet', async () => {
     const res = await get('/v1/quick-add', seller.cookie);
     expect(res.status).toBe(200);
-    const body = (await res.json()) as { entries: { kind: string; enabled: boolean }[] };
-    expect(body.entries.map((e) => e.kind)).toEqual([
+    const body = (await res.json()) as {
+      entries: {
+        key: string;
+        kind: string;
+        group: string;
+        enabled: boolean;
+        defaults: Record<string, string>;
+      }[];
+    };
+    expect(body.entries.map((e) => e.key)).toEqual([
       'lead',
-      'customer',
       'opportunity',
-      'touch',
-      'info',
+      'customer',
+      'note',
+      'call',
+      'visit',
     ]);
     expect(body.entries.every((e) => e.enabled)).toBe(true);
+    // two entries, one endpoint: the form starts from the entry's defaults
+    const activity = body.entries.filter((e) => e.group === 'activity');
+    expect(activity.map((e) => e.defaults.kind)).toEqual(['call', 'visit']);
   });
 
   it('a saved lead comes back with guidance instead of a dead end', async () => {

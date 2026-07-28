@@ -19,9 +19,12 @@ import {
 import { and, eq, gte, inArray, sql } from 'drizzle-orm';
 import { Hono } from 'hono';
 import { requireRole, session } from '../../middleware/session.js';
+import { dashboard } from './dashboard.js';
 
 export const reportsRoutes = new Hono()
   .use('*', session())
+  // The seller's own home screen — own book only, no role gate (dashboard.ts).
+  .get('/dashboard', dashboard)
   .get('/team-performance', async (c) => {
     const actor = requireRole(c, 'sales_manager', 'owner_admin', 'finance');
     const since30d = new Date(Date.now() - 30 * 24 * 3600 * 1000);

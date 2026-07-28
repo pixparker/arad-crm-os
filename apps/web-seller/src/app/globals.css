@@ -1,4 +1,7 @@
+/* Product tokens first, then the vertical's brand layer — the seller app is
+   Mizro-branded («میزرو سِیلز»); ops and admin stay on the product default. */
 @import "@arad-crm/ui/styles/tokens.css";
+@import "@arad-crm/ui/styles/brand-mizro.css";
 
 @tailwind base;
 @tailwind components;
@@ -18,9 +21,26 @@
 }
 @font-face {
   font-family: "Vazirmatn";
+  src: url("/fonts/vazirmatn/Vazirmatn-SemiBold.woff2") format("woff2");
+  font-weight: 600;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Vazirmatn";
   src: url("/fonts/vazirmatn/Vazirmatn-Bold.woff2") format("woff2");
   font-weight: 700;
   font-display: swap;
+}
+
+/* Tabular figures wherever a number is read as a quantity, and LTR isolation
+   for anything that is one number: bidi otherwise regroups digit clusters and
+   walks a minus sign to the far side of the amount. */
+.num {
+  font-variant-numeric: tabular-nums;
+}
+.ltr {
+  direction: ltr;
+  unicode-bidi: isolate;
 }
 
 html {
