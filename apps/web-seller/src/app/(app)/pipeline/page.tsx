@@ -85,7 +85,7 @@ export default function PipelinePage() {
         : `${faNum(open.length)} معاملهٔ باز · ارزش کل ${compact(totalRial.toString()) ?? '۰'} تومان`;
 
   return (
-    <main className="min-h-dvh pb-28">
+    <main className="min-h-dvh pb-28 md:pb-10">
       <Subhead
         title="پایپلاین فروش"
         subtitle={opps.isSuccess ? subtitle : 'در حال بارگیری…'}
@@ -110,7 +110,7 @@ export default function PipelinePage() {
         items={open}
       />
 
-      <div className="px-4 pt-4">
+      <div className="px-4 mx-auto w-full md:max-w-3xl md:px-6 pt-4">
         {opps.isPending ? (
           <ListSkeleton rows={4} />
         ) : opps.isError ? (
@@ -227,7 +227,7 @@ export default function PipelinePage() {
                           </span>
                         )}
                       </div>
-                      <ul className="space-y-2.5">
+                      <ul className="space-y-2.5 md:grid md:grid-cols-2 md:gap-2.5 md:space-y-0">
                         {inStage.map((opp) => (
                           <DealCard key={opp.id} opp={opp} />
                         ))}

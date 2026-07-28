@@ -56,7 +56,7 @@ export function FormShell({
       <form onSubmit={onSubmit} noValidate className="space-y-4 px-4 pt-5">
         {children}
 
-        <div className="fixed inset-x-0 bottom-0 z-30 mx-auto w-full max-w-md border-t border-border bg-surface px-4 pb-[calc(env(safe-area-inset-bottom)+12px)] pt-3">
+        <div className="fixed inset-x-0 bottom-0 z-30 mx-auto w-full max-w-md border-t md:max-w-2xl border-border bg-surface px-4 pb-[calc(env(safe-area-inset-bottom)+12px)] pt-3">
           <button
             type="submit"
             disabled={busy || disabled}

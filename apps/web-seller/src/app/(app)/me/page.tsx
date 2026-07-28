@@ -82,7 +82,7 @@ export default function ProfilePage() {
   const totals = commission.data?.totals;
 
   return (
-    <main className="min-h-dvh pb-28">
+    <main className="min-h-dvh pb-28 md:pb-10">
       <Subhead
         title="پروفایل من"
         back="/"
@@ -123,7 +123,7 @@ export default function ProfilePage() {
         ) : null}
       </Subhead>
 
-      <div className="px-4 pt-5">
+      <div className="px-4 mx-auto w-full md:max-w-3xl md:px-6 pt-5">
         <h2 className="mb-2.5 text-[15px] font-bold">حساب</h2>
         <div className="overflow-hidden rounded-md border border-border bg-surface shadow-card">
           <SettingRow

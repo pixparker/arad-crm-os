@@ -10,7 +10,7 @@
 // designed selector is still to come, and a wrong-looking screen beats a
 // lying one.
 
-import { BottomNav } from '@/components/bottom-nav';
+import { AppChrome } from '@/components/app-chrome';
 import { SplashSkeleton } from '@/components/skeleton';
 import { ROLE_FA } from '@/lib/labels';
 import { useMe } from '@/lib/use-me';
@@ -58,12 +58,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
     );
   }
 
-  return (
-    <div className="mx-auto w-full max-w-md">
-      {children}
-      <BottomNav />
-    </div>
-  );
+  return <AppChrome>{children}</AppChrome>;
 }
 
 function WorkspacePicker({ workspaces }: { workspaces: Workspace[] }) {

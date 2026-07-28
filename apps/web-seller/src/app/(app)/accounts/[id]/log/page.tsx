@@ -277,7 +277,7 @@ export default function QuickLogPage() {
         />
       </fieldset>
 
-      <div className="fixed inset-x-0 bottom-0 z-40 mx-auto w-full max-w-md border-t border-border bg-surface p-4 pb-[calc(env(safe-area-inset-bottom)+1rem)]">
+      <div className="fixed inset-x-0 bottom-0 z-40 mx-auto w-full max-w-md border-t md:max-w-2xl border-border bg-surface p-4 pb-[calc(env(safe-area-inset-bottom)+1rem)]">
         <button
           type="button"
           onClick={submit}

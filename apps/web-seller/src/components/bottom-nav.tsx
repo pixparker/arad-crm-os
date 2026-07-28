@@ -1,8 +1,12 @@
 'use client';
 
-// Bottom nav + ＋ (prototype shell). Four tabs around a centre notch, with the
+// Bottom nav + ＋ — the PHONE shell. Four tabs around a centre notch, with the
 // FAB straddling the bar — thumb zone, one primary action, always the same
 // place (ux-best-practices/bottom-sheet-and-thumb-zone).
+//
+// Hidden from `md` up, where SideRail takes over: the thumb-zone argument is
+// about a device held in one hand, and on a tablet the bottom edge is the
+// furthest point from where the hands rest.
 //
 // The tab set is the prototype's: خانه · پایپلاین — ＋ — مشتریان · کارها.
 // «کمیسیون» is NOT a tab; it is reached from the dashboard's commission card
@@ -14,10 +18,8 @@
 // rule: the home screen is where "add something" is the point, everywhere else
 // it must not compete with the content's own actions.
 
-import { AddSheet } from '@/components/add-sheet';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useState } from 'react';
 import { CalendarIcon, FolderIcon, FunnelIcon, HomeIcon } from './icons';
 
 const items = [
@@ -27,9 +29,8 @@ const items = [
   { href: '/tasks', label: 'کارها', icon: CalendarIcon },
 ] as const;
 
-export function BottomNav() {
+export function BottomNav({ addOpen, onAdd }: { addOpen: boolean; onAdd: () => void }) {
   const pathname = usePathname();
-  const [addOpen, setAddOpen] = useState(false);
 
   // Sub-flows carry their own bottom CTA; a nav bar under it is two primary
   // actions arguing.
@@ -46,7 +47,7 @@ export function BottomNav() {
     <>
       <nav
         aria-label="ناوبری اصلی"
-        className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-surface pb-[env(safe-area-inset-bottom)]"
+        className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-surface pb-[env(safe-area-inset-bottom)] md:hidden"
       >
         <div className="mx-auto flex w-full max-w-md items-stretch justify-around">
           {items.slice(0, 2).map(({ href, label, icon: Icon }) => (
@@ -61,14 +62,14 @@ export function BottomNav() {
 
       <button
         type="button"
-        onClick={() => setAddOpen(true)}
+        onClick={onAdd}
         aria-expanded={addOpen}
         aria-label="افزودن مورد جدید"
         // Prototype metrics, not a guess: 60px lifted out of the bar with a
         // white cut-out ring on the dashboard, 48px sitting LOWER and tucked
         // into the bar everywhere else. The size gap has to be wide enough to
         // read as a different rank — 64 vs 56 just looks like a rendering bug.
-        className={`fixed left-1/2 z-40 grid -translate-x-1/2 place-items-center rounded-full bg-primary text-primary-fg transition-all duration-200 active:scale-95 ${
+        className={`fixed left-1/2 z-40 grid -translate-x-1/2 place-items-center rounded-full bg-primary text-primary-fg transition-all duration-200 active:scale-95 md:hidden ${
           onDashboard
             ? 'bottom-[calc(env(safe-area-inset-bottom)+30px)] h-[60px] w-[60px] shadow-[0_8px_22px_rgba(24,176,153,0.44),0_0_0_5px_rgba(255,255,255,0.92)]'
             : 'bottom-[calc(env(safe-area-inset-bottom)+24px)] h-12 w-12 shadow-[0_4px_12px_rgba(24,176,153,0.32),0_0_0_3px_rgba(255,255,255,0.92)]'
@@ -88,8 +89,6 @@ export function BottomNav() {
           <path d="M12 5v14M5 12h14" />
         </svg>
       </button>
-
-      <AddSheet open={addOpen} onClose={() => setAddOpen(false)} />
     </>
   );
 }

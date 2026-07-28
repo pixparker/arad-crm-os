@@ -47,49 +47,51 @@ export function Subhead({
         compact ? 'pb-3' : 'pb-5'
       }`}
     >
-      <div className="flex items-start gap-3">
-        {back ? (
-          <button
-            type="button"
-            onClick={() => (typeof back === 'string' ? router.push(back) : router.back())}
-            aria-label="بازگشت"
-            className="-ms-1.5 grid h-9 w-9 flex-none place-items-center rounded-full text-on-canopy-muted transition active:bg-white/10"
-          >
-            <ChevronLeftIcon className="h-5 w-5" />
-          </button>
-        ) : null}
-        <span className="min-w-0 flex-1">
-          <b className="block truncate text-[17px] font-bold">{title}</b>
-          {subtitle ? (
-            <small
-              className={`block overflow-hidden text-xs text-on-canopy-muted transition-all duration-300 ${
-                compact ? 'mt-0 max-h-0 opacity-0' : 'mt-0.5 max-h-8 opacity-100'
+      <div className="mx-auto w-full md:max-w-3xl">
+        <div className="flex items-start gap-3">
+          {back ? (
+            <button
+              type="button"
+              onClick={() => (typeof back === 'string' ? router.push(back) : router.back())}
+              aria-label="بازگشت"
+              className="-ms-1.5 grid h-9 w-9 flex-none place-items-center rounded-full text-on-canopy-muted transition active:bg-white/10"
+            >
+              <ChevronLeftIcon className="h-5 w-5" />
+            </button>
+          ) : null}
+          <span className="min-w-0 flex-1">
+            <b className="block truncate text-[17px] font-bold">{title}</b>
+            {subtitle ? (
+              <small
+                className={`block overflow-hidden text-xs text-on-canopy-muted transition-all duration-300 ${
+                  compact ? 'mt-0 max-h-0 opacity-0' : 'mt-0.5 max-h-8 opacity-100'
+                }`}
+              >
+                {subtitle}
+              </small>
+            ) : null}
+          </span>
+          {/* The stand-in: nothing while the hero is open, the headline once it folds. */}
+          {trailing ? (
+            <span
+              className={`flex-none transition-opacity duration-200 ${
+                children && !compact ? 'pointer-events-none opacity-0' : 'opacity-100'
               }`}
             >
-              {subtitle}
-            </small>
+              {trailing}
+            </span>
           ) : null}
-        </span>
-        {/* The stand-in: nothing while the hero is open, the headline once it folds. */}
-        {trailing ? (
-          <span
-            className={`flex-none transition-opacity duration-200 ${
-              children && !compact ? 'pointer-events-none opacity-0' : 'opacity-100'
+        </div>
+        {children ? (
+          <div
+            className={`overflow-hidden transition-all duration-300 ${
+              compact ? 'max-h-0 opacity-0' : 'max-h-[320px] opacity-100'
             }`}
           >
-            {trailing}
-          </span>
+            {children}
+          </div>
         ) : null}
       </div>
-      {children ? (
-        <div
-          className={`overflow-hidden transition-all duration-300 ${
-            compact ? 'max-h-0 opacity-0' : 'max-h-[320px] opacity-100'
-          }`}
-        >
-          {children}
-        </div>
-      ) : null}
     </header>
   );
 }

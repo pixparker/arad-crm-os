@@ -57,9 +57,9 @@ function AccountDetail() {
 
   if (detail.isPending) {
     return (
-      <main className="min-h-dvh pb-28">
+      <main className="min-h-dvh pb-28 md:pb-10">
         <div className="h-36 rounded-b-[24px] bg-canopy" />
-        <div className="px-4 pt-5">
+        <div className="px-4 mx-auto w-full md:max-w-3xl md:px-6 pt-5">
           <ListSkeleton rows={4} />
         </div>
       </main>
@@ -67,7 +67,7 @@ function AccountDetail() {
   }
   if (detail.isError) {
     return (
-      <main className="min-h-dvh px-4 pb-28 pt-16">
+      <main className="min-h-dvh px-4 pb-28 pt-16 md:pb-10">
         <EmptyState
           title="پرونده بارگیری نشد"
           hint="ممکن است خارج از دسترس شما باشد، یا اتصال قطع شده باشد."
@@ -104,7 +104,7 @@ function AccountDetail() {
     : false;
 
   return (
-    <main className="min-h-dvh pb-28">
+    <main className="min-h-dvh pb-28 md:pb-10">
       <Subhead
         title={account.name}
         back="/accounts"
@@ -327,7 +327,7 @@ function AccountDetail() {
       </div>
 
       {/* primary action */}
-      <div className="fixed inset-x-0 bottom-0 z-40 mx-auto w-full max-w-md border-t border-border bg-surface p-4 pb-[calc(env(safe-area-inset-bottom)+1rem)]">
+      <div className="fixed inset-x-0 bottom-0 z-40 mx-auto w-full max-w-md border-t md:max-w-2xl border-border bg-surface p-4 pb-[calc(env(safe-area-inset-bottom)+1rem)]">
         <Link
           href={logHref}
           className="block w-full rounded-md bg-gradient-primary py-3.5 text-center text-base font-bold text-primary-fg shadow-card"

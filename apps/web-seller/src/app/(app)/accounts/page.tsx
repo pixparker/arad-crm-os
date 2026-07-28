@@ -122,7 +122,7 @@ export default function AccountsPage() {
   const customers = all.filter((a) => a.status === 'customer').length;
 
   return (
-    <main className="min-h-dvh pb-28">
+    <main className="min-h-dvh pb-28 md:pb-10">
       <Subhead
         title="سرنخ‌ها و مشتریان"
         subtitle={
@@ -132,7 +132,7 @@ export default function AccountsPage() {
         }
       />
 
-      <div className="px-4 pt-4">
+      <div className="px-4 mx-auto w-full md:max-w-3xl md:px-6 pt-4">
         <input
           type="search"
           value={q}

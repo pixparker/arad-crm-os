@@ -89,7 +89,7 @@ export default function MoneyPage() {
   const shown = month ? entries.filter((e) => keyOf(e.created_at) === month) : entries;
 
   return (
-    <main className="min-h-dvh pb-28">
+    <main className="min-h-dvh pb-28 md:pb-10">
       <Subhead
         title="کمیسیون من"
         back="/"
@@ -123,7 +123,7 @@ export default function MoneyPage() {
         ) : null}
       </Subhead>
 
-      <div className="px-4 pt-5">
+      <div className="px-4 mx-auto w-full md:max-w-3xl md:px-6 pt-5">
         {commission.isPending ? (
           <ListSkeleton rows={4} />
         ) : commission.isError ? (

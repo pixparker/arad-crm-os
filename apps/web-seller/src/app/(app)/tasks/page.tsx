@@ -102,7 +102,7 @@ export default function TasksPage() {
   const nothing = sections.every((s) => s.items.length === 0);
 
   return (
-    <main className="min-h-dvh pb-28">
+    <main className="min-h-dvh pb-28 md:pb-10">
       <Subhead
         title="کارها و یادآورها"
         subtitle={
@@ -144,7 +144,7 @@ export default function TasksPage() {
         )}
       </Subhead>
 
-      <div className="px-4 pt-4">
+      <div className="px-4 mx-auto w-full md:max-w-3xl md:px-6 pt-4">
         <SegBar
           label="بازهٔ زمانی"
           options={RANGES}

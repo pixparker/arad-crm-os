@@ -65,7 +65,7 @@ export default function DashboardPage() {
   const dueCount = dash.data?.due.today ?? today.data?.due_actions.length ?? 0;
 
   return (
-    <main className="min-h-dvh pb-28">
+    <main className="min-h-dvh pb-28 md:pb-10">
       {/* ── app bar ─────────────────────────────────────────────────────────
           Pinned and collapsing, as in the prototype: past a nudge of scroll the
           KPI strip folds away and the greeting shrinks, so the day's list gets
@@ -76,75 +76,77 @@ export default function DashboardPage() {
           compact ? 'pb-3' : 'pb-5'
         }`}
       >
-        <div className="flex items-start gap-3">
-          <div className="min-w-0 flex-1">
-            <p
-              className={`font-bold transition-all duration-300 ${compact ? 'text-[15px]' : 'text-lg'}`}
-            >
-              {firstName ? `سلام ${firstName} 👋` : 'سلام 👋'}
-            </p>
-            <p
-              className={`overflow-hidden text-xs text-on-canopy-muted transition-all duration-300 ${
-                compact ? 'mt-0 max-h-0 opacity-0' : 'mt-0.5 max-h-8 opacity-100'
+        <div className="mx-auto w-full md:max-w-3xl">
+          <div className="flex items-start gap-3">
+            <div className="min-w-0 flex-1">
+              <p
+                className={`font-bold transition-all duration-300 ${compact ? 'text-[15px]' : 'text-lg'}`}
+              >
+                {firstName ? `سلام ${firstName} 👋` : 'سلام 👋'}
+              </p>
+              <p
+                className={`overflow-hidden text-xs text-on-canopy-muted transition-all duration-300 ${
+                  compact ? 'mt-0 max-h-0 opacity-0' : 'mt-0.5 max-h-8 opacity-100'
+                }`}
+              >
+                {faWeekday.format(new Date())}
+                {dueCount > 0 ? ` · ${faNum(dueCount)} پیگیری برای امروز` : ' · پیگیری بازی نداری'}
+              </p>
+            </div>
+            {/* The prototype puts the avatar here and routes it to the profile —
+              the only way into «پروفایل» now that the tab bar has four tabs. */}
+            <Link
+              href="/me"
+              aria-label="پروفایل من"
+              className={`grid flex-none place-items-center rounded-full bg-white/15 font-bold transition-all duration-300 active:bg-white/25 ${
+                compact ? 'h-8 w-8 text-[11px]' : 'h-10 w-10 text-[13px]'
               }`}
             >
-              {faWeekday.format(new Date())}
-              {dueCount > 0 ? ` · ${faNum(dueCount)} پیگیری برای امروز` : ' · پیگیری بازی نداری'}
-            </p>
+              {me.data
+                ? [...me.data.user.display_name.replace(/[‌\s]/g, '')].slice(0, 2).join('')
+                : ''}
+            </Link>
           </div>
-          {/* The prototype puts the avatar here and routes it to the profile —
-              the only way into «پروفایل» now that the tab bar has four tabs. */}
-          <Link
-            href="/me"
-            aria-label="پروفایل من"
-            className={`grid flex-none place-items-center rounded-full bg-white/15 font-bold transition-all duration-300 active:bg-white/25 ${
-              compact ? 'h-8 w-8 text-[11px]' : 'h-10 w-10 text-[13px]'
+
+          <div
+            className={`grid grid-cols-3 gap-2 overflow-hidden transition-all duration-300 ${
+              compact ? 'mt-0 max-h-0 opacity-0' : 'mt-5 max-h-32 opacity-100'
             }`}
           >
-            {me.data
-              ? [...me.data.user.display_name.replace(/[‌\s]/g, '')].slice(0, 2).join('')
-              : ''}
-          </Link>
-        </div>
-
-        <div
-          className={`grid grid-cols-3 gap-2 overflow-hidden transition-all duration-300 ${
-            compact ? 'mt-0 max-h-0 opacity-0' : 'mt-5 max-h-32 opacity-100'
-          }`}
-        >
-          {dash.isPending ? (
-            [0, 1, 2].map((i) => (
-              <div key={i} className="h-11 rounded-md bg-white/10" aria-hidden="true" />
-            ))
-          ) : dash.isError ? (
-            <p className="col-span-3 text-xs text-on-canopy-muted">
-              شاخص‌ها بارگیری نشد —{' '}
-              <button
-                type="button"
-                onClick={() => dash.refetch()}
-                className="font-semibold underline"
-              >
-                تلاش دوباره
-              </button>
-            </p>
-          ) : (
-            <>
-              <Kpi {...compactToman(dash.data.kpis.pipeline_value_rial)} label="ارزش پایپلاین" />
-              <Kpi value={faNum(dash.data.kpis.open_deals)} label="معاملهٔ باز" />
-              <Kpi
-                value={
-                  dash.data.kpis.conversion_rate_pct === null
-                    ? '—'
-                    : `${faNum(dash.data.kpis.conversion_rate_pct)}٪`
-                }
-                label="نرخ تبدیل"
-              />
-            </>
-          )}
+            {dash.isPending ? (
+              [0, 1, 2].map((i) => (
+                <div key={i} className="h-11 rounded-md bg-white/10" aria-hidden="true" />
+              ))
+            ) : dash.isError ? (
+              <p className="col-span-3 text-xs text-on-canopy-muted">
+                شاخص‌ها بارگیری نشد —{' '}
+                <button
+                  type="button"
+                  onClick={() => dash.refetch()}
+                  className="font-semibold underline"
+                >
+                  تلاش دوباره
+                </button>
+              </p>
+            ) : (
+              <>
+                <Kpi {...compactToman(dash.data.kpis.pipeline_value_rial)} label="ارزش پایپلاین" />
+                <Kpi value={faNum(dash.data.kpis.open_deals)} label="معاملهٔ باز" />
+                <Kpi
+                  value={
+                    dash.data.kpis.conversion_rate_pct === null
+                      ? '—'
+                      : `${faNum(dash.data.kpis.conversion_rate_pct)}٪`
+                  }
+                  label="نرخ تبدیل"
+                />
+              </>
+            )}
+          </div>
         </div>
       </header>
 
-      <div className="px-4">
+      <div className="px-4 mx-auto w-full md:max-w-3xl md:px-6">
         {/* ── overdue banner ────────────────────────────────────────────── */}
         {dash.data && dash.data.due.overdue > 0 && (
           <output className="mt-4 flex items-center gap-3 rounded-md border border-warning/25 bg-warning-soft p-3.5">
