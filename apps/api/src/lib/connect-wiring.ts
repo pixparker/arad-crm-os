@@ -249,22 +249,30 @@ export const connectStore: ConnectStore = {
 let started = false;
 
 /**
- * Boot Connect. 🔒 A throw here is fatal by design: a missing or invalid master
- * key means credential storage is dead, and we never silently fall back to a
- * fake sender — that is how an OTP outage hides. Returns false only when the
- * deployment has deliberately opted out (SMS_PROVIDER=fake in dev).
+ * Boot Connect.
+ *
+ * 🔒 What gates initialization is the MASTER KEY, not SMS_PROVIDER — they
+ * answer different questions. The key decides whether credential storage can
+ * work at all; SMS_PROVIDER decides which sender the OTP path uses. Tying them
+ * together made the control plane useless exactly when it is needed: an
+ * operator could not register the sms.ir connection until OTP had already been
+ * switched to it, i.e. could not configure before switching.
+ *
+ * With SMS_PROVIDER=connect and a missing or invalid key, initConnect throws
+ * and the api refuses to boot. That is deliberate: accepting logins we cannot
+ * deliver codes for is how an OTP outage hides.
  */
 export const startConnect = async (): Promise<boolean> => {
-  if (config.SMS_PROVIDER === 'fake') {
+  if (started) return true;
+  if (config.SMS_PROVIDER !== 'connect' && !config.CONNECT_MASTER_KEY) {
     logger.warn(
       { provider: config.SMS_PROVIDER },
-      'connect: disabled (SMS_PROVIDER=fake) — OTP codes go to stdout',
+      'connect: disabled (no CONNECT_MASTER_KEY) — OTP codes go to stdout and the ops connections screen has no provider to offer',
     );
     return false;
   }
-  if (started) return true;
   await initConnect({ store: connectStore, logger });
   started = true;
-  logger.info({}, 'connect: initialized');
+  logger.info({ smsProvider: config.SMS_PROVIDER }, 'connect: initialized');
   return true;
 };

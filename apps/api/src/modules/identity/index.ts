@@ -10,6 +10,7 @@ import {
   workspaceSchema,
 } from '@arad-crm/api-contracts';
 import { issueSession, requestOtp, verifyOtp } from '@arad/auth-otp';
+import { ConnectError } from '@arad/connect';
 import { AradError, ForbiddenError, UnauthorizedError, ValidationError } from '@arad/errors';
 import { Hono } from 'hono';
 import { authDeps, sessionDeps } from '../../lib/auth-wiring.js';
@@ -39,7 +40,19 @@ export const identityRoutes = new Hono()
   .post('/request-otp', async (c) => {
     const body = requestOtpBodySchema.parse(await c.req.json());
     const ip = clientIp(c);
-    const result = await requestOtp(authDeps, { mobile: body.mobile, ip });
+    // 🔒 A delivery failure is an OUTAGE, and must look like one. ConnectError
+    // means the code was never sent (no routing configured, provider down,
+    // every connection failed) — 503 with a distinct code, so the client can
+    // say "پیامک ارسال نشد" instead of "کد را وارد کنید" for a code that will
+    // never arrive.
+    const result = await requestOtp(authDeps, { mobile: body.mobile, ip }).catch((err: unknown) => {
+      if (err instanceof ConnectError) {
+        throw new AradError('otp_delivery_unavailable', 'ارسال پیامک ممکن نشد', 503, {
+          reason: err.code,
+        });
+      }
+      throw err;
+    });
     if (!result.ok) {
       throw new AradError('rate_limited', `otp request refused: ${result.code}`, 429, {
         code: result.code,

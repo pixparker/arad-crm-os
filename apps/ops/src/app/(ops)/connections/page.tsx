@@ -157,7 +157,14 @@ export default function ConnectionsPage() {
       ) : connections.data.length === 0 ? (
         <EmptyState
           title="اتصالی ثبت نشده"
-          hint="تا وقتی یک اتصال پیامکی فعال نباشد، کد ورود برای هیچ فروشنده‌ای ارسال نمی‌شود."
+          hint={
+            providers.data && providers.data.length === 0
+              ? // Connect only boots when the server has its master key; without
+                // one there is no provider to choose and no way to encrypt a
+                // credential, so say that instead of showing an empty form.
+                'سرویسی در دسترس نیست: کلید اصلی Connect روی سرور تنظیم نشده (CONNECT_MASTER_KEY). تا قبل از آن نمی‌توان اتصالی ثبت کرد.'
+              : 'تا وقتی یک اتصال پیامکی فعال نباشد، کد ورود برای هیچ فروشنده‌ای ارسال نمی‌شود.'
+          }
         />
       ) : (
         <DataTable
