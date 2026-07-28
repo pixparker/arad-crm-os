@@ -7,6 +7,7 @@ import {
   IDEMPOTENCY_HEADER,
   errorResponseSchema,
 } from '@arad-crm/api-contracts';
+import { randomId } from './uuid.js';
 
 export class ApiError extends Error {
   readonly status: number;
@@ -32,10 +33,18 @@ export interface ApiFetchOptions extends Omit<RequestInit, 'body'> {
 // is invisible in dev — where the localhost fallback is correct — and silently
 // points production at localhost. NEXT_PUBLIC_API_URL stays accepted as an
 // alias so an existing local .env keeps working.
+//
+// The dev fallback follows the CURRENT host rather than saying `localhost`.
+// Opened at http://192.168.x.x:6103 — the only way to reach the apps from a
+// phone — `localhost:6100` means *the phone's own* port 6100, so every request
+// fails with nothing on screen to suggest the address bar is the reason.
+const DEV_API_PORT = 6100;
 const baseUrl = (): string =>
   process.env.NEXT_PUBLIC_API_BASE_URL ??
   process.env.NEXT_PUBLIC_API_URL ??
-  'http://localhost:6100';
+  (typeof window === 'undefined'
+    ? `http://localhost:${DEV_API_PORT}`
+    : `${window.location.protocol}//${window.location.hostname}:${DEV_API_PORT}`);
 
 export const apiFetch = async <T>(path: string, options: ApiFetchOptions = {}): Promise<T> => {
   const { body, idempotencyKey, headers, ...rest } = options;
@@ -44,7 +53,7 @@ export const apiFetch = async <T>(path: string, options: ApiFetchOptions = {}): 
     credentials: 'include',
     headers: {
       'content-type': 'application/json',
-      [CORRELATION_HEADER]: crypto.randomUUID(),
+      [CORRELATION_HEADER]: randomId(),
       ...(idempotencyKey ? { [IDEMPOTENCY_HEADER]: idempotencyKey } : {}),
       ...headers,
     },

@@ -26,6 +26,22 @@ import { orgRoutes } from './modules/org/index.js';
 import { quickAddRoutes } from './modules/quick-add/index.js';
 import { reportsRoutes } from './modules/reports/index.js';
 
+// A dev app opened by LAN address instead of localhost — the only way to put
+// the seller app on an actual phone, which is the only way to find out that the
+// bottom bar sits under the nav. Private ranges (RFC1918) and the dev ports
+// only, and the check is dead outside development.
+const PRIVATE_LAN_DEV_ORIGIN =
+  /^http:\/\/(?:10\.|192\.168\.|172\.(?:1[6-9]|2\d|3[01])\.)(?:\d{1,3}\.){1,2}\d{1,3}:610[1-3]$/;
+
+// 🔒 In production this is the exact allowlist and nothing else — no inference,
+// no wildcard. `credentials: true` makes a loose origin check a session-theft
+// vector, not a convenience.
+const allowedOrigin = (origin: string): string | undefined => {
+  if (config.WEB_ORIGINS.includes(origin)) return origin;
+  if (config.NODE_ENV === 'development' && PRIVATE_LAN_DEV_ORIGIN.test(origin)) return origin;
+  return undefined;
+};
+
 export const createApp = () => {
   const app = new OpenAPIHono({
     defaultHook: (result, c) => {
@@ -51,7 +67,7 @@ export const createApp = () => {
   app.use(
     '*',
     cors({
-      origin: config.WEB_ORIGINS,
+      origin: allowedOrigin,
       credentials: true,
       allowMethods: ['GET', 'POST', 'PATCH', 'DELETE', 'OPTIONS'],
       allowHeaders: ['content-type', CORRELATION_HEADER, IDEMPOTENCY_HEADER],
