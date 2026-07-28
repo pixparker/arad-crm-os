@@ -19,10 +19,12 @@ services:
   api:
     <<: *image-base
     image: ${REGISTRY}/arad-crm-api:${IMAGE_TAG}
+    # Readiness, not liveness: a container that answers /v1/health while it
+    # cannot reach Postgres is "healthy" to compose and broken to everyone else.
     healthcheck:
-      test: ['CMD', 'wget', '-qO-', 'http://localhost:4100/v1/health']
+      test: ['CMD', 'wget', '-qO-', 'http://localhost:4100/v1/health/ready']
       interval: 30s
-      timeout: 3s
+      timeout: 5s
       retries: 3
 
   # Owns the money path: inbox sweep → attribution → opportunity won →

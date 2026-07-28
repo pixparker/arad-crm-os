@@ -19,7 +19,9 @@
 #
 # smoke_path notes:
 #  - /version.txt is baked into every image's runtime stage post-build.
-#  - api uses /v1/health — the existing dedicated liveness route (apps/api/src/modules/health).
+#  - api uses /v1/health/ready — readiness, which actually touches Postgres and
+#    Redis. /v1/health is liveness and answers 200 from a process that cannot
+#    reach its database, so it is the wrong thing to gate a deploy on.
 #  - worker has no HTTP surface; "-" means the deploy script skips its smoke check.
 #
 # Shared-package changes (packages/*, foundation/*) rebuild everything: the
@@ -27,7 +29,7 @@
 # handled by the caller as "all apps changed" (founder doc §16 release checklist).
 
 # app	slug	image	public_host	public_sub	smoke_path	triggers
-api	arad-crm	arad-crm-api	api.aradap.ir	api	/v1/health	^apps/(api|worker)/
+api	arad-crm	arad-crm-api	api.aradap.ir	api	/v1/health/ready	^apps/(api|worker)/
 worker	arad-crm	arad-crm-worker	-	-	-	^apps/(api|worker)/
 web-seller	arad-crm	arad-crm-web-seller	mizro-crm.aradap.ir	mizro-crm	/version.txt	^apps/web-seller/
 ops	arad-crm	arad-crm-ops	ops.aradap.ir	ops	/version.txt	^apps/ops/

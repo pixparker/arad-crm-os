@@ -109,6 +109,8 @@ Things you would otherwise lose a day to:
 - **Tenant-side audit now has a helper: [`lib/tenant-audit.ts`](../../../../apps/api/src/lib/tenant-audit.ts)** (`writeAudit(tx, c, actor, …)`), the twin of `ops/audit.ts`. Covered: lead assign · lead pick · guided follow-up · opportunity stage/lost · `account.mizro_linked`. The rule for adding more is business-architecture §11 rule 11 — if a write changes **ownership, pipeline state, or the attribution bridge**, it takes an audit row in the same transaction. Activity logging is deliberately exempt (activities *are* the log).
 - **The Mizro event loop already works and is verified.** Signed outbox → HMAC inbox → dedupe → commission. Don't "fix" it; if you change the envelope, coordinate with `digital-menu`'s `crm_outbox`.
 - **Docker must be running** for `*.db.test.ts` — that tier is real Postgres, not mocks.
+- **The demo script is a test now.** `demo-01-acceptance.db.test.ts` walks §2 steps 3–8 in the founder's order; if you change ops provisioning, OTP, workspace resolution, the ＋ registry or the guided follow-up, that file is where you find out. It swaps `authDeps.otpSender` for a capturing one (codes are hashed at rest) and restores it in `afterAll`.
+- **`/v1/health` is liveness, `/v1/health/ready` is readiness.** The deploy smoke check and the compose healthcheck both use `/ready`, which touches Postgres and Redis; `/v1/health` answers 200 from a process that cannot reach its database. 🔒 Readiness returns a fixed vocabulary (`unreachable`), never the driver error — those carry the connection string, and the endpoint is unauthenticated.
 
 ## 6. Working agreement
 

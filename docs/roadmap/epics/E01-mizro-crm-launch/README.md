@@ -176,6 +176,7 @@ Reusable primitives the surface developer builds go into `@arad-crm/ui`; only sc
 ## 7. Definition of done
 
 - [ ] The §2 script runs end to end on production hosts, from a clean pool. **Open** — nothing here has touched the pool yet; F01 is written and dry-run-verified, not exercised.
+- [x] **§2 steps 3–8 run in CI** — [`demo-01-acceptance.db.test.ts`](../../../../apps/api/src/__tests__/demo-01-acceptance.db.test.ts) walks the founder's script in his order: register میزرو → create the user → assign → OTP round trip → single business lands directly → ＋ → lead → guided opportunity + «۲ هفتهٔ دیگر». Steps 1–2 (deploy) and real sms.ir delivery are excluded because they need a host and an account; everything else is now a test rather than a promise.
 - [x] `pnpm verify` green, including the `*.db.test.ts` tier (2026-07-28).
 - [x] An ops action that creates a business, a user, or a connection writes an `audit_log` row — asserted in `apps/api/src/__tests__/ops-control-plane.db.test.ts`.
 - [x] A credential never appears in a log, an API response, or an image layer — `secret-grep` green; the store test asserts the plaintext key appears in neither the stored row nor the audit meta nor a provider error message.

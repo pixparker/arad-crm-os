@@ -12,6 +12,7 @@ import {
   users,
 } from '@arad-crm/db';
 import { issueSession } from '@arad/auth-otp';
+import { eq } from 'drizzle-orm';
 import { sessionDeps } from '../lib/auth-wiring.js';
 import { SESSION_COOKIE } from '../middleware/session.js';
 
@@ -59,6 +60,18 @@ export const seedWorld = async (): Promise<World> => {
     });
   }
   return { orgId: org.id, territoryA: a.id, territoryB: b.id };
+};
+
+/** A real session cookie for an existing user — the same issuer the login route uses. */
+export const cookieFor = async (userId: string): Promise<string> => {
+  const row = (await db.select().from(users).where(eq(users.id, userId)))[0];
+  if (!row) throw new Error('user not found');
+  const token = await issueSession(sessionDeps, {
+    id: row.id,
+    mobile: row.phone,
+    sessionVersion: row.sessionVersion,
+  });
+  return `${SESSION_COOKIE}=${token.token}`;
 };
 
 export const makeMember = async (
