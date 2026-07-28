@@ -4,7 +4,8 @@
 // seller to their own territory; the detail reads must agree, and the duplicate
 // check must be able to say "taken" without handing over the file.
 
-import { closePool } from '@arad-crm/db';
+import { auditLog, closePool, db, orgScope } from '@arad-crm/db';
+import { and, eq } from 'drizzle-orm';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { createApp } from '../app.js';
 import { type World, makeMember, runId, seedWorld } from './helpers.js';
@@ -209,5 +210,85 @@ describe('detail reads 🔒 an id is not an authorization', () => {
   it('a missing id is 404, not 403', async () => {
     const res = await get('/v1/leads/00000000-0000-7000-8000-000000000000', manager.cookie);
     expect(res.status).toBe(404);
+  });
+});
+
+// business-architecture §11 rule 11 — a change to ownership, pipeline state or
+// the attribution bridge leaves a row saying who did it and what it was before.
+describe('tenant-side audit 🔒', () => {
+  const auditRows = async (entityId: string) =>
+    db
+      .select()
+      .from(auditLog)
+      .where(and(orgScope(auditLog.organizationId, world.orgId), eq(auditLog.entityId, entityId)));
+
+  it('a stage change records who moved it and from where', async () => {
+    const created = await post('/v1/leads', sellerA.cookie, {
+      business_name: `کافه ممیزی ${suffix}`,
+      phone: `0913300${suffix}`,
+      region_text: 'ونک',
+    });
+    const { id: leadId, account_id } = (await created.json()) as {
+      id: string;
+      account_id: string;
+    };
+    const opp = await post('/v1/opportunities', sellerA.cookie, {
+      account_id,
+      lead_id: leadId,
+      stage: 'qualified',
+    });
+    const oppId = ((await opp.json()) as { id: string }).id;
+
+    const patched = await app.request(`/v1/opportunities/${oppId}`, {
+      method: 'PATCH',
+      headers: { 'content-type': 'application/json', cookie: sellerA.cookie },
+      body: JSON.stringify({ stage: 'price_proposed' }),
+    });
+    expect(patched.status).toBe(200);
+
+    const rows = await auditRows(oppId);
+    const entry = rows.find((r) => r.action === 'opportunity.stage_changed');
+    expect(entry).toBeDefined();
+    expect(entry?.actorUserId).toBe(sellerA.userId);
+    expect((entry?.before as { stage: string }).stage).toBe('qualified');
+    expect((entry?.after as { stage: string }).stage).toBe('price_proposed');
+  });
+
+  it('linking an account to a Mizro business is audited — it decides whose commission it is', async () => {
+    const created = await post('/v1/accounts', manager.cookie, {
+      business_name: `کافه اتصال ${suffix}`,
+      phone: `0913400${suffix}`,
+    });
+    const accountId = ((await created.json()) as { id: string }).id;
+    const ref = `mizro-biz-${suffix}`;
+
+    const linked = await post(`/v1/accounts/${accountId}/mizro-link`, manager.cookie, {
+      mizro_business_ref: ref,
+    });
+    expect(linked.status).toBe(200);
+
+    const entry = (await auditRows(accountId)).find((r) => r.action === 'account.mizro_linked');
+    expect(entry).toBeDefined();
+    expect((entry?.after as { mizro_business_ref: string }).mizro_business_ref).toBe(ref);
+  });
+
+  it('a self-service pick is audited on the same terms as a manager’s assignment', async () => {
+    await post('/v1/leads/import', manager.cookie, {
+      source: 'csv_import',
+      default_territory_id: world.territoryA,
+      rows: [{ business_name: `کافه برداشت ${suffix}`, phone: `0913500${suffix}` }],
+    });
+    const pickable = (await (await get('/v1/leads?view=pickable', sellerA.cookie)).json()) as {
+      items: { id: string; account_name: string }[];
+    };
+    const target = pickable.items.find((l) => l.account_name.includes('کافه برداشت'));
+    expect(target).toBeDefined();
+
+    const picked = await post(`/v1/leads/${target?.id}/pick`, sellerA.cookie, {});
+    expect(picked.status).toBe(200);
+
+    const entry = (await auditRows(target?.id ?? '')).find((r) => r.action === 'lead.picked');
+    expect(entry).toBeDefined();
+    expect(entry?.actorUserId).toBe(sellerA.userId);
   });
 });

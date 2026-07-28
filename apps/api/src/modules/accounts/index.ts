@@ -18,6 +18,7 @@ import { normalizeIranianMobile } from '@arad/auth-otp';
 import { ConflictError, ForbiddenError, NotFoundError, ValidationError } from '@arad/errors';
 import { type SQL, and, desc, eq, ilike, ne, or } from 'drizzle-orm';
 import { Hono } from 'hono';
+import { writeAudit } from '../../lib/tenant-audit.js';
 import { isSeller, requireActor, session } from '../../middleware/session.js';
 import { accountTimeline } from '../activities/index.js';
 import { accountView, assertAccountVisible, canSeeAccount, loadAccount } from './service.js';
@@ -294,9 +295,22 @@ export const accountsRoutes = new Hono()
       });
     }
 
-    await db
-      .update(accounts)
-      .set({ mizroBusinessRef: ref, updatedAt: new Date() })
-      .where(and(orgScope(accounts.organizationId, actor.orgId), eq(accounts.id, id)));
+    // 🔒 This link decides which account a future payment event lands on, and
+    // therefore whose commission it becomes. It is the single most
+    // consequential edit a seller can make to a file — audited in the same
+    // transaction, with the ref recorded so a later dispute has a fact to read.
+    await db.transaction(async (tx) => {
+      await tx
+        .update(accounts)
+        .set({ mizroBusinessRef: ref, updatedAt: new Date() })
+        .where(and(orgScope(accounts.organizationId, actor.orgId), eq(accounts.id, id)));
+      await writeAudit(tx, c, actor, {
+        action: 'account.mizro_linked',
+        entityType: 'account',
+        entityId: id,
+        before: { mizro_business_ref: null },
+        after: { mizro_business_ref: ref },
+      });
+    });
     return c.json({ ok: true });
   });

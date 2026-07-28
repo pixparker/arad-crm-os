@@ -12,6 +12,7 @@ import { isLossReason, isOpportunityStage } from '@arad-crm/vertical-mizro';
 import { ForbiddenError, NotFoundError, ValidationError } from '@arad/errors';
 import { type SQL, and, desc, eq } from 'drizzle-orm';
 import { Hono } from 'hono';
+import { writeAudit } from '../../lib/tenant-audit.js';
 import { isSeller, requireActor, session } from '../../middleware/session.js';
 import { accountView } from '../accounts/index.js';
 import { accountTimeline } from '../activities/index.js';
@@ -162,20 +163,39 @@ export const opportunitiesRoutes = new Hono()
       throw new ValidationError('معاملهٔ بسته قابل ویرایش نیست');
     }
 
-    await db
-      .update(opportunities)
-      .set({
-        ...(body.stage ? { stage: body.stage } : {}),
-        ...(body.status === 'lost'
-          ? {
-              status: 'lost' as const,
-              lossReason: body.loss_reason ?? null,
-              lossNote: body.loss_note ?? null,
-              lostAt: new Date(),
-            }
-          : {}),
-        updatedAt: new Date(),
-      })
-      .where(and(orgScope(opportunities.organizationId, actor.orgId), eq(opportunities.id, id)));
+    // 🔒 Stage and status are pipeline truth — what a forecast is built from and
+    // what a lost deal is explained by. The change and the row that says who
+    // made it are one fact, so they share one transaction
+    // (business-architecture §11 rule 11).
+    await db.transaction(async (tx) => {
+      await tx
+        .update(opportunities)
+        .set({
+          ...(body.stage ? { stage: body.stage } : {}),
+          ...(body.status === 'lost'
+            ? {
+                status: 'lost' as const,
+                lossReason: body.loss_reason ?? null,
+                lossNote: body.loss_note ?? null,
+                lostAt: new Date(),
+              }
+            : {}),
+          updatedAt: new Date(),
+        })
+        .where(and(orgScope(opportunities.organizationId, actor.orgId), eq(opportunities.id, id)));
+
+      await writeAudit(tx, c, actor, {
+        action: body.status === 'lost' ? 'opportunity.lost' : 'opportunity.stage_changed',
+        entityType: 'opportunity',
+        entityId: id,
+        before: { stage: opp.stage, status: opp.status },
+        after: {
+          stage: body.stage ?? opp.stage,
+          status: body.status ?? opp.status,
+          loss_reason: body.loss_reason ?? null,
+        },
+        ...(body.loss_note ? { reason: body.loss_note } : {}),
+      });
+    });
     return c.json({ ok: true });
   });

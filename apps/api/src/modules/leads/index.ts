@@ -9,11 +9,12 @@ import {
   importLeadsResponseSchema,
   leadDetailSchema,
 } from '@arad-crm/api-contracts';
-import { accounts, auditLog, db, leads, opportunities, orgScope, users } from '@arad-crm/db';
+import { accounts, db, leads, opportunities, orgScope, users } from '@arad-crm/db';
 import { normalizeIranianMobile } from '@arad/auth-otp';
 import { ConflictError, ForbiddenError, NotFoundError, ValidationError } from '@arad/errors';
 import { type SQL, and, desc, eq, isNull } from 'drizzle-orm';
 import { Hono } from 'hono';
+import { writeAudit } from '../../lib/tenant-audit.js';
 import { isSeller, requireActor, requireRole, session } from '../../middleware/session.js';
 import { accountView, assertAccountVisible } from '../accounts/index.js';
 import { accountTimeline } from '../activities/index.js';
@@ -214,14 +215,12 @@ export const leadsRoutes = new Hono()
           updatedAt: new Date(),
         })
         .where(eq(leads.id, leadId));
-      await tx.insert(auditLog).values({
-        organizationId: actor.orgId,
-        actorUserId: actor.userId,
+      await writeAudit(tx, c, actor, {
         action: 'lead.assigned',
         entityType: 'lead',
         entityId: leadId,
+        before: { assigned_to: row.lead.assignedTo, status: row.lead.status },
         after: { seller_id: body.seller_id, override_territory: body.override_territory },
-        correlationId: c.get('correlationId'),
       });
       return c.json({ ok: true });
     });
@@ -261,6 +260,15 @@ export const leadsRoutes = new Hono()
       if (claimed.length === 0) {
         throw new ConflictError('این سرنخ همین حالا توسط فروشندهٔ دیگری برداشته شد');
       }
+      // A pick is an assignment the seller made themselves — audited on the
+      // same terms as a manager's (both decide whose commission this becomes).
+      await writeAudit(tx, c, actor, {
+        action: 'lead.picked',
+        entityType: 'lead',
+        entityId: leadId,
+        before: { assigned_to: null, status: row.lead.status },
+        after: { assigned_to: actor.userId, status: 'assigned' },
+      });
       return c.json({ ok: true });
     });
   })

@@ -12,7 +12,7 @@ import {
   guidedFollowupResponseSchema,
   postCreateGuidanceSchema,
 } from '@arad-crm/api-contracts';
-import { accounts, auditLog, db, leads, opportunities, orgScope } from '@arad-crm/db';
+import { accounts, db, leads, opportunities, orgScope } from '@arad-crm/db';
 import {
   LOSS_REASONS,
   NEXT_ACTION_TYPES,
@@ -24,6 +24,7 @@ import {
 import { NotFoundError, ValidationError } from '@arad/errors';
 import { and, eq } from 'drizzle-orm';
 import type { Context } from 'hono';
+import { writeAudit } from '../../lib/tenant-audit.js';
 import { requireActor } from '../../middleware/session.js';
 import { availableFlows, enroll, recordDecision, suggestNextAction } from '../flows/index.js';
 
@@ -198,9 +199,7 @@ export const leadGuidedFollowup = async (c: Context): Promise<Response> => {
       );
     }
 
-    await tx.insert(auditLog).values({
-      organizationId: actor.orgId,
-      actorUserId: actor.userId,
+    await writeAudit(tx, c, actor, {
       action: 'lead.guided_followup',
       entityType: 'lead',
       entityId: lead.id,
@@ -211,7 +210,6 @@ export const leadGuidedFollowup = async (c: Context): Promise<Response> => {
         close_reason: body.close_reason ?? null,
         flow_id: enrolledFlowId,
       },
-      correlationId: c.get('correlationId'),
     });
 
     return c.json(
