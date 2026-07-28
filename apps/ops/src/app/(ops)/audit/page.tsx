@@ -4,89 +4,151 @@
 // the payoff for the same-transaction audit rule (ADR-014 §2): ops crosses
 // tenant boundaries by definition, so the trail is the only control that
 // survives a mistake.
+//
+// A real table, not rows: this is log data — six short facts per line, read by
+// scanning down a column. `responsive` reflows it into cards on a phone rather
+// than clipping, because an incident gets looked at from wherever you are.
 
 import { errorMessage, useAudit, useBusinesses } from '@/lib/api';
 import { faDateTimeOf } from '@/lib/format';
 import {
   DataTable,
+  type DataTableColumn,
   EmptyState,
-  ErrorState,
-  PageHeader,
-  TableSkeleton,
-  inputClass,
-} from '@arad-crm/ui';
+  FilterBar,
+  GradientButton,
+  ListPage,
+  SelectField,
+} from '@arad/ops-kit';
+import { RefreshCw, ScrollText } from 'lucide-react';
 import { useState } from 'react';
+
+type Row = NonNullable<ReturnType<typeof useAudit>['data']>[number];
 
 export default function AuditPage() {
   const [orgFilter, setOrgFilter] = useState('');
   const audit = useAudit(orgFilter || undefined);
   const businesses = useBusinesses();
 
+  const columns: DataTableColumn<Row>[] = [
+    {
+      key: 'at',
+      header: 'زمان',
+      priority: 'secondary',
+      cell: (r) => (
+        <span className="whitespace-nowrap text-slate-500">{faDateTimeOf(r.created_at)}</span>
+      ),
+    },
+    {
+      key: 'action',
+      header: 'عمل',
+      priority: 'primary',
+      cell: (r) => (
+        <span dir="ltr" className="font-mono text-slate-900">
+          {r.action}
+        </span>
+      ),
+    },
+    {
+      key: 'entity',
+      header: 'موجودیت',
+      cell: (r) => (
+        <span dir="ltr" className="font-mono text-slate-500">
+          {r.entity_type}
+        </span>
+      ),
+    },
+    {
+      key: 'org',
+      header: 'کسب‌وکار',
+      cell: (r) => r.organization_name ?? <span className="text-slate-300">— پلتفرم —</span>,
+    },
+    {
+      key: 'actor',
+      header: 'اپراتور',
+      cell: (r) => (
+        <span dir="ltr" className="font-mono">
+          {r.actor_phone ?? '—'}
+        </span>
+      ),
+    },
+    {
+      key: 'detail',
+      header: 'جزئیات',
+      cell: (r) => (
+        <details className="text-slate-500">
+          <summary className="cursor-pointer select-none">نمایش</summary>
+          <pre
+            dir="ltr"
+            className="ops-themed-scroll mt-1 max-h-64 max-w-md overflow-auto rounded-lg bg-slate-50 p-2 text-[11px] leading-5"
+          >
+            {JSON.stringify({ before: r.before, after: r.after }, null, 2)}
+          </pre>
+        </details>
+      ),
+    },
+  ];
+
   return (
-    <>
-      <PageHeader
-        title="رخدادها"
-        subtitle="هر تغییر اپراتوری در همان تراکنشِ خودِ تغییر ثبت می‌شود — نه بعد از آن."
-      />
-
-      <div className="mb-3 flex items-center gap-2">
-        <span className="text-xs text-fg-muted">کسب‌وکار:</span>
-        <select
-          value={orgFilter}
-          onChange={(e) => setOrgFilter(e.target.value)}
-          className={`${inputClass} w-auto`}
-        >
-          <option value="">همه</option>
-          {businesses.data?.map((b) => (
-            <option key={b.id} value={b.id}>
-              {b.name}
-            </option>
-          ))}
-        </select>
-      </div>
-
-      {audit.isPending ? (
-        <TableSkeleton />
-      ) : audit.error ? (
-        <ErrorState message={errorMessage(audit.error)} onRetry={() => audit.refetch()} />
-      ) : audit.data.length === 0 ? (
-        <EmptyState title="رخدادی ثبت نشده" />
+    <ListPage
+      title="رخدادها"
+      subtitle="هر تغییر اپراتوری در همان تراکنشِ خودِ تغییر ثبت می‌شود — نه بعد از آن."
+      bare
+      filterBar={
+        <FilterBar
+          hasActiveFilters={orgFilter !== ''}
+          onClear={() => setOrgFilter('')}
+          resultCount={audit.data?.length ?? 0}
+          labels={{
+            clear: 'حذف فیلتر',
+            resultLine: (n) => `${n.toLocaleString('fa-IR')} رخداد`,
+          }}
+          filters={
+            <SelectField
+              label="کسب‌وکار"
+              dir="rtl"
+              value={orgFilter}
+              onValueChange={setOrgFilter}
+              options={[
+                { value: '', label: 'همه' },
+                ...(businesses.data ?? []).map((b) => ({ value: b.id, label: b.name })),
+              ]}
+            />
+          }
+        />
+      }
+    >
+      {audit.error ? (
+        <EmptyState
+          icon={ScrollText}
+          headline="رخدادها بارگیری نشد"
+          description={errorMessage(audit.error)}
+          cta={
+            <GradientButton
+              gradient="slate"
+              icon={<RefreshCw className="h-4 w-4" />}
+              onClick={() => audit.refetch()}
+            >
+              تلاش دوباره
+            </GradientButton>
+          }
+        />
       ) : (
         <DataTable
-          head={
-            <tr>
-              <th className="px-3 py-2 text-start font-medium">زمان</th>
-              <th className="px-3 py-2 text-start font-medium">عمل</th>
-              <th className="px-3 py-2 text-start font-medium">موجودیت</th>
-              <th className="px-3 py-2 text-start font-medium">کسب‌وکار</th>
-              <th className="px-3 py-2 text-start font-medium">اپراتور</th>
-              <th className="px-3 py-2 text-start font-medium">جزئیات</th>
-            </tr>
+          responsive
+          columns={columns}
+          data={audit.data ?? []}
+          keyExtractor={(r) => r.id}
+          isLoading={audit.isPending}
+          emptyState={
+            <EmptyState
+              icon={ScrollText}
+              headline="رخدادی ثبت نشده"
+              description="هر تغییری که از این کنترل‌پنل انجام شود، این‌جا با نام اپراتورش می‌آید."
+            />
           }
-        >
-          {audit.data.map((row) => (
-            <tr key={row.id}>
-              <td className="whitespace-nowrap px-3 py-2 text-xs text-fg-muted">
-                {faDateTimeOf(row.created_at)}
-              </td>
-              <td className="px-3 py-2 font-mono text-xs">{row.action}</td>
-              <td className="px-3 py-2 font-mono text-xs text-fg-muted">{row.entity_type}</td>
-              <td className="px-3 py-2 text-xs">
-                {row.organization_name ?? <span className="text-fg-faint">— پلتفرم —</span>}
-              </td>
-              <td className="px-3 py-2 font-mono text-xs">{row.actor_phone ?? '—'}</td>
-              <td className="px-3 py-2 text-xs text-fg-muted">
-                <details>
-                  <summary className="cursor-pointer">نمایش</summary>
-                  <pre className="mt-1 max-w-md overflow-x-auto rounded-sm bg-surface-2 p-2 text-[11px]">
-                    {JSON.stringify({ before: row.before, after: row.after }, null, 2)}
-                  </pre>
-                </details>
-              </td>
-            </tr>
-          ))}
-        </DataTable>
+        />
       )}
-    </>
+    </ListPage>
   );
 }

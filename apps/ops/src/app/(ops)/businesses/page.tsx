@@ -2,6 +2,12 @@
 
 // Businesses — the demo's step 3, first half: register Mizro as a business.
 // A business IS an organization; this is the only surface that creates one.
+//
+// Rows rather than a table: a business has one identity and two facts about
+// it (is it live, does it receive events), and a five-column grid spreads
+// three pieces of information across a screen width. The event binding is the
+// one that gets missed, so it is a badge on the row and not a column someone
+// has to read across to.
 
 import {
   type Business,
@@ -14,20 +20,18 @@ import {
 } from '@/lib/api';
 import { faDateOf, faNumber } from '@/lib/format';
 import {
-  Chip,
-  DataTable,
+  DataRow,
+  DataRowSkeleton,
   EmptyState,
-  ErrorState,
   Field,
-  FormError,
+  GradientButton,
+  Input,
+  ListPage,
   Modal,
-  PageHeader,
-  TableSkeleton,
-  btnGhost,
-  btnPrimary,
-  btnRowAction,
-  inputClass,
-} from '@arad-crm/ui';
+  StatusBadge,
+  pickAvatarGradient,
+} from '@arad/ops-kit';
+import { Building2, Link2, Plus, RefreshCw } from 'lucide-react';
 import { type FormEvent, useState } from 'react';
 
 export default function BusinessesPage() {
@@ -73,79 +77,88 @@ export default function BusinessesPage() {
   };
 
   return (
-    <>
-      <PageHeader
-        title="کسب‌وکارها"
-        subtitle="هر کسب‌وکار یک فضای کاری مستقل با کاربران و دادهٔ خودش است."
-        actions={
-          <button type="button" onClick={() => setAddOpen(true)} className={btnPrimary}>
-            ثبت کسب‌وکار
-          </button>
-        }
-      />
-
+    <ListPage
+      title="کسب‌وکارها"
+      subtitle="هر کسب‌وکار یک فضای کاری مستقل با کاربران و دادهٔ خودش است."
+      action={
+        <GradientButton icon={<Plus className="h-4 w-4" />} onClick={() => setAddOpen(true)}>
+          ثبت کسب‌وکار
+        </GradientButton>
+      }
+    >
       {businesses.isPending ? (
-        <TableSkeleton />
+        <DataRowSkeleton count={4} />
       ) : businesses.error ? (
-        <ErrorState message={errorMessage(businesses.error)} onRetry={() => businesses.refetch()} />
+        <EmptyState
+          icon={Building2}
+          headline="فهرست بارگیری نشد"
+          description={errorMessage(businesses.error)}
+          cta={
+            <GradientButton
+              gradient="slate"
+              icon={<RefreshCw className="h-4 w-4" />}
+              onClick={() => businesses.refetch()}
+            >
+              تلاش دوباره
+            </GradientButton>
+          }
+        />
       ) : businesses.data.length === 0 ? (
         <EmptyState
-          title="هنوز کسب‌وکاری ثبت نشده"
-          hint="اولین کسب‌وکار را ثبت کنید تا بتوانید کاربر بسازید و به آن وصل کنید."
+          icon={Building2}
+          headline="هنوز کسب‌وکاری ثبت نشده"
+          description="اولین کسب‌وکار را ثبت کنید تا بتوانید کاربر بسازید و به آن وصل کنید."
+          cta={
+            <GradientButton icon={<Plus className="h-4 w-4" />} onClick={() => setAddOpen(true)}>
+              ثبت کسب‌وکار
+            </GradientButton>
+          }
         />
       ) : (
-        <DataTable
-          head={
-            <tr>
-              <th className="px-3 py-2 text-start font-medium">نام</th>
-              <th className="px-3 py-2 text-start font-medium">شناسه</th>
-              <th className="px-3 py-2 text-start font-medium">وضعیت</th>
-              <th className="px-3 py-2 text-start font-medium">اعضا</th>
-              <th className="px-3 py-2 text-start font-medium">رویدادها</th>
-              <th className="px-3 py-2 text-start font-medium">تاریخ</th>
-              <th className="px-3 py-2 text-start font-medium">عملیات</th>
-            </tr>
-          }
-        >
-          {businesses.data.map((b) => {
+        <div className="divide-y divide-slate-100">
+          {businesses.data.map((b, i) => {
             const bound = bindings.data?.filter((x) => x.organization_id === b.id) ?? [];
+            const gradient = pickAvatarGradient(i);
             return (
-              <tr key={b.id}>
-                <td className="px-3 py-2 font-medium">{b.name}</td>
-                <td className="px-3 py-2 font-mono text-xs text-fg-muted">{b.slug}</td>
-                <td className="px-3 py-2">
-                  <Chip tone={b.status === 'active' ? 'success' : 'warning'}>
-                    {b.status === 'active' ? 'فعال' : 'معلق'}
-                  </Chip>
-                </td>
-                <td className="px-3 py-2 tabular-nums">{faNumber(b.member_count)}</td>
-                <td className="px-3 py-2 text-xs">
-                  {bound.length > 0 ? (
-                    bound.map((x) => (
-                      <span key={x.id} className="block font-mono text-fg-muted">
-                        {x.producer}/{x.external_ref}
-                      </span>
-                    ))
-                  ) : (
-                    <Chip tone="warning">وصل نشده</Chip>
-                  )}
-                </td>
-                <td className="px-3 py-2 text-xs text-fg-muted">{faDateOf(b.created_at)}</td>
-                <td className="px-3 py-2">
-                  <div className="flex gap-1">
+              <DataRow
+                key={b.id}
+                icon={Building2}
+                gradientFrom={gradient.from}
+                gradientTo={gradient.to}
+                primary={b.name}
+                meta={[
+                  b.slug,
+                  `${faNumber(b.member_count)} عضو`,
+                  bound.length > 0
+                    ? bound.map((x) => `${x.producer}/${x.external_ref}`).join('، ')
+                    : null,
+                  faDateOf(b.created_at),
+                ]}
+                showChevron={false}
+                trailing={
+                  <div className="flex items-center gap-2">
+                    {bound.length === 0 && <StatusBadge tone="amber" label="رویداد وصل نشده" />}
+                    <StatusBadge
+                      tone={b.status === 'active' ? 'emerald' : 'slate'}
+                      label={b.status === 'active' ? 'فعال' : 'معلق'}
+                    />
+                  </div>
+                }
+                rowActions={
+                  <div className="flex items-center gap-1">
                     <button
                       type="button"
-                      className={btnRowAction}
+                      title="اتصال رویداد"
                       onClick={() => {
                         setBindFor(b);
                         setExternalRef('default');
                       }}
+                      className="rounded-lg p-2 text-slate-400 transition hover:bg-slate-100 hover:text-slate-600"
                     >
-                      اتصال رویداد
+                      <Link2 className="h-4 w-4" />
                     </button>
                     <button
                       type="button"
-                      className={btnRowAction}
                       disabled={setStatus.isPending}
                       onClick={() =>
                         setStatus.mutate({
@@ -153,83 +166,93 @@ export default function BusinessesPage() {
                           status: b.status === 'active' ? 'suspended' : 'active',
                         })
                       }
+                      className="rounded-lg px-2.5 py-1.5 text-xs font-medium text-slate-500 transition hover:bg-slate-100 hover:text-slate-700 disabled:opacity-50"
                     >
                       {b.status === 'active' ? 'تعلیق' : 'فعال‌سازی'}
                     </button>
                   </div>
-                </td>
-              </tr>
+                }
+              />
             );
           })}
-        </DataTable>
+        </div>
       )}
 
-      <Modal open={addOpen} title="ثبت کسب‌وکار" onClose={() => setAddOpen(false)}>
-        <form onSubmit={submitCreate} className="space-y-3">
+      <Modal
+        open={addOpen}
+        onOpenChange={setAddOpen}
+        title="ثبت کسب‌وکار"
+        description="یک فضای کاری تازه با کاربران و دادهٔ مستقل."
+        icon={Building2}
+        footer={
+          <div className="flex justify-end gap-2">
+            <GradientButton gradient="slate" onClick={() => setAddOpen(false)}>
+              انصراف
+            </GradientButton>
+            <GradientButton
+              type="submit"
+              form="create-business"
+              loading={create.isPending}
+              disabled={name.trim().length < 2}
+            >
+              ثبت
+            </GradientButton>
+          </div>
+        }
+      >
+        <form id="create-business" onSubmit={submitCreate} className="space-y-4">
           <Field label="نام کسب‌وکار">
-            <input
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              className={inputClass}
-              placeholder="میزرو"
-            />
+            <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="میزرو" />
           </Field>
           <Field
             label="شناسه (slug)"
-            hint="حروف کوچک لاتین، عدد و خط تیره. برای نام فارسی الزامی است."
+            helper="حروف کوچک لاتین، عدد و خط تیره. برای نام فارسی الزامی است."
           >
-            <input
+            <Input
               value={slug}
               onChange={(e) => setSlug(e.target.value)}
-              className={`${inputClass} font-mono`}
+              className="font-mono"
+              dir="ltr"
               placeholder="mizro"
             />
           </Field>
-          <FormError>{create.error ? errorMessage(create.error) : null}</FormError>
-          <div className="flex justify-end gap-2 pt-1">
-            <button type="button" className={btnGhost} onClick={() => setAddOpen(false)}>
-              انصراف
-            </button>
-            <button
-              type="submit"
-              className={btnPrimary}
-              disabled={create.isPending || name.trim().length < 2}
-            >
-              {create.isPending ? 'در حال ثبت…' : 'ثبت'}
-            </button>
-          </div>
+          {create.error && <p className="text-sm text-rose-600">{errorMessage(create.error)}</p>}
         </form>
       </Modal>
 
       <Modal
         open={bindFor !== null}
+        onOpenChange={(open) => !open && setBindFor(null)}
         title={`اتصال رویدادها به ${bindFor?.name ?? ''}`}
-        onClose={() => setBindFor(null)}
+        icon={Link2}
+        footer={
+          <div className="flex justify-end gap-2">
+            <GradientButton gradient="slate" onClick={() => setBindFor(null)}>
+              انصراف
+            </GradientButton>
+            <GradientButton type="submit" form="bind-producer" loading={bind.isPending}>
+              ذخیره
+            </GradientButton>
+          </div>
+        }
       >
-        <form onSubmit={submitBind} className="space-y-3">
-          <p className="text-xs text-fg-muted">
+        <form id="bind-producer" onSubmit={submitBind} className="space-y-4">
+          <p className="text-sm leading-6 text-slate-500">
             تعیین می‌کند رویدادهای پرداخت میزرو به کدام کسب‌وکار تعلق دارند. بدون آن، وقتی بیش از یک
             کسب‌وکار وجود داشته باشد پردازش رویداد متوقف می‌شود — به‌جای آنکه کمیسیون به تیم اشتباه
             برسد.
           </p>
-          <Field label="شناسهٔ نمونهٔ تولیدکننده" hint="تا وقتی یک کلید مشترک داریم: default">
-            <input
+          <Field label="شناسهٔ نمونهٔ تولیدکننده" helper="تا وقتی یک کلید مشترک داریم: default">
+            <Input
               value={externalRef}
               onChange={(e) => setExternalRef(e.target.value)}
-              className={`${inputClass} font-mono`}
+              className="font-mono"
+              dir="ltr"
             />
           </Field>
-          <FormError>{bind.error ? errorMessage(bind.error) : null}</FormError>
-          <div className="flex justify-end gap-2 pt-1">
-            <button type="button" className={btnGhost} onClick={() => setBindFor(null)}>
-              انصراف
-            </button>
-            <button type="submit" className={btnPrimary} disabled={bind.isPending}>
-              {bind.isPending ? 'در حال ذخیره…' : 'ذخیره'}
-            </button>
-          </div>
+          {bind.error && <p className="text-sm text-rose-600">{errorMessage(bind.error)}</p>}
         </form>
       </Modal>
-    </>
+    </ListPage>
   );
 }

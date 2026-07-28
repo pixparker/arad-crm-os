@@ -23,6 +23,15 @@
   font-display: swap;
 }
 
+/* @arad/ops-kit's brand contract: three variables, nothing else. Pointing them
+ * at the product tokens means a brand swap still lands in tokens.css alone
+ * (ADR-009) and the kit follows without knowing this product exists. */
+:root {
+  --ops-color-primary: var(--ac-primary);
+  --ops-color-primary-dark: var(--ac-primary-ink);
+  --ops-color-bg-soft: var(--ac-surface-2);
+}
+
 body {
   background: var(--ac-bg);
   color: var(--ac-fg);

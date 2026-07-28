@@ -10,7 +10,12 @@ const nextConfig: NextConfig = {
   // omits the workspace packages (@arad-crm/*, foundation @arad/*).
   output: 'standalone',
   outputFileTracingRoot: path.resolve(process.cwd(), '../..'),
-  transpilePackages: ['@arad-crm/ui', '@arad-crm/web-shared', '@arad-crm/api-contracts'],
+  transpilePackages: [
+    '@arad-crm/ui',
+    '@arad-crm/web-shared',
+    '@arad-crm/api-contracts',
+    '@arad/ops-kit',
+  ],
   webpack: (config) => {
     config.resolve.extensionAlias = {
       ...config.resolve.extensionAlias,

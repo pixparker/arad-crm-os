@@ -6,22 +6,23 @@
 //
 // Replay is safe to press twice: every handler is idempotent and the
 // commission ledger's uniqueness — not this button's discipline — is what
-// prevents a double payout.
+// prevents a double payout. So replay is a plain button with no confirm; the
+// confirm would teach caution about an action that does not need it.
 
 import { errorMessage, useInbox, useReplayEvent, useReplayFailed } from '@/lib/api';
-import { faDateTimeOf } from '@/lib/format';
+import { faDateTimeOf, faNumber } from '@/lib/format';
 import {
-  Chip,
   DataTable,
+  type DataTableColumn,
   EmptyState,
-  ErrorState,
-  FormError,
-  PageHeader,
-  TableSkeleton,
-  btnGhost,
-  btnRowAction,
-  inputClass,
-} from '@arad-crm/ui';
+  FilterBar,
+  GradientButton,
+  ListPage,
+  SelectField,
+  StatusBadge,
+  type StatusBadgeTone,
+} from '@arad/ops-kit';
+import { Inbox, RefreshCw, RotateCcw } from 'lucide-react';
 import { useState } from 'react';
 
 const STATUS_LABELS: Record<string, string> = {
@@ -32,122 +33,174 @@ const STATUS_LABELS: Record<string, string> = {
   dead: 'متوقف',
 };
 
+const STATUS_TONE: Record<string, StatusBadgeTone> = {
+  processed: 'emerald',
+  pending: 'slate',
+  skipped: 'amber',
+  failed: 'rose',
+  dead: 'rose',
+};
+
+type Row = NonNullable<ReturnType<typeof useInbox>['data']>[number];
+
 export default function InboxPage() {
   const [status, setStatus] = useState('');
   const inbox = useInbox(status || undefined);
   const replay = useReplayEvent();
   const replayFailed = useReplayFailed();
 
-  return (
-    <>
-      <PageHeader
-        title="صندوق رویداد"
-        subtitle="رویدادهای دریافتی از تولیدکننده‌ها. پخش مجدد بی‌خطر است — هر پردازشگر ایدمپوتنت است."
-        actions={
-          <button
-            type="button"
-            className={btnGhost}
-            disabled={replayFailed.isPending}
-            onClick={() => replayFailed.mutate()}
-          >
-            پخش مجدد همهٔ ناموفق‌ها
-          </button>
-        }
-      />
+  const failedCount = inbox.data?.filter(
+    (e) => e.status === 'failed' || e.status === 'dead',
+  ).length;
 
-      <div className="mb-3 flex items-center gap-2">
-        <span className="text-xs text-fg-muted">وضعیت:</span>
-        <select
-          value={status}
-          onChange={(e) => setStatus(e.target.value)}
-          className={`${inputClass} w-auto`}
+  const columns: DataTableColumn<Row>[] = [
+    {
+      key: 'at',
+      header: 'زمان',
+      priority: 'secondary',
+      cell: (r) => (
+        <span className="whitespace-nowrap text-slate-500">{faDateTimeOf(r.received_at)}</span>
+      ),
+    },
+    {
+      key: 'type',
+      header: 'رویداد',
+      priority: 'primary',
+      cell: (r) => (
+        <span dir="ltr" className="font-mono text-slate-900">
+          {r.producer}/{r.type}@v{r.version}
+        </span>
+      ),
+    },
+    {
+      key: 'status',
+      header: 'وضعیت',
+      cell: (r) => (
+        <StatusBadge
+          tone={STATUS_TONE[r.status] ?? 'slate'}
+          label={STATUS_LABELS[r.status] ?? r.status}
+        />
+      ),
+    },
+    {
+      key: 'attempts',
+      header: 'تلاش',
+      cell: (r) => <span className="tabular-nums">{faNumber(r.attempts)}</span>,
+    },
+    {
+      key: 'error',
+      header: 'خطا',
+      cell: (r) =>
+        r.error ? (
+          <span dir="ltr" className="block max-w-xs truncate text-rose-600" title={r.error}>
+            {r.error}
+          </span>
+        ) : (
+          <span className="text-slate-300">—</span>
+        ),
+    },
+    {
+      key: 'actions',
+      header: '',
+      cell: (r) => (
+        <button
+          type="button"
+          disabled={replay.isPending || r.status === 'processed' || r.status === 'pending'}
+          onClick={() => replay.mutate(r.id)}
+          className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-medium text-slate-500 transition hover:bg-slate-100 hover:text-slate-700 disabled:cursor-not-allowed disabled:opacity-40"
         >
-          <option value="">همه</option>
-          {Object.entries(STATUS_LABELS).map(([k, v]) => (
-            <option key={k} value={k}>
-              {v}
-            </option>
-          ))}
-        </select>
-      </div>
+          <RotateCcw className="h-3.5 w-3.5" />
+          پخش مجدد
+        </button>
+      ),
+    },
+  ];
 
-      <FormError>
-        {replayFailed.error ? errorMessage(replayFailed.error) : null}
-        {replay.error ? errorMessage(replay.error) : null}
-      </FormError>
-      {replayFailed.data ? (
-        <p className="mb-3 text-sm text-success">
-          {replayFailed.data.replayed} رویداد دوباره در صف قرار گرفت.
-        </p>
-      ) : null}
-
-      {inbox.isPending ? (
-        <TableSkeleton />
-      ) : inbox.error ? (
-        <ErrorState message={errorMessage(inbox.error)} onRetry={() => inbox.refetch()} />
-      ) : inbox.data.length === 0 ? (
-        <EmptyState title="رویدادی نیست" />
+  return (
+    <ListPage
+      title="صندوق رویداد"
+      subtitle="رویدادهای دریافتی از تولیدکننده‌ها. پخش مجدد بی‌خطر است — هر پردازشگر ایدمپوتنت است."
+      bare
+      action={
+        <GradientButton
+          gradient="slate"
+          icon={<RotateCcw className="h-4 w-4" />}
+          loading={replayFailed.isPending}
+          disabled={failedCount === 0}
+          onClick={() => replayFailed.mutate()}
+        >
+          پخش مجدد ناموفق‌ها
+        </GradientButton>
+      }
+      filterBar={
+        <FilterBar
+          hasActiveFilters={status !== ''}
+          onClear={() => setStatus('')}
+          resultCount={inbox.data?.length ?? 0}
+          labels={{
+            clear: 'حذف فیلتر',
+            resultLine: (n) => `${n.toLocaleString('fa-IR')} رویداد`,
+          }}
+          filters={
+            <SelectField
+              label="وضعیت"
+              dir="rtl"
+              value={status}
+              onValueChange={setStatus}
+              options={[
+                { value: '', label: 'همه' },
+                ...Object.entries(STATUS_LABELS).map(([value, label]) => ({ value, label })),
+              ]}
+            />
+          }
+        />
+      }
+      footer={
+        <>
+          {(replayFailed.error || replay.error) && (
+            <p className="rounded-xl bg-rose-50 px-4 py-3 text-sm text-rose-700">
+              {errorMessage(replayFailed.error ?? replay.error)}
+            </p>
+          )}
+          {replayFailed.data && (
+            <p className="rounded-xl bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
+              {faNumber(replayFailed.data.replayed)} رویداد دوباره در صف قرار گرفت.
+            </p>
+          )}
+        </>
+      }
+    >
+      {inbox.error ? (
+        <EmptyState
+          icon={Inbox}
+          headline="صندوق بارگیری نشد"
+          description={errorMessage(inbox.error)}
+          cta={
+            <GradientButton
+              gradient="slate"
+              icon={<RefreshCw className="h-4 w-4" />}
+              onClick={() => inbox.refetch()}
+            >
+              تلاش دوباره
+            </GradientButton>
+          }
+        />
       ) : (
         <DataTable
-          head={
-            <tr>
-              <th className="px-3 py-2 text-start font-medium">زمان</th>
-              <th className="px-3 py-2 text-start font-medium">تولیدکننده</th>
-              <th className="px-3 py-2 text-start font-medium">نوع</th>
-              <th className="px-3 py-2 text-start font-medium">وضعیت</th>
-              <th className="px-3 py-2 text-start font-medium">تلاش</th>
-              <th className="px-3 py-2 text-start font-medium">خطا</th>
-              <th className="px-3 py-2 text-start font-medium">عملیات</th>
-            </tr>
+          responsive
+          columns={columns}
+          data={inbox.data ?? []}
+          keyExtractor={(r) => r.id}
+          isLoading={inbox.isPending}
+          emptyState={
+            <EmptyState
+              icon={Inbox}
+              headline={status ? 'رویدادی با این وضعیت نیست' : 'رویدادی نیست'}
+              description="وقتی میزرو اولین پرداخت را بفرستد، این‌جا ظاهر می‌شود."
+            />
           }
-        >
-          {inbox.data.map((ev) => (
-            <tr key={ev.id}>
-              <td className="whitespace-nowrap px-3 py-2 text-xs text-fg-muted">
-                {faDateTimeOf(ev.received_at)}
-              </td>
-              <td className="px-3 py-2 font-mono text-xs">{ev.producer}</td>
-              <td className="px-3 py-2 font-mono text-xs">
-                {ev.type}@v{ev.version}
-              </td>
-              <td className="px-3 py-2">
-                <Chip
-                  tone={
-                    ev.status === 'processed'
-                      ? 'success'
-                      : ev.status === 'pending'
-                        ? 'neutral'
-                        : ev.status === 'skipped'
-                          ? 'warning'
-                          : 'danger'
-                  }
-                >
-                  {STATUS_LABELS[ev.status] ?? ev.status}
-                </Chip>
-              </td>
-              <td className="px-3 py-2 tabular-nums">{ev.attempts}</td>
-              <td
-                className="px-3 py-2 max-w-xs truncate text-xs text-fg-muted"
-                title={ev.error ?? ''}
-              >
-                {ev.error ?? '—'}
-              </td>
-              <td className="px-3 py-2">
-                <button
-                  type="button"
-                  className={btnRowAction}
-                  disabled={
-                    replay.isPending || ev.status === 'processed' || ev.status === 'pending'
-                  }
-                  onClick={() => replay.mutate(ev.id)}
-                >
-                  پخش مجدد
-                </button>
-              </td>
-            </tr>
-          ))}
-        </DataTable>
+        />
       )}
-    </>
+    </ListPage>
   );
 }

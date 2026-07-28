@@ -3,46 +3,88 @@
 // Overview — the launch checklist, not a metrics dashboard. It answers the one
 // question the control plane exists to answer during E01: is this platform
 // ready for a seller to log in and work?
+//
+// Each row links to the screen that fixes it, so the checklist is also the
+// setup path. The subtitle counts what is done rather than repeating the
+// instruction, because after the first visit the instruction is noise.
 
 import { useBusinesses, useConnections, useInbox, useProducerBindings, useUsers } from '@/lib/api';
-import { Chip, PageHeader, Skeleton } from '@arad-crm/ui';
+import { faNumber } from '@/lib/format';
+import { DataRowSkeleton, ListPage, StatusBadge } from '@arad/ops-kit';
+import {
+  Building2,
+  CheckCircle2,
+  ChevronLeft,
+  CircleDashed,
+  Plug,
+  Radio,
+  Users,
+} from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 import Link from 'next/link';
 import type { ReactNode } from 'react';
 
 function Card({ title, children }: { title: string; children: ReactNode }) {
   return (
-    <section className="rounded-md border border-border bg-surface p-4 shadow-card">
-      <h2 className="text-sm font-bold">{title}</h2>
-      <div className="mt-3 space-y-2 text-sm">{children}</div>
+    <section className="rounded-2xl border border-slate-100 bg-white p-5 shadow-card">
+      <h2 className="text-sm font-semibold text-slate-900">{title}</h2>
+      <div className="mt-4 space-y-2">{children}</div>
     </section>
   );
 }
 
 function CheckRow({
   ok,
+  icon: Icon,
   label,
   hint,
   href,
   pending,
 }: {
   ok: boolean;
+  icon: LucideIcon;
   label: string;
   hint: string;
   href: string;
   pending?: boolean;
 }) {
-  if (pending) return <Skeleton className="h-9 w-full" />;
+  if (pending) return <DataRowSkeleton count={1} />;
   return (
     <Link
       href={href}
-      className="flex items-start justify-between gap-3 rounded-sm border border-border px-3 py-2 hover:bg-surface-2"
+      className="group flex items-center gap-3 rounded-xl border border-slate-100 p-3 transition hover:border-slate-200 hover:bg-slate-50"
     >
-      <span className="min-w-0">
-        <span className="block text-sm">{label}</span>
-        <span className="block text-xs text-fg-muted">{hint}</span>
+      <span
+        className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${
+          ok ? 'bg-emerald-50 text-emerald-600' : 'bg-amber-50 text-amber-600'
+        }`}
+      >
+        <Icon className="h-4 w-4" />
       </span>
-      <Chip tone={ok ? 'success' : 'warning'}>{ok ? 'آماده' : 'انجام نشده'}</Chip>
+      <span className="min-w-0 flex-1">
+        <span className="block truncate text-sm font-medium text-slate-900">{label}</span>
+        <span className="block truncate text-xs text-slate-500">{hint}</span>
+      </span>
+      <StatusBadge
+        tone={ok ? 'emerald' : 'amber'}
+        label={ok ? 'آماده' : 'انجام نشده'}
+        {...(ok ? {} : { variant: 'pulse' as const })}
+      />
+      <ChevronLeft className="h-4 w-4 shrink-0 rotate-180 text-slate-300 transition group-hover:text-slate-400" />
     </Link>
+  );
+}
+
+function Stat({ label, value, danger }: { label: string; value: string; danger?: boolean }) {
+  return (
+    <div className="flex items-center justify-between rounded-xl border border-slate-100 px-3 py-2.5">
+      <span className="text-sm text-slate-500">{label}</span>
+      <span
+        className={`text-sm font-semibold tabular-nums ${danger ? 'text-rose-600' : 'text-slate-900'}`}
+      >
+        {value}
+      </span>
+    </div>
   );
 }
 
@@ -59,19 +101,27 @@ export default function OpsOverviewPage() {
     (c) => c.status === 'active' && c.capabilities.includes('otp_send'),
   );
   const hasBinding = (bindings.data?.length ?? 0) > 0;
+  const failedCount = failed.data?.length ?? 0;
+  const ready = [hasBusiness, hasUser, Boolean(otpConnection), hasBinding].filter(Boolean).length;
 
   return (
-    <>
-      <PageHeader
-        title="نمای کلی"
-        subtitle="وضعیت راه‌اندازی پلتفرم — تا وقتی همهٔ موارد آماده نشده‌اند، فروشنده نمی‌تواند کار کند."
-      />
-
-      <div className="grid gap-4 md:grid-cols-2">
+    <ListPage
+      title="نمای کلی"
+      subtitle={
+        businesses.isPending
+          ? 'در حال بارگیری…'
+          : ready === 4
+            ? 'پلتفرم آمادهٔ کار است.'
+            : `${faNumber(ready)} از ${faNumber(4)} قدم راه‌اندازی انجام شده — تا کامل نشود، فروشنده نمی‌تواند کار کند.`
+      }
+      bare
+    >
+      <div className="grid gap-4 lg:grid-cols-2">
         <Card title="راه‌اندازی">
           <CheckRow
             pending={businesses.isPending}
             ok={hasBusiness}
+            icon={Building2}
             label="کسب‌وکار ثبت شده"
             hint="هر کسب‌وکار یک فضای کاری جداست"
             href="/businesses"
@@ -79,6 +129,7 @@ export default function OpsOverviewPage() {
           <CheckRow
             pending={users.isPending}
             ok={hasUser}
+            icon={Users}
             label="کاربر ساخته و به کسب‌وکار وصل شده"
             hint="ورود فقط با دعوت — هیچ ثبت‌نام آزادی وجود ندارد"
             href="/users"
@@ -86,6 +137,7 @@ export default function OpsOverviewPage() {
           <CheckRow
             pending={connections.isPending}
             ok={Boolean(otpConnection)}
+            icon={Plug}
             label="اتصال پیامک فعال"
             hint="بدون آن، کد ورود ارسال نمی‌شود"
             href="/connections"
@@ -93,6 +145,7 @@ export default function OpsOverviewPage() {
           <CheckRow
             pending={bindings.isPending}
             ok={hasBinding}
+            icon={Radio}
             label="اتصال تولیدکنندهٔ رویداد به کسب‌وکار"
             hint="تعیین می‌کند پرداخت‌های میزرو به کدام کسب‌وکار تعلق دارد"
             href="/businesses"
@@ -100,34 +153,41 @@ export default function OpsOverviewPage() {
         </Card>
 
         <Card title="سلامت">
-          <div className="flex items-center justify-between">
-            <span className="text-sm text-fg-muted">کسب‌وکارها</span>
-            <span className="tabular-nums">{businesses.data?.length ?? '—'}</span>
-          </div>
-          <div className="flex items-center justify-between">
-            <span className="text-sm text-fg-muted">کاربران</span>
-            <span className="tabular-nums">{users.data?.length ?? '—'}</span>
-          </div>
-          <div className="flex items-center justify-between">
-            <span className="text-sm text-fg-muted">اتصال‌های فعال</span>
-            <span className="tabular-nums">
-              {connections.data?.filter((c) => c.status === 'active').length ?? '—'}
-            </span>
-          </div>
-          <div className="flex items-center justify-between">
-            <span className="text-sm text-fg-muted">رویدادهای ناموفق</span>
-            <span className="tabular-nums">
-              {failed.data ? (
-                <Chip tone={failed.data.length > 0 ? 'danger' : 'success'}>
-                  {failed.data.length}
-                </Chip>
-              ) : (
-                '—'
-              )}
-            </span>
-          </div>
+          <Stat
+            label="کسب‌وکارها"
+            value={businesses.data ? faNumber(businesses.data.length) : '—'}
+          />
+          <Stat label="کاربران" value={users.data ? faNumber(users.data.length) : '—'} />
+          <Stat
+            label="اتصال‌های فعال"
+            value={
+              connections.data
+                ? faNumber(connections.data.filter((c) => c.status === 'active').length)
+                : '—'
+            }
+          />
+          <Stat
+            label="رویدادهای ناموفق"
+            value={failed.data ? faNumber(failedCount) : '—'}
+            danger={failedCount > 0}
+          />
+          {failedCount > 0 && (
+            <Link
+              href="/inbox"
+              className="flex items-center justify-center gap-1.5 rounded-xl bg-rose-50 px-3 py-2.5 text-xs font-semibold text-rose-700 transition hover:bg-rose-100"
+            >
+              <CircleDashed className="h-3.5 w-3.5" />
+              بررسی صندوق رویداد
+            </Link>
+          )}
+          {ready === 4 && failedCount === 0 && (
+            <p className="flex items-center justify-center gap-1.5 rounded-xl bg-emerald-50 px-3 py-2.5 text-xs font-semibold text-emerald-700">
+              <CheckCircle2 className="h-3.5 w-3.5" />
+              همه‌چیز سرجای خودش است
+            </p>
+          )}
         </Card>
       </div>
-    </>
+    </ListPage>
   );
 }
