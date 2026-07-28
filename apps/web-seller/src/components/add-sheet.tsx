@@ -20,11 +20,11 @@
 
 import { faNum } from '@/lib/format';
 import type { QuickAddRegistry } from '@arad-crm/api-contracts';
-import { BottomSheet } from '@arad-crm/ui';
+import { BottomSheet, dismissSheet } from '@arad-crm/ui';
 import { apiFetch } from '@arad-crm/web-shared';
 import { useQuery } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
-import type { ReactNode } from 'react';
+import { type ReactNode, useEffect, useRef } from 'react';
 
 type Entry = QuickAddRegistry['entries'][number];
 
@@ -123,11 +123,24 @@ export function AddSheet({ open, onClose }: { open: boolean; onClose: () => void
   const tiles = entries.filter((e) => e.group === 'create');
   const rows = entries.filter((e) => e.group === 'activity');
 
+  // Tapping a tile is a dismissal followed by a navigation, in that order.
+  // Navigating first would push the route on top of the sheet's own history
+  // entry, and the seller's next Back press would land them right back in the
+  // sheet they thought they had left. So: ask the sheet to close through the
+  // same path Back uses, then navigate once it actually has.
+  const pendingRoute = useRef<string | null>(null);
+  useEffect(() => {
+    if (open || pendingRoute.current === null) return;
+    const route = pendingRoute.current;
+    pendingRoute.current = null;
+    router.push(route);
+  }, [open, router]);
+
   const go = (entry: Entry) => {
     const route = ROUTES[entry.key];
     if (!route || !entry.enabled) return;
-    onClose();
-    router.push(route);
+    pendingRoute.current = route;
+    dismissSheet();
   };
 
   return (

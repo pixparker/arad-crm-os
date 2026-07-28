@@ -33,10 +33,10 @@ cp .env.example .env
 pnpm services:up                       # postgres :5433 + redis :6380 + migrate
 SEED_OWNER_PHONE=09163349938 pnpm db:seed   # org آراد + تهران + commission plan + you as owner_admin
 
-pnpm dev:api                           # :4100   — API + Scalar docs at /docs
-pnpm dev:seller                        # :3101   — seller PWA
-pnpm dev:admin                         # :3102   — manager console
-pnpm dev:ops                           # :3103   — Arad control plane (ADR-014)
+pnpm dev:api                           # :6100   — API + Scalar docs at /docs
+pnpm dev:seller                        # :6101   — seller PWA
+pnpm dev:admin                         # :6102   — manager console
+pnpm dev:ops                           # :6103   — Arad control plane (ADR-014)
 ```
 
 **Ops panel:** it needs an ops user, and ops roles are granted from inside the
@@ -48,10 +48,10 @@ SEED_OPS_PHONE=09163349938 pnpm db:seed   # + super_admin on the ops axis
 
 🔒 That phone is now BOTH a tenant user (if you also seeded it as owner) and an
 Arad operator — two rows on two axes, deliberately. Logging into
-`localhost:3103` gives no workspace, and logging into `:3101` gives no control
+`localhost:6103` gives no workspace, and logging into `:6101` gives no control
 plane.
 
-**Log in:** enter the seeded phone at `localhost:3101/login`, then read the OTP code from the api's terminal output (`OTP (fake sender)`). That is the dev path and stays the dev path: `SMS_PROVIDER=fake` never sends. For real delivery set `SMS_PROVIDER=connect` + `CONNECT_MASTER_KEY`, then register the sms.ir connection in the ops panel — the api refuses to boot with `connect` and no valid master key, which is deliberate (a silently-fake OTP path is how an outage hides).
+**Log in:** enter the seeded phone at `localhost:6101/login`, then read the OTP code from the api's terminal output (`OTP (fake sender)`). That is the dev path and stays the dev path: `SMS_PROVIDER=fake` never sends. For real delivery set `SMS_PROVIDER=connect` + `CONNECT_MASTER_KEY`, then register the sms.ir connection in the ops panel — the api refuses to boot with `connect` and no valid master key, which is deliberate (a silently-fake OTP path is how an outage hides).
 
 Ports are deliberately offset from Mizro's (api 4000, web 3001-3006, pg 5432, redis 6379) so both stacks run side by side. **Never reuse Mizro's ports.**
 

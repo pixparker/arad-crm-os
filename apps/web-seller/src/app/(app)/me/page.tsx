@@ -14,7 +14,16 @@
 // toggle that changes nothing teaches the seller the app lies. Switching
 // workspace is here and real, because a user in two businesses needs it.
 
-import { GearIcon } from '@/components/icons';
+import {
+  BellIcon,
+  CalendarIcon,
+  FolderIcon,
+  FunnelIcon,
+  StoreIcon,
+  TargetIcon,
+  UserIcon,
+  WalletIcon,
+} from '@/components/icons';
 import { Tag } from '@/components/list-bits';
 import { SplashSkeleton } from '@/components/skeleton';
 import { Subhead } from '@/components/subhead';
@@ -74,7 +83,17 @@ export default function ProfilePage() {
 
   return (
     <main className="min-h-dvh pb-28">
-      <Subhead title="پروفایل من" back="/">
+      <Subhead
+        title="پروفایل من"
+        back="/"
+        collapse
+        // once the photo block folds away, the small avatar carries the identity
+        trailing={
+          <span className="grid h-9 w-9 place-items-center rounded-full bg-white/15 text-[12px] font-bold">
+            {[...user.display_name.replace(/[‌\s]/g, '')].slice(0, 2).join('')}
+          </span>
+        }
+      >
         <div className="mt-4 flex items-center gap-3.5">
           <span className="grid h-16 w-16 flex-none place-items-center rounded-full bg-white/15 text-xl font-bold">
             {[...user.display_name.replace(/[‌\s]/g, '')].slice(0, 2).join('')}
@@ -110,6 +129,7 @@ export default function ProfilePage() {
           <SettingRow
             href="/money"
             label="کمیسیون و تسویه"
+            icon={WalletIcon}
             value={
               totals ? (
                 <span className="num">{formatToman(totals.pending_rial)} در انتظار</span>
@@ -119,6 +139,7 @@ export default function ProfilePage() {
           />
           <SettingRow
             label="کسب‌وکار فعال"
+            icon={StoreIcon}
             value={membership.organization_name}
             tone="bg-primary-soft text-primary-ink"
             {...(workspaces.length > 1 ? { onClick: () => setSwitching((v) => !v) } : {})}
@@ -146,16 +167,19 @@ export default function ProfilePage() {
           ) : null}
           <SettingRow
             label="نوع همکاری"
+            icon={UserIcon}
             value={CONTRACT_TYPE_FA[membership.contract_type] ?? membership.contract_type}
             tone="bg-info-soft text-info"
           />
           <SettingRow
             label="هدف و عملکرد"
+            icon={TargetIcon}
             value={<Tag tone="note">به‌زودی</Tag>}
             tone="bg-surface-2 text-fg-muted"
           />
           <SettingRow
             label="اعلان‌ها و یادآورها"
+            icon={BellIcon}
             value={<Tag tone="note">به‌زودی</Tag>}
             tone="bg-surface-2 text-fg-muted"
           />
@@ -166,10 +190,21 @@ export default function ProfilePage() {
           <SettingRow
             href="/tasks"
             label="کارها و یادآورها"
+            icon={CalendarIcon}
             tone="bg-primary-soft text-primary-ink"
           />
-          <SettingRow href="/pipeline" label="پایپلاین فروش" tone="bg-info-soft text-info" />
-          <SettingRow href="/accounts" label="سرنخ‌ها و مشتریان" tone="bg-gold-soft text-gold" />
+          <SettingRow
+            href="/pipeline"
+            label="پایپلاین فروش"
+            icon={FunnelIcon}
+            tone="bg-info-soft text-info"
+          />
+          <SettingRow
+            href="/accounts"
+            label="سرنخ‌ها و مشتریان"
+            icon={FolderIcon}
+            tone="bg-gold-soft text-gold"
+          />
         </div>
 
         <button
@@ -204,17 +239,21 @@ function SettingRow({
   label,
   value,
   tone,
+  icon: Icon,
 }: {
   href?: string;
   onClick?: () => void;
   label: string;
   value?: ReactNode;
   tone: string;
+  /** The prototype gives every settings row its own glyph — one repeated icon
+      turns a list of different things into a list of the same thing. */
+  icon: (props: { className?: string }) => ReactNode;
 }) {
   const body = (
     <>
       <span className={`grid h-8 w-8 flex-none place-items-center rounded-md ${tone}`}>
-        <GearIcon className="h-4 w-4" />
+        <Icon className="h-4 w-4" />
       </span>
       <span className="flex-1 text-[13px] font-semibold">{label}</span>
       {value ? <span className="text-[11px] text-fg-muted">{value}</span> : null}

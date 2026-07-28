@@ -22,7 +22,7 @@ services:
     # Readiness, not liveness: a container that answers /v1/health while it
     # cannot reach Postgres is "healthy" to compose and broken to everyone else.
     healthcheck:
-      test: ['CMD', 'wget', '-qO-', 'http://localhost:4100/v1/health/ready']
+      test: ['CMD', 'wget', '-qO-', 'http://localhost:6100/v1/health/ready']
       interval: 30s
       timeout: 5s
       retries: 3

@@ -73,7 +73,7 @@ http://ops.aradap.ir {
 # 400 "fix your bug, stop retrying" from 5xx "retry with backoff" per ADR-006).
 http://api.aradap.ir {
     import crm_common
-    reverse_proxy api:4100 {
+    reverse_proxy api:6100 {
         # TODO(ADR-013): add Arvan's edge ranges so {client_ip} is the real
         # visitor rather than the edge:
         #   trusted_proxies static <arvan-range> <arvan-range> ...
@@ -89,7 +89,7 @@ http://api.aradap.ir {
 # /login today and that is sufficient while all surfaces are same-site.
 http://id.aradap.ir {
     import crm_common
-    reverse_proxy api:4100 {
+    reverse_proxy api:6100 {
         # Same trusted_proxies TODO as api.aradap.ir — this host carries the
         # OTP endpoints, so its client-IP resolution is the one that matters most.
         header_up X-Real-IP {client_ip}

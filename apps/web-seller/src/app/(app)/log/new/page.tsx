@@ -22,7 +22,7 @@ function PickAccount() {
 
   return (
     <main className="min-h-dvh bg-bg pb-28">
-      <header className="border-b border-border bg-surface px-4 pb-4 pt-12">
+      <header className="border-b border-border bg-surface px-4 pb-4 pt-safe">
         <b className="block text-[17px] font-bold">{copy?.title}</b>
         <small className="block text-xs text-fg-muted">{copy?.subtitle}</small>
       </header>

@@ -19,9 +19,19 @@
 
 import { EmptyState } from '@/components/empty-state';
 import { SelectField } from '@/components/field';
+import { SlidersIcon } from '@/components/icons';
 import { Chip, ChipRow, Tag } from '@/components/list-bits';
+import {
+  NO_FILTERS,
+  PipelineFilterSheet,
+  type PipelineFilters,
+  activeFilterCount,
+  filterSummary,
+  matchesFilters,
+  sortItems,
+} from '@/components/pipeline-filter';
 import { ListSkeleton } from '@/components/skeleton';
-import { Subhead } from '@/components/subhead';
+import { Subhead, SubheadButton } from '@/components/subhead';
 import { useToast } from '@/components/toast';
 import { faClock, faDate, faNum, isToday, toFaDigits } from '@/lib/format';
 import { nextActionLabel, stageLabel } from '@/lib/labels';
@@ -50,7 +60,10 @@ const daysSince = (iso: string): number =>
   Math.floor((Date.now() - new Date(iso).getTime()) / DAY_MS);
 
 export default function PipelinePage() {
-  const [stage, setStage] = useState<string | null>(null);
+  // One filter object, two controls: the chip row on the board is the stage
+  // group of the same filter, so the sheet and the board can never disagree.
+  const [filters, setFilters] = useState<PipelineFilters>(NO_FILTERS);
+  const [filterOpen, setFilterOpen] = useState(false);
   const opps = useQuery({
     queryKey: ['opportunities', 'mine'],
     queryFn: () => apiFetch<PipelineResponse>('/v1/opportunities?view=mine'),
@@ -58,16 +71,44 @@ export default function PipelinePage() {
 
   const open = opps.data?.items.filter((o) => o.status === 'open') ?? [];
   const totalRial = open.reduce((sum, o) => sum + BigInt(o.amount_estimate_rial ?? '0'), 0n);
-  const shown = stage ? open.filter((o) => o.stage === stage) : open;
+  const shown = sortItems(
+    open.filter((o) => matchesFilters(o, filters)),
+    filters.sort,
+  );
+  const activeCount = activeFilterCount(filters);
 
   const subtitle =
     open.length === 0
       ? 'هنوز معاملهٔ بازی نداری'
-      : `${faNum(open.length)} معاملهٔ باز · ارزش کل ${compact(totalRial.toString()) ?? '۰'} تومان`;
+      : activeCount > 0
+        ? `${faNum(shown.length)} معاملهٔ نمایش‌داده‌شده از ${faNum(open.length)}`
+        : `${faNum(open.length)} معاملهٔ باز · ارزش کل ${compact(totalRial.toString()) ?? '۰'} تومان`;
 
   return (
     <main className="min-h-dvh pb-28">
-      <Subhead title="پایپلاین فروش" subtitle={opps.isSuccess ? subtitle : 'در حال بارگیری…'} />
+      <Subhead
+        title="پایپلاین فروش"
+        subtitle={opps.isSuccess ? subtitle : 'در حال بارگیری…'}
+        trailing={
+          open.length > 0 ? (
+            <SubheadButton
+              label="فیلتر پایپلاین"
+              onClick={() => setFilterOpen(true)}
+              badge={activeCount}
+            >
+              <SlidersIcon className="h-[18px] w-[18px]" />
+            </SubheadButton>
+          ) : undefined
+        }
+      />
+
+      <PipelineFilterSheet
+        open={filterOpen}
+        onClose={() => setFilterOpen(false)}
+        value={filters}
+        onApply={setFilters}
+        items={open}
+      />
 
       <div className="px-4 pt-4">
         {opps.isPending ? (
@@ -94,17 +135,23 @@ export default function PipelinePage() {
         ) : (
           <>
             <ChipRow>
-              <Chip active={stage === null} onClick={() => setStage(null)} count={open.length}>
+              <Chip
+                active={filters.stage === null}
+                onClick={() => setFilters({ ...filters, stage: null })}
+                count={open.length}
+              >
                 همه
               </Chip>
               {OPPORTUNITY_STAGES.map((s) => {
                 const count = open.filter((o) => o.stage === s.code).length;
-                if (count === 0 && stage !== s.code) return null;
+                if (count === 0 && filters.stage !== s.code) return null;
                 return (
                   <Chip
                     key={s.code}
-                    active={stage === s.code}
-                    onClick={() => setStage(stage === s.code ? null : s.code)}
+                    active={filters.stage === s.code}
+                    onClick={() =>
+                      setFilters({ ...filters, stage: filters.stage === s.code ? null : s.code })
+                    }
                     count={count}
                   >
                     {s.label}
@@ -113,35 +160,82 @@ export default function PipelinePage() {
               })}
             </ChipRow>
 
+            {/* «filter is on» — what is hiding deals, and one tap to stop it */}
+            {activeCount > 0 && (
+              <div className="mt-4 flex items-center gap-2 rounded-md bg-canopy p-2 ps-4 text-on-canopy">
+                <SlidersIcon className="h-[15px] w-[15px] flex-none text-primary" />
+                <span className="min-w-0 flex-1 truncate text-xs font-semibold">
+                  {filterSummary(filters, shown.length)}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setFilters({ ...NO_FILTERS, sort: filters.sort })}
+                  aria-label="حذف فیلترها"
+                  className="grid h-[30px] w-[30px] flex-none place-items-center rounded-sm bg-white/12 transition active:bg-white/25"
+                >
+                  <svg
+                    width="15"
+                    height="15"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2.2"
+                    strokeLinecap="round"
+                    aria-hidden="true"
+                  >
+                    <path d="M18 6 6 18M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+            )}
+
+            {shown.length === 0 && (
+              <EmptyState
+                title="هیچ معامله‌ای با این فیلترها نیست"
+                hint="یکی دو فیلتر را بردار، یا فیلترها را پاک کن تا کل پایپلاین برگردد."
+                action={
+                  <button
+                    type="button"
+                    onClick={() => setFilters({ ...NO_FILTERS, sort: filters.sort })}
+                    className="rounded-md bg-primary px-5 py-2.5 text-sm font-bold text-primary-fg"
+                  >
+                    پاک کردن فیلترها
+                  </button>
+                }
+              />
+            )}
+
             <div className="mt-5 space-y-6">
-              {OPPORTUNITY_STAGES.filter((s) => !stage || s.code === stage).map((s) => {
-                const inStage = shown.filter((o) => o.stage === s.code);
-                if (inStage.length === 0) return null;
-                const stageValue = inStage.reduce(
-                  (sum, o) => sum + BigInt(o.amount_estimate_rial ?? '0'),
-                  0n,
-                );
-                return (
-                  <section key={s.code}>
-                    <div className="mb-2.5 flex items-center gap-2">
-                      <h2 className="text-sm font-bold">{s.label}</h2>
-                      <span className="num rounded-full bg-surface-2 px-2 py-0.5 text-[11px] font-semibold text-fg-muted">
-                        {faNum(inStage.length)}
-                      </span>
-                      {stageValue > 0n && (
-                        <span className="num ms-auto text-[11px] font-semibold text-fg-muted">
-                          {compact(stageValue.toString())}
+              {OPPORTUNITY_STAGES.filter((s) => !filters.stage || s.code === filters.stage).map(
+                (s) => {
+                  const inStage = shown.filter((o) => o.stage === s.code);
+                  if (inStage.length === 0) return null;
+                  const stageValue = inStage.reduce(
+                    (sum, o) => sum + BigInt(o.amount_estimate_rial ?? '0'),
+                    0n,
+                  );
+                  return (
+                    <section key={s.code}>
+                      <div className="mb-2.5 flex items-center gap-2">
+                        <h2 className="text-sm font-bold">{s.label}</h2>
+                        <span className="num rounded-full bg-surface-2 px-2 py-0.5 text-[11px] font-semibold text-fg-muted">
+                          {faNum(inStage.length)}
                         </span>
-                      )}
-                    </div>
-                    <ul className="space-y-2.5">
-                      {inStage.map((opp) => (
-                        <DealCard key={opp.id} opp={opp} />
-                      ))}
-                    </ul>
-                  </section>
-                );
-              })}
+                        {stageValue > 0n && (
+                          <span className="num ms-auto text-[11px] font-semibold text-fg-muted">
+                            {compact(stageValue.toString())}
+                          </span>
+                        )}
+                      </div>
+                      <ul className="space-y-2.5">
+                        {inStage.map((opp) => (
+                          <DealCard key={opp.id} opp={opp} />
+                        ))}
+                      </ul>
+                    </section>
+                  );
+                },
+              )}
             </div>
           </>
         )}

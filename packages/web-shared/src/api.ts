@@ -35,7 +35,7 @@ export interface ApiFetchOptions extends Omit<RequestInit, 'body'> {
 const baseUrl = (): string =>
   process.env.NEXT_PUBLIC_API_BASE_URL ??
   process.env.NEXT_PUBLIC_API_URL ??
-  'http://localhost:4100';
+  'http://localhost:6100';
 
 export const apiFetch = async <T>(path: string, options: ApiFetchOptions = {}): Promise<T> => {
   const { body, idempotencyKey, headers, ...rest } = options;

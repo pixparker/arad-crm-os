@@ -185,7 +185,7 @@ export default function NewLeadPage() {
 
   return (
     <main className="min-h-dvh bg-bg pb-40">
-      <header className="flex items-center gap-3 border-b border-border bg-surface px-4 pb-4 pt-12">
+      <header className="flex items-center gap-3 border-b border-border bg-surface px-4 pb-4 pt-safe">
         <Link
           href="/"
           aria-label="بستن"

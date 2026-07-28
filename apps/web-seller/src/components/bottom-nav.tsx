@@ -18,10 +18,10 @@ import { AddSheet } from '@/components/add-sheet';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useState } from 'react';
-import { CalendarIcon, FolderIcon, FunnelIcon, SunIcon } from './icons';
+import { CalendarIcon, FolderIcon, FunnelIcon, HomeIcon } from './icons';
 
 const items = [
-  { href: '/', label: 'خانه', icon: SunIcon },
+  { href: '/', label: 'خانه', icon: HomeIcon },
   { href: '/pipeline', label: 'پایپلاین', icon: FunnelIcon },
   { href: '/accounts', label: 'مشتریان', icon: FolderIcon },
   { href: '/tasks', label: 'کارها', icon: CalendarIcon },
@@ -64,20 +64,26 @@ export function BottomNav() {
         onClick={() => setAddOpen(true)}
         aria-expanded={addOpen}
         aria-label="افزودن مورد جدید"
-        className={`fixed bottom-[calc(env(safe-area-inset-bottom)+18px)] left-1/2 z-40 grid -translate-x-1/2 place-items-center rounded-full bg-primary text-primary-fg shadow-[0_8px_20px_rgba(24,176,153,0.32)] transition-transform active:scale-95 ${
-          onDashboard ? 'h-16 w-16' : 'h-14 w-14'
+        // Prototype metrics, not a guess: 60px lifted out of the bar with a
+        // white cut-out ring on the dashboard, 48px sitting LOWER and tucked
+        // into the bar everywhere else. The size gap has to be wide enough to
+        // read as a different rank — 64 vs 56 just looks like a rendering bug.
+        className={`fixed left-1/2 z-40 grid -translate-x-1/2 place-items-center rounded-full bg-primary text-primary-fg transition-all duration-200 active:scale-95 ${
+          onDashboard
+            ? 'bottom-[calc(env(safe-area-inset-bottom)+30px)] h-[60px] w-[60px] shadow-[0_8px_22px_rgba(24,176,153,0.44),0_0_0_5px_rgba(255,255,255,0.92)]'
+            : 'bottom-[calc(env(safe-area-inset-bottom)+24px)] h-12 w-12 shadow-[0_4px_12px_rgba(24,176,153,0.32),0_0_0_3px_rgba(255,255,255,0.92)]'
         }`}
       >
         <svg
-          width={onDashboard ? 26 : 22}
-          height={onDashboard ? 26 : 22}
+          width={onDashboard ? 26 : 21}
+          height={onDashboard ? 26 : 21}
           viewBox="0 0 24 24"
           fill="none"
           stroke="currentColor"
           strokeWidth="2.6"
           strokeLinecap="round"
           aria-hidden="true"
-          className={`transition-transform ${addOpen ? 'rotate-45' : ''}`}
+          className={`transition-transform duration-300 ${addOpen ? 'rotate-[135deg]' : ''}`}
         >
           <path d="M12 5v14M5 12h14" />
         </svg>

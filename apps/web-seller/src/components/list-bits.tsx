@@ -109,9 +109,13 @@ export function Chip({
       type="button"
       aria-pressed={active}
       onClick={onClick}
+      // The prototype's selected chip is SOLID navy, not a teal tint: teal is
+      // the action colour and a filter is not an action. A pale-teal chip also
+      // reads as «tappable» rather than «on», which is the opposite of what a
+      // pressed filter should say.
       className={`flex flex-none items-center gap-1.5 rounded-full border px-3.5 py-2 text-[13px] transition ${
         active
-          ? 'border-primary bg-primary-soft font-bold text-primary-ink'
+          ? 'border-canopy bg-canopy font-bold text-on-canopy'
           : 'border-border bg-surface font-medium text-fg-muted'
       }`}
     >
@@ -119,7 +123,7 @@ export function Chip({
       {count !== undefined ? (
         <span
           className={`num rounded-full px-1.5 text-[10px] font-bold ${
-            active ? 'bg-primary/15' : 'bg-surface-2'
+            active ? 'bg-white/15 text-on-canopy-muted' : 'bg-surface-2'
           }`}
         >
           {new Intl.NumberFormat('fa-IR').format(count)}

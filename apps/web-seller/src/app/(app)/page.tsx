@@ -24,6 +24,7 @@ import { useToast } from '@/components/toast';
 import { faClock, faDate, faNum, formatToman, isToday, toFaDigits } from '@/lib/format';
 import { nextActionLabel } from '@/lib/labels';
 import type { LeadsResponse, TodayResponse } from '@/lib/types';
+import { useCollapsedHeader } from '@/lib/use-collapsed-header';
 import { useMe } from '@/lib/use-me';
 import type { DashboardResponse } from '@arad-crm/api-contracts';
 import { ApiError, apiFetch } from '@arad-crm/web-shared';
@@ -49,6 +50,7 @@ const compactToman = (rial: string): { value: string; unit: string } => {
 };
 
 export default function DashboardPage() {
+  const compact = useCollapsedHeader();
   const me = useMe();
   const dash = useQuery({
     queryKey: ['dashboard'],
@@ -64,12 +66,28 @@ export default function DashboardPage() {
 
   return (
     <main className="min-h-dvh pb-28">
-      {/* ── app bar ─────────────────────────────────────────────────────── */}
-      <header className="rounded-b-[28px] bg-canopy px-5 pb-5 pt-12 text-on-canopy">
+      {/* ── app bar ─────────────────────────────────────────────────────────
+          Pinned and collapsing, as in the prototype: past a nudge of scroll the
+          KPI strip folds away and the greeting shrinks, so the day's list gets
+          ~130px of screen back without losing the avatar or the header. */}
+      <header
+        data-compact={compact}
+        className={`sticky top-0 z-30 rounded-b-[28px] bg-canopy px-5 pt-safe text-on-canopy transition-[padding] duration-300 ${
+          compact ? 'pb-3' : 'pb-5'
+        }`}
+      >
         <div className="flex items-start gap-3">
           <div className="min-w-0 flex-1">
-            <p className="text-lg font-bold">{firstName ? `سلام ${firstName} 👋` : 'سلام 👋'}</p>
-            <p className="mt-0.5 text-xs text-on-canopy-muted">
+            <p
+              className={`font-bold transition-all duration-300 ${compact ? 'text-[15px]' : 'text-lg'}`}
+            >
+              {firstName ? `سلام ${firstName} 👋` : 'سلام 👋'}
+            </p>
+            <p
+              className={`overflow-hidden text-xs text-on-canopy-muted transition-all duration-300 ${
+                compact ? 'mt-0 max-h-0 opacity-0' : 'mt-0.5 max-h-8 opacity-100'
+              }`}
+            >
               {faWeekday.format(new Date())}
               {dueCount > 0 ? ` · ${faNum(dueCount)} پیگیری برای امروز` : ' · پیگیری بازی نداری'}
             </p>
@@ -79,7 +97,9 @@ export default function DashboardPage() {
           <Link
             href="/me"
             aria-label="پروفایل من"
-            className="grid h-10 w-10 flex-none place-items-center rounded-full bg-white/15 text-[13px] font-bold transition active:bg-white/25"
+            className={`grid flex-none place-items-center rounded-full bg-white/15 font-bold transition-all duration-300 active:bg-white/25 ${
+              compact ? 'h-8 w-8 text-[11px]' : 'h-10 w-10 text-[13px]'
+            }`}
           >
             {me.data
               ? [...me.data.user.display_name.replace(/[‌\s]/g, '')].slice(0, 2).join('')
@@ -87,7 +107,11 @@ export default function DashboardPage() {
           </Link>
         </div>
 
-        <div className="mt-5 grid grid-cols-3 gap-2">
+        <div
+          className={`grid grid-cols-3 gap-2 overflow-hidden transition-all duration-300 ${
+            compact ? 'mt-0 max-h-0 opacity-0' : 'mt-5 max-h-32 opacity-100'
+          }`}
+        >
           {dash.isPending ? (
             [0, 1, 2].map((i) => (
               <div key={i} className="h-11 rounded-md bg-white/10" aria-hidden="true" />

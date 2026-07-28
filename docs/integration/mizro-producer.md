@@ -5,7 +5,7 @@
 
 ## Transport
 
-`POST https://<crm-host>/v1/integrations/events` (dev: `http://localhost:4100`)
+`POST https://<crm-host>/v1/integrations/events` (dev: `http://localhost:6100`)
 
 Headers 🔒:
 - `content-type: application/json`
@@ -65,6 +65,6 @@ Set `MIZRO_WEBHOOK_SECRET` in both sides' env. Sign + send:
 ```bash
 TS=$(date +%s); BODY='{"id":"<uuid>","type":"payment.received",...}'
 SIG=$(printf '%s.%s' "$TS" "$BODY" | openssl dgst -sha256 -hmac "$SECRET" -r | cut -d' ' -f1)
-curl -X POST localhost:4100/v1/integrations/events -H "content-type: application/json" \
+curl -X POST localhost:6100/v1/integrations/events -H "content-type: application/json" \
   -H "x-arad-timestamp: $TS" -H "x-arad-signature: $SIG" -d "$BODY"
 ```

@@ -31,7 +31,7 @@ Track column per §5: **① core** (architecture/BE/logic) · **② design** (pr
 | # | Feature | Track | State | Notes |
 |---|---|---|---|---|
 | **F01** | Fire-and-forget prod deploy scripts | ① | ✅ built | `scripts/deploy/deploy-{ops,mizro-crm}-prod.sh` + the `deploy.sh` engine. Detaches, logs to `deploy/logs/`, `--dry-run` prints the plan. **Not yet run against the pool** |
-| **F02** | `apps/ops` control-plane app + ops identity/roles | ①+③ | ✅ built | `apps/ops` (:3103) + `/v1/ops/*`. `users.is_ops` + `ops_user_roles`; first ops user via `SEED_OPS_PHONE` |
+| **F02** | `apps/ops` control-plane app + ops identity/roles | ①+③ | ✅ built | `apps/ops` (:6103) + `/v1/ops/*`. `users.is_ops` + `ops_user_roles`; first ops user via `SEED_OPS_PHONE` |
 | **F03** | Business provisioning + user↔business membership | ①+③ | ✅ built | register a business, create users by phone, assign across businesses, suspend/disable |
 | **F04** | Connected apps + typed platform config | ① | ✅ built | `@arad/connect` + `@arad/platform-config` extracted (wave 2); `connections`/`connection_events`/`connection_templates`/`app_settings` |
 | **F05** | Real OTP delivery via the sms.ir connection | ① | ✅ built | `SMS_PROVIDER=connect` routes through Connect. **Unproven against a real sms.ir account** — that is the demo's first live step |

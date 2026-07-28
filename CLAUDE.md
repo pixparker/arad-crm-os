@@ -8,7 +8,7 @@ CRM/sales-OS for Arad; Mizro is client + vertical #1. **Read `docs/architecture/
 - `pnpm services:up` / `services:reset` — dev Postgres (5433) + Redis (6380) + migrate.
 - `pnpm dev:ops` — the Arad control plane (ADR-014). `SEED_OPS_PHONE=09… pnpm db:seed` bootstraps the first ops user; ops roles are granted from the panel after that.
 - `pnpm db:generate` after ANY `packages/db/src/schema.ts` change (drift guard fails otherwise).
-- Dev ports: api **4100**, web-seller **3101**, web-admin **3102**, ops **3103** (Mizro owns 4000/3001-3006/5432/6379 — never reuse).
+- Dev ports: api **6100**, web-seller **6101**, web-admin **6102**, ops **6103** (Mizro owns 4000/3001-3006/5432/6379 — never reuse).
 
 ## Hard rules (CI-enforced, do not work around)
 

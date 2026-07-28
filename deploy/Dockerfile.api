@@ -57,5 +57,5 @@ COPY --from=build /pruned /app
 RUN mkdir -p public && \
     printf 'tag=%s\nbuild_time=%s\n' "$IMAGE_TAG" "$BUILD_TIME" > public/version.txt
 
-EXPOSE 4100
+EXPOSE 6100
 CMD ["node_modules/.bin/tsx", "src/server.ts"]

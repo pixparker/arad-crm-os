@@ -47,6 +47,17 @@ html {
   -webkit-tap-highlight-color: transparent;
 }
 
+/* Top padding for a screen's first header.
+ *
+ * The prototype reserved a flat 62px here because it drew a fake iOS status bar
+ * inside a device frame. A real browser has no such bar, so a fixed pt-12 is
+ * just 48px of dead navy above every title. This asks the device instead: on a
+ * notched phone in standalone mode it is the inset plus breathing room, and in
+ * a browser tab it collapses to the breathing room alone. */
+.pt-safe {
+  padding-top: calc(env(safe-area-inset-top, 0px) + 0.875rem);
+}
+
 body {
   background: var(--ac-bg);
   color: var(--ac-fg);

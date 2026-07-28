@@ -15,6 +15,14 @@ const base = (className: string | undefined) => ({
   'aria-hidden': true,
 });
 
+// «خانه» is a home, not a sunrise. The tab that means "the app's front door"
+// has one universally-read glyph and this is it.
+export const HomeIcon = ({ className }: IconProps) => (
+  <svg {...base(className)}>
+    <path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z" />
+  </svg>
+);
+
 export const SunIcon = ({ className }: IconProps) => (
   <svg {...base(className)}>
     <circle cx="12" cy="12" r="4" />
@@ -104,6 +112,26 @@ export const ClockIcon = ({ className }: IconProps) => (
   <svg {...base(className)}>
     <circle cx="12" cy="12" r="9" />
     <path d="M12 7v5l3 2" />
+  </svg>
+);
+
+export const TargetIcon = ({ className }: IconProps) => (
+  <svg {...base(className)}>
+    <circle cx="12" cy="12" r="9" />
+    <circle cx="12" cy="12" r="3.5" />
+  </svg>
+);
+
+export const BellIcon = ({ className }: IconProps) => (
+  <svg {...base(className)}>
+    <path d="M18 8.5a6 6 0 1 0-12 0c0 6-2 7.5-2 7.5h16s-2-1.5-2-7.5" />
+    <path d="M10.3 20a2 2 0 0 0 3.4 0" />
+  </svg>
+);
+
+export const SlidersIcon = ({ className }: IconProps) => (
+  <svg {...base(className)}>
+    <path d="M3 5h18M6 12h12M10 19h4" />
   </svg>
 );
 

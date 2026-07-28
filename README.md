@@ -7,10 +7,10 @@ Sales execution system + CRM: leads → daily plan → visits → opportunities 
 | Path | What |
 |---|---|
 | `foundation/` | git submodule → [`arad-foundation`](../arad-foundation) — shared `@arad/*` Tier-1 packages |
-| `apps/api` | Hono modular monolith (`src/modules/<module>/`) — port **4100** |
+| `apps/api` | Hono modular monolith (`src/modules/<module>/`) — port **6100** |
 | `apps/worker` | BullMQ jobs: reminders, cadences, reconciliation, event-inbox processing |
-| `apps/web-seller` | Seller PWA («امروز من») — port **3101** |
-| `apps/web-admin` | Manager/owner console — port **3102** |
+| `apps/web-seller` | Seller PWA («امروز من») — port **6101** |
+| `apps/web-admin` | Manager/owner console — port **6102** |
 | `packages/db` | Drizzle schema + migrations + `orgScope()` 🔒 |
 | `packages/config` | Zod-validated env (product-specific; foundation stays neutral) |
 | `packages/api-contracts` | Zod single source of truth for API shapes 🔒 |
@@ -26,7 +26,7 @@ git clone --recurse-submodules git@github.com:pixparker/arad-crm-os.git
 cd arad-crm-os && cp .env.example .env   # fill JWT_SECRET
 pnpm install
 pnpm services:up      # postgres:5433 + redis:6380 (offset from Mizro) + migrate
-pnpm dev              # api :4100 · seller :3101 · admin :3102
+pnpm dev              # api :6100 · seller :6101 · admin :6102 · ops :6103
 pnpm verify           # biome → typecheck → guards → secret-grep → tests
 ```
 
@@ -34,8 +34,8 @@ pnpm verify           # biome → typecheck → guards → secret-grep → tests
 
 | Service | Mizro | **CRM-OS** |
 |---|---|---|
-| api | 4000 | **4100** |
-| web apps | 3001–3006 | **3101–3102** |
+| api | 4000 | **6100** |
+| web apps | 3001–3006 | **6101–6103** |
 | Postgres | 5432 | **5433** |
 | Redis | 6379 | **6380** |
 

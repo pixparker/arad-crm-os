@@ -11,6 +11,10 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
+  // Required for `env(safe-area-inset-*)` to report anything but 0 when the app
+  // is installed to the home screen — the headers and the bottom nav both read
+  // it, and without this they pad for a notch that never gets measured.
+  viewportFit: 'cover',
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {

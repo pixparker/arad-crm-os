@@ -15,7 +15,7 @@ export const envSchema = z.object({
   REDIS_URL: z.string().url(),
 
   // api (Hono) listen port — 41xx block, offset from Mizro's 4000.
-  API_PORT: z.coerce.number().int().positive().default(4100),
+  API_PORT: z.coerce.number().int().positive().default(6100),
 
   // Session JWT secret. Optional at schema layer (web apps never need it);
   // surfaces that consume it call requireJwtSecret().
@@ -65,9 +65,13 @@ export const envSchema = z.object({
   // apps are cross-ORIGIN (different port) though same-site on localhost, so an
   // explicit allowlist is required — '*' is illegal with credentials. Comma-
   // separated; lab/prod set their real hosts.
+  //
+  // All THREE dev apps, ops included: the default left `apps/ops` out, so a
+  // developer with no WEB_ORIGINS in their .env got a CORS wall on the control
+  // plane and nothing to explain it.
   WEB_ORIGINS: z
     .string()
-    .default('http://localhost:3101,http://localhost:3102')
+    .default('http://localhost:6101,http://localhost:6102,http://localhost:6103')
     .transform((s) =>
       s
         .split(',')

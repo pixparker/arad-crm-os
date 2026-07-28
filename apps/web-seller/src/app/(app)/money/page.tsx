@@ -93,6 +93,7 @@ export default function MoneyPage() {
       <Subhead
         title="کمیسیون من"
         back="/"
+        collapse
         subtitle="دفتر فقط‌افزودنی · بدون دستکاری دستی"
         trailing={
           commission.data ? (

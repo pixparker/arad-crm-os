@@ -8,8 +8,15 @@
 //
 // One component rather than six copies: the header is the app's spine, and a
 // screen whose header is two pixels off reads as a different app.
+//
+// It is PINNED, as in the prototype: the list scrolls under it, so the title
+// and the way back never scroll out of reach. A pinned header has to earn its
+// height though — pass `collapse` on the screens that carry a hero and the hero
+// folds away on scroll, leaving the title, the back chevron and `trailing` as
+// the one-line stand-in.
 
 import { ChevronLeftIcon } from '@/components/icons';
+import { useCollapsedHeader } from '@/lib/use-collapsed-header';
 import { useRouter } from 'next/navigation';
 import type { ReactNode } from 'react';
 
@@ -18,6 +25,7 @@ export function Subhead({
   subtitle,
   back,
   trailing,
+  collapse = false,
   children,
 }: {
   title: string;
@@ -25,11 +33,20 @@ export function Subhead({
   /** Show the back chevron. `true` = history back, a string = push that route. */
   back?: boolean | string;
   trailing?: ReactNode;
+  /** Fold `children` (and the subtitle) away once the page scrolls. */
+  collapse?: boolean;
   children?: ReactNode;
 }) {
   const router = useRouter();
+  const compact = useCollapsedHeader(collapse);
+
   return (
-    <header className="rounded-b-[24px] bg-canopy px-4 pb-5 pt-12 text-on-canopy">
+    <header
+      data-compact={compact}
+      className={`sticky top-0 z-30 rounded-b-[24px] bg-canopy px-4 pt-safe text-on-canopy transition-[padding] duration-300 ${
+        compact ? 'pb-3' : 'pb-5'
+      }`}
+    >
       <div className="flex items-start gap-3">
         {back ? (
           <button
@@ -44,12 +61,35 @@ export function Subhead({
         <span className="min-w-0 flex-1">
           <b className="block truncate text-[17px] font-bold">{title}</b>
           {subtitle ? (
-            <small className="mt-0.5 block text-xs text-on-canopy-muted">{subtitle}</small>
+            <small
+              className={`block overflow-hidden text-xs text-on-canopy-muted transition-all duration-300 ${
+                compact ? 'mt-0 max-h-0 opacity-0' : 'mt-0.5 max-h-8 opacity-100'
+              }`}
+            >
+              {subtitle}
+            </small>
           ) : null}
         </span>
-        {trailing}
+        {/* The stand-in: nothing while the hero is open, the headline once it folds. */}
+        {trailing ? (
+          <span
+            className={`flex-none transition-opacity duration-200 ${
+              children && !compact ? 'pointer-events-none opacity-0' : 'opacity-100'
+            }`}
+          >
+            {trailing}
+          </span>
+        ) : null}
       </div>
-      {children}
+      {children ? (
+        <div
+          className={`overflow-hidden transition-all duration-300 ${
+            compact ? 'max-h-0 opacity-0' : 'max-h-[320px] opacity-100'
+          }`}
+        >
+          {children}
+        </div>
+      ) : null}
     </header>
   );
 }

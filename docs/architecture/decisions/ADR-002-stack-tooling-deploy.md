@@ -28,7 +28,8 @@ Mizro's stack is proven in production on the same infrastructure (mvp-pool), on 
 
 ## Deployment
 
-- **Target:** mvp-pool shared host ("pagio") behind Caddy — register the CRM's slug + **port allocations** in mvp-pool. **Locked dev allocation (never collides with Mizro's 4000/3001-3006/5432/6379):** api **4100** · web-seller **3101** · web-admin **3102** · Postgres **5433** · Redis **6380**.
+- **Target:** mvp-pool shared host ("pagio") behind Caddy — register the CRM's slug + **port allocations** in mvp-pool. **Locked dev allocation (never collides with Mizro's 4000/3001-3006/5432/6379):** api **6100** · web-seller **6101** · web-admin **6102** · ops **6103** · Postgres **5433** · Redis **6380**.
+  - *Amended 2026-07-28 (founder):* the app ports moved from 4100/3101–3103 to a single **6100–6103** block. 4100 and 3101–3103 sit one digit away from Mizro's 4000 and 3001–3006, which is close enough that a stray process on either side reads as the other product's — the failure looks like a port clash long before anyone suspects the wrong app answered. One contiguous block nowhere near Mizro's ranges removes the ambiguity. The datastore ports are unchanged: 5433/6380 already sit in their own space, and moving them would churn every existing `.env` and volume mapping for no gain.
 - **Containers:** per-app Dockerfiles (`deploy/Dockerfile.api|worker|web-seller|web-admin`); dev via `deploy/dev/compose.yaml` = postgres:16-alpine + redis:7-alpine + caddy (apps run natively with `tsx watch`/`next dev`).
 - **CI/CD:** mirror Mizro's — CI: Biome → typecheck → guard scripts → Vitest (+ PG service container). CD: self-hosted runner builds images → object storage → staged manifest → **Telegram `/promote`** flip. Reuse the pipeline scripts, parameterized.
 - **Isolation:** own DB, own Redis logical DB, own Sentry projects, own cookies/domains. Integration with Mizro is HTTP-only (ADR-006). 🔒
