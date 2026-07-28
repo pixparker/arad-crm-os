@@ -17,6 +17,22 @@ export const nextActionLabel = (code: string): string => byCode(NEXT_ACTION_TYPE
 export const stageLabel = (code: string): string => byCode(OPPORTUNITY_STAGES, code);
 export const lossReasonLabel = (code: string): string => byCode(LOSS_REASONS, code);
 
+// The role a person holds in the active workspace, as they would say it out
+// loud. `visitor_seller` is a code; «فروشندهٔ میدانی» is what is on their card.
+export const ROLE_FA: Record<string, string> = {
+  visitor_seller: 'فروشندهٔ میدانی',
+  followup_seller: 'فروشندهٔ پیگیری',
+  sales_manager: 'مدیر فروش',
+  owner_admin: 'مدیر کسب‌وکار',
+  deployment_ops: 'کارشناس استقرار',
+  finance: 'مالی',
+};
+
+export const CONTRACT_TYPE_FA: Record<string, string> = {
+  full_time: 'تمام‌وقت',
+  part_time: 'پاره‌وقت',
+};
+
 export const ACCOUNT_STATUS_FA: Record<string, string> = {
   prospect: 'پراسپکت',
   in_funnel: 'در قیف',

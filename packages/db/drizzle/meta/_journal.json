@@ -29,6 +29,13 @@
       "when": 1785179547280,
       "tag": "0003_producer-bindings",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1785237716894,
+      "tag": "0004_opportunity-stage-age",
+      "breakpoints": true
     }
   ]
 }

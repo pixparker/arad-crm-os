@@ -12,6 +12,7 @@
 
 import { BottomNav } from '@/components/bottom-nav';
 import { SplashSkeleton } from '@/components/skeleton';
+import { ROLE_FA } from '@/lib/labels';
 import { useMe } from '@/lib/use-me';
 import type { Workspace } from '@arad-crm/api-contracts';
 import { ApiError, apiFetch } from '@arad-crm/web-shared';
@@ -94,7 +95,7 @@ function WorkspacePicker({ workspaces }: { workspaces: Workspace[] }) {
               }`}
             >
               <span className="font-bold">{w.organization_name}</span>
-              <span className="text-xs text-fg-muted">{w.role}</span>
+              <span className="text-xs text-fg-muted">{ROLE_FA[w.role] ?? w.role}</span>
             </button>
           </li>
         ))}

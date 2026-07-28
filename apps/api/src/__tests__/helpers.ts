@@ -19,7 +19,13 @@ import { SESSION_COOKIE } from '../middleware/session.js';
 // Digits only: tests build phone numbers out of `runId.slice(-4)`, and a
 // separator or a short random suffix landed a non-digit in the middle of one —
 // a flake that only appeared when Math.random() rolled a short number.
-export const runId = `${Date.now()}${String(Math.floor(Math.random() * 10_000)).padStart(4, '0')}`;
+//
+// That tail is the whole namespace separating one test FILE's phone numbers
+// from another's, and files run in parallel workers. A random tail collides on
+// the birthday problem — around once every few hundred runs with eight files,
+// which is exactly often enough to look like a real bug. The pid cannot:
+// concurrent workers never share one.
+export const runId = `${Date.now()}${String(process.pid % 10_000).padStart(4, '0')}`;
 let phoneCounter = 0;
 
 export interface World {

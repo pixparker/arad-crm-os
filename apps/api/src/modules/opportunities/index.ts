@@ -5,6 +5,7 @@
 import {
   createOpportunityBodySchema,
   opportunityDetailSchema,
+  pipelineResponseSchema,
   updateOpportunityBodySchema,
 } from '@arad-crm/api-contracts';
 import { accounts, db, leads, opportunities, orgScope, users } from '@arad-crm/db';
@@ -15,11 +16,11 @@ import { Hono } from 'hono';
 import { writeAudit } from '../../lib/tenant-audit.js';
 import { isSeller, requireActor, session } from '../../middleware/session.js';
 import { accountView } from '../accounts/index.js';
-import { accountTimeline } from '../activities/index.js';
+import { accountTimeline, commitmentsByAccount } from '../activities/index.js';
 import { leadView } from '../leads/index.js';
 import { opportunityView } from './service.js';
 
-export { opportunityView } from './service.js';
+export { hasOpenDeal, openDealsByAccount, opportunityView } from './service.js';
 
 const toOpp = opportunityView;
 
@@ -34,14 +35,46 @@ export const opportunitiesRoutes = new Hono()
       filters.push(eq(opportunities.ownerId, actor.userId));
     }
     const rows = await db
-      .select({ opp: opportunities, accountName: accounts.name, ownerName: users.displayName })
+      .select({
+        opp: opportunities,
+        accountName: accounts.name,
+        regionText: accounts.regionText,
+        ownerName: users.displayName,
+      })
       .from(opportunities)
       .innerJoin(accounts, eq(accounts.id, opportunities.accountId))
       .leftJoin(users, eq(users.id, opportunities.ownerId))
       .where(and(orgScope(opportunities.organizationId, actor.orgId), ...filters))
       .orderBy(desc(opportunities.createdAt))
       .limit(200);
-    return c.json({ items: rows.map((r) => toOpp(r.opp, r.accountName, r.ownerName)) });
+
+    // The card in «پایپلاین» has to answer "and what happens next?" — a deal
+    // with no dated next step is the one thing the screen must not hide.
+    // Commitments belong to the actor, so this is only meaningful for one's own
+    // book; a manager reading the whole org gets deals without the annotation
+    // rather than someone else's promises mislabelled as theirs.
+    const own = view === 'mine' || isSeller(actor.role);
+    const commitments = own
+      ? await commitmentsByAccount(
+          actor.orgId,
+          actor.userId,
+          rows.filter((r) => r.opp.status === 'open').map((r) => r.opp.accountId),
+        )
+      : new Map();
+
+    return c.json(
+      pipelineResponseSchema.parse({
+        items: rows.map((r) => {
+          const commitment = commitments.get(r.opp.accountId);
+          return {
+            ...toOpp(r.opp, r.accountName, r.ownerName),
+            region_text: r.regionText,
+            next_action_type: commitment?.action_type ?? null,
+            next_action_at: commitment?.due_at ?? null,
+          };
+        }),
+      }),
+    );
   })
   .post('/', async (c) => {
     const actor = requireActor(c);
@@ -171,7 +204,11 @@ export const opportunitiesRoutes = new Hono()
       await tx
         .update(opportunities)
         .set({
-          ...(body.stage ? { stage: body.stage } : {}),
+          // A stage change restarts the stage clock; anything else leaves it
+          // alone, so «۶ روز در این مرحله» keeps counting from the move.
+          ...(body.stage && body.stage !== opp.stage
+            ? { stage: body.stage, stageEnteredAt: new Date() }
+            : {}),
           ...(body.status === 'lost'
             ? {
                 status: 'lost' as const,

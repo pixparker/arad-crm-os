@@ -6,6 +6,7 @@
 
 import {
   accountDetailSchema,
+  accountListResponseSchema,
   accountLookupResponseSchema,
   attributionClaimSchema,
   createAccountBodySchema,
@@ -16,11 +17,12 @@ import { accounts, attributionClaims, db, orgScope, users } from '@arad-crm/db';
 import { findingsSchema, mergeFindings } from '@arad-crm/vertical-mizro';
 import { normalizeIranianMobile } from '@arad/auth-otp';
 import { ConflictError, ForbiddenError, NotFoundError, ValidationError } from '@arad/errors';
-import { type SQL, and, desc, eq, ilike, ne, or } from 'drizzle-orm';
+import { type SQL, and, desc, eq, ilike, ne, not, or } from 'drizzle-orm';
 import { Hono } from 'hono';
 import { writeAudit } from '../../lib/tenant-audit.js';
 import { isSeller, requireActor, session } from '../../middleware/session.js';
-import { accountTimeline } from '../activities/index.js';
+import { accountTimeline, commitmentsByAccount, lastTouchByAccount } from '../activities/index.js';
+import { hasOpenDeal, openDealsByAccount } from '../opportunities/index.js';
 import { accountView, assertAccountVisible, canSeeAccount, loadAccount } from './service.js';
 
 export { accountView, assertAccountVisible, canSeeAccount, loadAccount } from './service.js';
@@ -40,23 +42,59 @@ export const accountsRoutes = new Hono()
   .get('/', async (c) => {
     const actor = requireActor(c);
     const q = c.req.query('q');
+    // «همه / سرنخ / فرصت / مشتری». A file is a CUSTOMER when a payment made it
+    // one 🔒, an OPPORTUNITY while it carries an open deal, and a LEAD otherwise
+    // — derived, never a field someone can set to disagree with the money.
+    const segment = c.req.query('segment') ?? 'all';
     const filters: SQL[] = [];
     // 🔒 seller visibility: own territory only (managers/owner/finance see org)
     if (isSeller(actor.role)) {
-      if (!actor.territoryId) return c.json({ items: [] });
+      if (!actor.territoryId) return c.json(accountListResponseSchema.parse({ items: [] }));
       filters.push(eq(accounts.territoryId, actor.territoryId));
     }
     if (q) {
       const search = or(ilike(accounts.name, `%${q}%`), ilike(accounts.phone, `%${q}%`));
       if (search) filters.push(search);
     }
+
+    const openDeal = hasOpenDeal(accounts.id, actor.orgId);
+    if (segment === 'customer') filters.push(eq(accounts.status, 'customer'));
+    if (segment === 'opportunity') filters.push(openDeal);
+    if (segment === 'lead') filters.push(ne(accounts.status, 'customer'), not(openDeal));
+
     const rows = await db
       .select()
       .from(accounts)
       .where(and(orgScope(accounts.organizationId, actor.orgId), ...filters))
       .orderBy(desc(accounts.updatedAt))
       .limit(100);
-    return c.json({ items: rows.map(toAccount) });
+
+    const ids = rows.map((r) => r.id);
+    // Three questions the row has to answer, asked once for the whole page
+    // instead of once per row: what did I promise, when did anyone last touch
+    // it, and how much is open on it.
+    const [commitments, touchedAt, openDeals] = await Promise.all([
+      commitmentsByAccount(actor.orgId, actor.userId, ids),
+      lastTouchByAccount(actor.orgId, ids),
+      openDealsByAccount(actor.orgId, ids),
+    ]);
+
+    return c.json(
+      accountListResponseSchema.parse({
+        items: rows.map((row) => {
+          const commitment = commitments.get(row.id);
+          const open = openDeals.get(row.id);
+          return {
+            ...toAccount(row),
+            next_action_type: commitment?.action_type ?? null,
+            next_action_at: commitment?.due_at ?? null,
+            last_activity_at: touchedAt.get(row.id) ?? null,
+            open_opportunities: open?.count ?? 0,
+            open_value_rial: open?.valueRial ?? '0',
+          };
+        }),
+      }),
+    );
   })
   // ＋ «مشتری» — a file for a business already known, no lead pipeline involved.
   .post('/', async (c) => {

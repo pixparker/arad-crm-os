@@ -3,7 +3,11 @@
 // OR a close reason — nothing rots. Findings are vertical-validated and merge
 // into the account file (founder: "cafe-abc is luxury → offer VIP").
 
-import { logActivityBodySchema, todayResponseSchema } from '@arad-crm/api-contracts';
+import {
+  agendaResponseSchema,
+  logActivityBodySchema,
+  todayResponseSchema,
+} from '@arad-crm/api-contracts';
 import { accounts, activities, db, leads, opportunities, orgScope } from '@arad-crm/db';
 import {
   VISIT_OUTCOMES,
@@ -14,13 +18,21 @@ import {
   mergeFindings,
 } from '@arad-crm/vertical-mizro';
 import { NotFoundError, ValidationError } from '@arad/errors';
-import { and, desc, eq, gte, inArray, isNotNull, isNull, lte, sql } from 'drizzle-orm';
+import { and, eq, gte, sql } from 'drizzle-orm';
 import { Hono } from 'hono';
 import { endOfDayTehran, startOfDayTehran } from '../../lib/tehran-time.js';
-import { isSeller, requireActor, session } from '../../middleware/session.js';
+import { requireActor, session } from '../../middleware/session.js';
+import { openCommitments } from './service.js';
 
 // The module's service surface — how other modules read this history 🔒
-export { accountTimeline } from './service.js';
+export {
+  accountTimeline,
+  commitmentsByAccount,
+  lastTouchByAccount,
+  openCommitments,
+} from './service.js';
+
+const DAY_MS = 86_400_000;
 
 export const activitiesRoutes = new Hono()
   .use('*', session())
@@ -119,11 +131,19 @@ export const activitiesRoutes = new Hono()
             .where(and(orgScope(leads.organizationId, actor.orgId), eq(leads.id, body.lead_id)))
         )[0];
         if (lead && lead.status !== 'qualified' && lead.status !== 'lost') {
+          // 🔒 Whoever works the lead owns it. An UNASSIGNED lead moved to
+          // `in_progress` is orphaned: it is no longer `new`, so it drops out
+          // of «سرنخ‌های قابل برداشت», and it belongs to nobody, so it appears
+          // on no seller's day — a dated promise nothing surfaces. That is the
+          // "nothing rots" invariant failing silently, and it happens on the
+          // ordinary path where a manager captures the lead and then calls.
+          const owner = lead.assignedTo ?? actor.userId;
           await tx
             .update(leads)
             .set(
               closes
                 ? {
+                    assignedTo: owner,
                     status: 'lost',
                     closeReason: body.close_reason ?? body.outcome ?? 'closed',
                     nextActionType: null,
@@ -131,6 +151,7 @@ export const activitiesRoutes = new Hono()
                     updatedAt: new Date(),
                   }
                 : {
+                    assignedTo: owner,
                     status: 'in_progress',
                     nextActionType: body.next_action_type ?? lead.nextActionType,
                     nextActionAt: body.next_action_at
@@ -153,69 +174,7 @@ export const activitiesRoutes = new Hono()
     const startOfDay = startOfDayTehran();
     const endOfDay = endOfDayTehran();
 
-    const due = await db
-      .select({ lead: leads, account: accounts })
-      .from(leads)
-      .innerJoin(accounts, eq(accounts.id, leads.accountId))
-      .where(
-        and(
-          orgScope(leads.organizationId, actor.orgId),
-          eq(leads.assignedTo, actor.userId),
-          inArray(leads.status, ['assigned', 'in_progress']),
-          isNotNull(leads.nextActionAt),
-          lte(leads.nextActionAt, endOfDay),
-        ),
-      )
-      .orderBy(leads.nextActionAt)
-      .limit(50);
-
-    // 🔒 A commitment made on an account with no lead is still a commitment.
-    // The ＋'s «مشتری» files a customer without a pipeline entry, and a visit
-    // logged against it carries its next action on the ACTIVITY row — there is
-    // no lead to hold it. Reading the day from leads alone dropped exactly
-    // those, which is the "nothing rots" invariant failing quietly for every
-    // account that never was a lead.
-    //
-    // The standing commitment is the one on the seller's latest activity for
-    // that account: a newer visit supersedes what the previous one promised.
-    const latestPerAccount = db
-      .select({
-        accountId: activities.accountId,
-        at: sql<Date>`max(${activities.occurredAt})`.as('at'),
-      })
-      .from(activities)
-      .where(
-        and(
-          orgScope(activities.organizationId, actor.orgId),
-          eq(activities.sellerId, actor.userId),
-          isNull(activities.leadId),
-        ),
-      )
-      .groupBy(activities.accountId)
-      .as('latest_per_account');
-
-    const standalone = await db
-      .select({ activity: activities, account: accounts })
-      .from(activities)
-      .innerJoin(
-        latestPerAccount,
-        and(
-          eq(activities.accountId, latestPerAccount.accountId),
-          eq(activities.occurredAt, latestPerAccount.at),
-        ),
-      )
-      .innerJoin(accounts, eq(accounts.id, activities.accountId))
-      .where(
-        and(
-          orgScope(activities.organizationId, actor.orgId),
-          eq(activities.sellerId, actor.userId),
-          isNull(activities.leadId),
-          isNotNull(activities.nextActionAt),
-          lte(activities.nextActionAt, endOfDay),
-        ),
-      )
-      .orderBy(activities.nextActionAt)
-      .limit(50);
+    const due = await openCommitments(actor.orgId, actor.userId, endOfDay);
 
     const pickedToday = (
       await db
@@ -246,30 +205,57 @@ export const activitiesRoutes = new Hono()
     return c.json(
       todayResponseSchema.parse({
         date: new Date().toISOString(),
-        // Both kinds of commitment, one list, soonest first — the seller's day
-        // does not care which table the promise happens to live in.
-        due_actions: [
-          ...due.map((d) => ({
-            lead_id: d.lead.id,
-            account_id: d.account.id,
-            account_name: d.account.name,
-            region_text: d.account.regionText,
-            action_type: d.lead.nextActionType,
-            due_at: d.lead.nextActionAt?.toISOString() ?? null,
-            overdue: (d.lead.nextActionAt?.getTime() ?? 0) < startOfDay.getTime(),
-          })),
-          ...standalone.map((s) => ({
-            lead_id: null,
-            account_id: s.account.id,
-            account_name: s.account.name,
-            region_text: s.account.regionText,
-            action_type: s.activity.nextActionType,
-            due_at: s.activity.nextActionAt?.toISOString() ?? null,
-            overdue: (s.activity.nextActionAt?.getTime() ?? 0) < startOfDay.getTime(),
-          })),
-        ].sort((a, b) => (a.due_at ?? '').localeCompare(b.due_at ?? '')),
+        due_actions: due,
         open_opportunities: openOpps?.n ?? 0,
         picked_today: pickedToday?.n ?? 0,
+      }),
+    );
+  })
+  // «کارها و یادآورها» — the day screen widened to a horizon (prototype ۰۷).
+  // Overdue is its own bucket rather than a badge on today: a promise broken
+  // yesterday is a different kind of work from one due at 11:00, and folding
+  // the two together is how overdue items quietly become invisible.
+  .get('/agenda', async (c) => {
+    const actor = requireActor(c);
+    const requested = Number(c.req.query('days') ?? '7');
+    const horizon = Number.isFinite(requested) ? Math.min(Math.max(requested, 1), 30) : 7;
+
+    const startOfToday = startOfDayTehran();
+    const endOfHorizon = new Date(startOfToday.getTime() + horizon * DAY_MS - 1);
+
+    const all = await openCommitments(actor.orgId, actor.userId, endOfHorizon);
+
+    // Tehran calendar day of an instant — the bucket key. Formatting in en-CA
+    // yields YYYY-MM-DD, which sorts and compares as a plain string.
+    const tehranDay = (at: Date): string =>
+      new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Tehran' }).format(at);
+
+    const buckets = new Map<string, typeof all>();
+    for (let i = 0; i < horizon; i++) {
+      buckets.set(tehranDay(new Date(startOfToday.getTime() + i * DAY_MS)), []);
+    }
+
+    const overdue: typeof all = [];
+    for (const item of all) {
+      if (item.overdue || !item.due_at) {
+        overdue.push(item);
+        continue;
+      }
+      // A commitment inside the horizon always lands in a bucket; the guard is
+      // for the boundary instant, which belongs to the day after the last one.
+      buckets.get(tehranDay(new Date(item.due_at)))?.push(item);
+    }
+
+    return c.json(
+      agendaResponseSchema.parse({
+        generated_at: new Date().toISOString(),
+        today: tehranDay(startOfToday),
+        overdue,
+        days: [...buckets.entries()].map(([date, items], i) => ({
+          date,
+          starts_at: new Date(startOfToday.getTime() + i * DAY_MS).toISOString(),
+          items,
+        })),
       }),
     );
   });

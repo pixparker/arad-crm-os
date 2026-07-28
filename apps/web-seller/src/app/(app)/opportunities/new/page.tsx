@@ -2,7 +2,8 @@
 
 // ＋ «فرصت» — confirmed need and fit on a file that already exists. Two steps,
 // because a deal without an account is not a deal: pick the file, then say what
-// stage it is at and what it is worth.
+// stage it is at and what it is worth. Arriving from a file («فرصت» on the
+// record screen) skips step one — the seller already answered it.
 //
 // 🔒 `status` is not on this form at all. A deal becomes `won` when a payment
 // event arrives from Mizro — never because someone tapped a button. And the
@@ -13,19 +14,40 @@ import { ChoiceChip, TextField } from '@/components/field';
 import { FormShell } from '@/components/form-shell';
 import { useToast } from '@/components/toast';
 import { faNum, normalizeDigits, toFaDigits } from '@/lib/format';
+import type { AccountDetailResponse } from '@/lib/types';
 import type { Opportunity } from '@arad-crm/api-contracts';
 import { OPPORTUNITY_STAGES } from '@arad-crm/vertical-mizro';
 import { apiFetch } from '@arad-crm/web-shared';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { useRouter } from 'next/navigation';
-import { type FormEvent, useState } from 'react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { type FormEvent, Suspense, useState } from 'react';
 
-export default function NewOpportunityPage() {
+function NewOpportunityForm() {
   const router = useRouter();
   const toast = useToast();
   const queryClient = useQueryClient();
+  const preselected = useSearchParams().get('account');
 
-  const [account, setAccount] = useState<{ id: string; name: string } | null>(null);
+  const [picked, setPicked] = useState<{ id: string; name: string } | null>(null);
+  const [cleared, setCleared] = useState(false);
+
+  // Only fetched when the ＋ was pressed from a file and nothing is picked yet.
+  const prefill = useQuery({
+    queryKey: ['accounts', preselected],
+    queryFn: () => apiFetch<AccountDetailResponse>(`/v1/accounts/${preselected}`),
+    enabled: Boolean(preselected) && !picked && !cleared,
+  });
+
+  const account =
+    picked ??
+    (!cleared && prefill.data
+      ? { id: prefill.data.account.id, name: prefill.data.account.name }
+      : null);
+
+  const setAccount = (next: { id: string; name: string } | null) => {
+    setPicked(next);
+    if (next === null) setCleared(true);
+  };
   const [stage, setStage] = useState(OPPORTUNITY_STAGES[0]?.code ?? 'qualified');
   const [toman, setToman] = useState('');
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -131,5 +153,14 @@ export default function NewOpportunityPage() {
         onChange={(e) => setToman(normalizeDigits(e.target.value).replace(/\D/g, '').slice(0, 12))}
       />
     </FormShell>
+  );
+}
+
+export default function NewOpportunityPage() {
+  // useSearchParams needs a Suspense boundary in the app router.
+  return (
+    <Suspense fallback={<div className="min-h-dvh bg-bg" />}>
+      <NewOpportunityForm />
+    </Suspense>
   );
 }

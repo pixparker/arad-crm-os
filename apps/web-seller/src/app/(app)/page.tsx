@@ -66,12 +66,25 @@ export default function DashboardPage() {
     <main className="min-h-dvh pb-28">
       {/* ── app bar ─────────────────────────────────────────────────────── */}
       <header className="rounded-b-[28px] bg-canopy px-5 pb-5 pt-12 text-on-canopy">
-        <div className="min-w-0">
-          <p className="text-lg font-bold">{firstName ? `سلام ${firstName} 👋` : 'سلام 👋'}</p>
-          <p className="mt-0.5 text-xs text-on-canopy-muted">
-            {faWeekday.format(new Date())}
-            {dueCount > 0 ? ` · ${faNum(dueCount)} پیگیری برای امروز` : ' · پیگیری بازی نداری'}
-          </p>
+        <div className="flex items-start gap-3">
+          <div className="min-w-0 flex-1">
+            <p className="text-lg font-bold">{firstName ? `سلام ${firstName} 👋` : 'سلام 👋'}</p>
+            <p className="mt-0.5 text-xs text-on-canopy-muted">
+              {faWeekday.format(new Date())}
+              {dueCount > 0 ? ` · ${faNum(dueCount)} پیگیری برای امروز` : ' · پیگیری بازی نداری'}
+            </p>
+          </div>
+          {/* The prototype puts the avatar here and routes it to the profile —
+              the only way into «پروفایل» now that the tab bar has four tabs. */}
+          <Link
+            href="/me"
+            aria-label="پروفایل من"
+            className="grid h-10 w-10 flex-none place-items-center rounded-full bg-white/15 text-[13px] font-bold transition active:bg-white/25"
+          >
+            {me.data
+              ? [...me.data.user.display_name.replace(/[‌\s]/g, '')].slice(0, 2).join('')
+              : ''}
+          </Link>
         </div>
 
         <div className="mt-5 grid grid-cols-3 gap-2">

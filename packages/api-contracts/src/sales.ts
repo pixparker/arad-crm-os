@@ -103,6 +103,21 @@ export const createAccountBodySchema = z.object({
 });
 export type CreateAccountBody = z.infer<typeof createAccountBodySchema>;
 
+// A row in «سرنخ‌ها و مشتریان». The account plus the three things the list
+// screen judges it by: is there a next step, when was it last touched, and is
+// there money on the table. Derived per-actor (the commitment is the ACTOR's,
+// not the file's), which is why it is a list shape and not part of `account`.
+export const accountListItemSchema = accountSchema.extend({
+  next_action_type: z.string().nullable(),
+  next_action_at: z.string().nullable(),
+  last_activity_at: z.string().nullable(),
+  open_opportunities: z.number().int(),
+  open_value_rial: rialAmountSchema,
+});
+export type AccountListItem = z.infer<typeof accountListItemSchema>;
+
+export const accountListResponseSchema = z.object({ items: z.array(accountListItemSchema) });
+
 // Pre-create duplicate check for the ＋ sheet. 🔒 A file the actor may not read
 // is reported as taken WITHOUT its contents: the seller learns "already
 // registered, not yours" and can ask a manager, instead of either creating a
@@ -234,23 +249,46 @@ export const activitySchema = z.object({
 });
 export type Activity = z.infer<typeof activitySchema>;
 
+// A promise the seller made, with a date on it. It lives either on the lead
+// (pipeline work) or on the latest activity for a file that never was a lead —
+// one shape either way, because the seller's day does not care which table the
+// commitment happens to sit in.
+export const commitmentSchema = z.object({
+  lead_id: z.string().nullable(),
+  account_id: z.string(),
+  account_name: z.string(),
+  region_text: z.string().nullable(),
+  action_type: z.string().nullable(),
+  due_at: z.string().nullable(),
+  overdue: z.boolean(),
+});
+export type Commitment = z.infer<typeof commitmentSchema>;
+
 // «امروز من» — the seller's day
 export const todayResponseSchema = z.object({
   date: z.string(),
-  due_actions: z.array(
-    z.object({
-      lead_id: z.string().nullable(),
-      account_id: z.string(),
-      account_name: z.string(),
-      region_text: z.string().nullable(),
-      action_type: z.string().nullable(),
-      due_at: z.string().nullable(),
-      overdue: z.boolean(),
-    }),
-  ),
+  due_actions: z.array(commitmentSchema),
   open_opportunities: z.number().int(),
   picked_today: z.number().int(),
 });
+
+// «کارها و یادآورها» — the same commitments over a horizon, bucketed by Tehran
+// calendar day. Buckets are emitted even when empty so the day strip can show
+// a free day as free instead of hiding it.
+export const agendaResponseSchema = z.object({
+  generated_at: z.string(),
+  // Gregorian YYYY-MM-DD of Tehran's today — the anchor for the day strip.
+  today: z.string(),
+  overdue: z.array(commitmentSchema),
+  days: z.array(
+    z.object({
+      date: z.string(), // Tehran calendar day, YYYY-MM-DD
+      starts_at: z.string(), // the instant that day began, for formatting
+      items: z.array(commitmentSchema),
+    }),
+  ),
+});
+export type AgendaResponse = z.infer<typeof agendaResponseSchema>;
 
 // ── opportunities ───────────────────────────────────────────────────────────
 
@@ -266,9 +304,24 @@ export const opportunitySchema = z.object({
   win_reason: z.string().nullable(),
   loss_reason: z.string().nullable(),
   won_at: z.string().nullable(),
+  // When the deal entered the stage it is in now — «۶ روز در این مرحله». A deal
+  // that has sat in «مذاکره» for three weeks is the pipeline's loudest signal,
+  // and `updated_at` cannot say it: any edit resets it.
+  stage_entered_at: z.string(),
   created_at: z.string(),
 });
 export type Opportunity = z.infer<typeof opportunitySchema>;
+
+// A card in «پایپلاین». The deal plus the commitment standing on its file, so
+// the card can say «تماس امروز ۱۱:۰۰» or admit «قدم بعدی تعیین نشده».
+export const pipelineItemSchema = opportunitySchema.extend({
+  region_text: z.string().nullable(),
+  next_action_type: z.string().nullable(),
+  next_action_at: z.string().nullable(),
+});
+export type PipelineItem = z.infer<typeof pipelineItemSchema>;
+
+export const pipelineResponseSchema = z.object({ items: z.array(pipelineItemSchema) });
 
 export const createOpportunityBodySchema = z.object({
   account_id: z.string(),

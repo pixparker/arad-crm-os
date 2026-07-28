@@ -42,6 +42,20 @@ export const WalletIcon = ({ className }: IconProps) => (
   </svg>
 );
 
+export const CalendarIcon = ({ className }: IconProps) => (
+  <svg {...base(className)}>
+    <rect x="3" y="5" width="18" height="16" rx="2.5" />
+    <path d="M8 3v4M16 3v4M3 10h18M8.5 15l2 2 4-4" />
+  </svg>
+);
+
+export const UserIcon = ({ className }: IconProps) => (
+  <svg {...base(className)}>
+    <circle cx="12" cy="8" r="3.6" />
+    <path d="M5 20a7 7 0 0 1 14 0" />
+  </svg>
+);
+
 export const PlusIcon = ({ className }: IconProps) => (
   <svg {...base(className)}>
     <path d="M12 5v14M5 12h14" />

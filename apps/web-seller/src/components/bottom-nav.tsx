@@ -4,9 +4,11 @@
 // FAB straddling the bar — thumb zone, one primary action, always the same
 // place (ux-best-practices/bottom-sheet-and-thumb-zone).
 //
-// The prototype's fourth tab is «کارها», a screen that does not exist yet; the
-// tab set here is the four screens that do. A tab that leads nowhere teaches
-// the seller that the bar lies.
+// The tab set is the prototype's: خانه · پایپلاین — ＋ — مشتریان · کارها.
+// «کمیسیون» is NOT a tab; it is reached from the dashboard's commission card
+// and from the profile, exactly as the prototype routes it. Four tabs is the
+// limit at which a bottom bar stays readable one-handed, and money is a place
+// a seller visits, not a place they work.
 //
 // The FAB is large on the dashboard and small elsewhere — the prototype's own
 // rule: the home screen is where "add something" is the point, everywhere else
@@ -16,13 +18,13 @@ import { AddSheet } from '@/components/add-sheet';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useState } from 'react';
-import { FolderIcon, FunnelIcon, SunIcon, WalletIcon } from './icons';
+import { CalendarIcon, FolderIcon, FunnelIcon, SunIcon } from './icons';
 
 const items = [
   { href: '/', label: 'خانه', icon: SunIcon },
   { href: '/pipeline', label: 'پایپلاین', icon: FunnelIcon },
   { href: '/accounts', label: 'مشتریان', icon: FolderIcon },
-  { href: '/money', label: 'کمیسیون', icon: WalletIcon },
+  { href: '/tasks', label: 'کارها', icon: CalendarIcon },
 ] as const;
 
 export function BottomNav() {

@@ -296,6 +296,10 @@ export const opportunities = pgTable(
       .notNull()
       .references(() => users.id),
     stage: text('stage').notNull(), // vertical preset code (validated in service)
+    // when the deal entered its CURRENT stage — the age a pipeline card shows.
+    // `updated_at` cannot answer it: any edit resets it, and "days in stage" is
+    // the number a sales manager acts on.
+    stageEnteredAt: tstz('stage_entered_at').notNull().defaultNow(),
     status: opportunityStatus('status').notNull().default('open'),
     amountEstimateRial: rial('amount_estimate_rial'),
     winReason: text('win_reason'),

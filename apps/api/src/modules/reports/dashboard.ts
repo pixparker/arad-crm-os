@@ -30,6 +30,7 @@ import { and, eq, gte, inArray, isNotNull, isNull, lte, ne, sql } from 'drizzle-
 import type { Context } from 'hono';
 import { startOfDayTehran, startOfJalaliMonthTehran } from '../../lib/tehran-time.js';
 import { isSeller, requireActor } from '../../middleware/session.js';
+import { openCommitments } from '../activities/index.js';
 
 const faNum = new Intl.NumberFormat('fa-IR');
 const fa = (n: number): string => faNum.format(n);
@@ -114,23 +115,12 @@ export const dashboard = async (c: Context): Promise<Response> => {
     );
 
   // ── due today / overdue (the banner) ────────────────────────────────────
-  const dueRows = await db
-    .select({ name: accounts.name, at: leads.nextActionAt })
-    .from(leads)
-    .innerJoin(accounts, eq(accounts.id, leads.accountId))
-    .where(
-      and(
-        orgScope(leads.organizationId, actor.orgId),
-        eq(leads.assignedTo, actor.userId),
-        inArray(leads.status, ['assigned', 'in_progress']),
-        isNotNull(leads.nextActionAt),
-        lte(leads.nextActionAt, endOfDay),
-      ),
-    )
-    .orderBy(leads.nextActionAt)
-    .limit(100);
-
-  const overdue = dueRows.filter((r) => (r.at?.getTime() ?? 0) < startOfDay.getTime());
+  // Through the activities module's service, so the banner counts exactly what
+  // «امروز من» and «کارها» list 🔒 — including promises made on files that never
+  // were leads. Counting leads alone here made the banner disagree with the
+  // list directly beneath it.
+  const dueRows = await openCommitments(actor.orgId, actor.userId, endOfDay);
+  const overdue = dueRows.filter((r) => r.overdue);
 
   // ── «نیاز به توجه» ──────────────────────────────────────────────────────
   const attention: Attention[] = [];
@@ -286,7 +276,7 @@ export const dashboard = async (c: Context): Promise<Response> => {
       due: {
         today: dueRows.length,
         overdue: overdue.length,
-        overdue_names: overdue.slice(0, 2).map((r) => r.name),
+        overdue_names: overdue.slice(0, 2).map((r) => r.account_name),
       },
       stages,
       attention: attention
