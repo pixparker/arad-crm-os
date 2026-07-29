@@ -2,6 +2,26 @@
 
 CRM/sales-OS for Arad; Mizro is client + vertical #1. **Read `docs/architecture/00-overview.md` + the ADR index before structural changes** — decisions there are approved and 🔒 items are locked invariants.
 
+## The framework
+
+`foundation/` is the `arad-vision` submodule. Its docs are **portfolio-binding**: a product ADR that contradicts one is wrong by construction.
+
+| Doc | When |
+|---|---|
+| `foundation/docs/00-north-star.md` | portfolio boundaries — who owns which entity |
+| `foundation/docs/01-approved-stack.md` | adding a dependency or a tool |
+| `foundation/docs/02-package-tiers.md` | adding a package — declare a tier + write `EXTRACTION.md` first |
+| `foundation/docs/03-platform-concerns.md` | touching cross-cutting plumbing — check the concern's owner before hand-rolling |
+| `foundation/docs/04-ux-standards.md` | building any UI |
+| `foundation/docs/05-delivery-method.md` | picking up an epic |
+| `foundation/docs/06-delivery-pipeline.md` | deploying |
+
+**UI work:** `standards/ux/AGENTS.md` (the `ux-best-practices` submodule) is the operating rule set — pick the archetype per app (`web-seller` = consumer-mobile-app, `web-admin`/`ops` = ops-admin-panel), then apply the non-negotiable defaults.
+
+🔒 **Never hand-roll a concern `foundation/docs/03` already assigns an owner** — auth, external services, config, logging, crash reporting, cross-product events, deploy. Use the `@arad/*` package.
+
+**Two gaps this repo owns** (`foundation/docs/03`): it has **no back-stack** (row 0 — Back must close the topmost overlay, never unload the page), and its `deploy/` is a fork of Mizro's with CI but no pipeline — adopt `foundation/delivery` (`foundation/delivery/MIGRATION.md`, this repo is adopter #2).
+
 ## Commands
 
 - `pnpm verify` — full gate: biome → typecheck → org-scope guard → contracts-enums guard → migration-drift → secret-grep → tests. Run before declaring work done.

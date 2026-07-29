@@ -1,3 +1,7 @@
 [submodule "foundation"]
 	path = foundation
 	url = ../arad-foundation.git
+[submodule "standards/ux"]
+	path = standards/ux
+	url = git@github.com:pixparker/ux-best-practices.git
+	branch = main
