@@ -22,6 +22,7 @@
 // city and district are captured into it together rather than one being lost.
 
 import { ChoiceChip, TextField } from '@/components/field';
+import { FormShell } from '@/components/form-shell';
 import { useToast } from '@/components/toast';
 import { faNum, normalizeDigits, toFaDigits } from '@/lib/format';
 import type { Lead } from '@/lib/types';
@@ -184,258 +185,227 @@ export default function NewLeadPage() {
     setProducts((prev) => (prev.includes(code) ? prev.filter((c) => c !== code) : [...prev, code]));
 
   return (
-    <main className="min-h-dvh bg-bg pb-40">
-      <header className="flex items-center gap-3 border-b border-border bg-surface px-4 pb-4 pt-safe">
-        <Link
-          href="/"
-          aria-label="بستن"
-          className="grid h-10 w-10 flex-none place-items-center rounded-sm bg-surface-2 text-fg"
-        >
-          <svg
-            width="18"
-            height="18"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2.2"
-            strokeLinecap="round"
-            aria-hidden="true"
-          >
-            <path d="M18 6 6 18M6 6l12 12" />
-          </svg>
-        </Link>
-        <span>
-          <b className="block text-[17px] font-bold">سرنخ جدید</b>
-          <small className="block text-xs text-fg-muted">
-            کافه یا رستورانی که تازه پیدا کرده‌اید
-          </small>
-        </span>
-      </header>
-
-      <form onSubmit={onSubmit} noValidate className="px-4">
-        <Section n={1} title="کسب‌وکار">
+    <FormShell
+      title="سرنخ جدید"
+      subtitle="کافه یا رستورانی که تازه پیدا کرده‌اید"
+      onSubmit={onSubmit}
+      busy={submit.isPending}
+      submitLabel="ثبت سرنخ و زمان‌بندی قدم بعد"
+      note={
+        <>
+          قدم بعد: <b className="text-fg">{actionLabel}</b> — {faDateTime.format(dueAt())} ساعت{' '}
+          <span className="num ltr">{toFaDigits(time)}</span>
+        </>
+      }
+    >
+      <Section n={1} title="کسب‌وکار">
+        <TextField
+          label="نام کافه / رستوران"
+          required
+          placeholder="مثلاً کافه مینیمال"
+          value={form.business_name}
+          onChange={(e) => setForm((f) => ({ ...f, business_name: e.target.value }))}
+          error={errors.business_name}
+        />
+        <div className="grid grid-cols-2 gap-3">
           <TextField
-            label="نام کافه / رستوران"
-            required
-            placeholder="مثلاً کافه مینیمال"
-            value={form.business_name}
-            onChange={(e) => setForm((f) => ({ ...f, business_name: e.target.value }))}
-            error={errors.business_name}
+            label="فرد رابط"
+            placeholder="نام و نام خانوادگی"
+            value={form.contact_name}
+            onChange={(e) => setForm((f) => ({ ...f, contact_name: e.target.value }))}
           />
-          <div className="grid grid-cols-2 gap-3">
-            <TextField
-              label="فرد رابط"
-              placeholder="نام و نام خانوادگی"
-              value={form.contact_name}
-              onChange={(e) => setForm((f) => ({ ...f, contact_name: e.target.value }))}
-            />
-            <TextField
-              label="شمارهٔ موبایل"
-              required
-              dir="ltr"
-              inputMode="numeric"
-              placeholder="۰۹۱۲۳۴۵۶۷۸۹"
-              className="num"
-              value={toFaDigits(form.phone)}
-              onChange={(e) =>
-                setForm((f) => ({
-                  ...f,
-                  phone: normalizeDigits(e.target.value).replace(/\D/g, '').slice(0, 11),
-                }))
-              }
-              error={errors.phone}
-            />
-          </div>
+          <TextField
+            label="شمارهٔ موبایل"
+            required
+            dir="ltr"
+            inputMode="numeric"
+            placeholder="۰۹۱۲۳۴۵۶۷۸۹"
+            className="num"
+            value={toFaDigits(form.phone)}
+            onChange={(e) =>
+              setForm((f) => ({
+                ...f,
+                phone: normalizeDigits(e.target.value).replace(/\D/g, '').slice(0, 11),
+              }))
+            }
+            error={errors.phone}
+          />
+        </div>
 
-          {lookup.data?.found && (
-            <p
-              className={`rounded-md border p-3 text-[13px] ${
-                lookup.data.visible_to_me
-                  ? 'border-warning/30 bg-warning-soft text-fg'
-                  : 'border-border bg-surface-2 text-fg-muted'
-              }`}
-            >
-              {lookup.data.visible_to_me ? (
-                <>
-                  «{lookup.data.name}» با این شماره ثبت شده است.{' '}
-                  <Link
-                    href={`/accounts/${lookup.data.account_id}`}
-                    className="font-semibold text-primary-ink"
-                  >
-                    رفتن به پرونده
-                  </Link>
-                </>
-              ) : (
-                lookup.data.message
-              )}
-            </p>
-          )}
-
-          <div className="grid grid-cols-2 gap-3">
-            <TextField
-              label="شهر"
-              placeholder="تهران"
-              value={form.city}
-              onChange={(e) => setForm((f) => ({ ...f, city: e.target.value }))}
-            />
-            <TextField
-              label="منطقه"
-              placeholder="مثلاً ونک"
-              value={form.region_text}
-              onChange={(e) => setForm((f) => ({ ...f, region_text: e.target.value }))}
-              error={errors.region_text}
-            />
-          </div>
-
-          <div>
-            <p className="mb-2 text-sm font-medium">سرنخ از کجا آمده؟</p>
-            <div className="flex flex-wrap gap-2">
-              {LEAD_SOURCES.map((s) => (
-                <ChoiceChip
-                  key={s.code}
-                  selected={source === s.code}
-                  onClick={() => setSource(s.code)}
+        {lookup.data?.found && (
+          <p
+            className={`rounded-md border p-3 text-[13px] ${
+              lookup.data.visible_to_me
+                ? 'border-warning/30 bg-warning-soft text-fg'
+                : 'border-border bg-surface-2 text-fg-muted'
+            }`}
+          >
+            {lookup.data.visible_to_me ? (
+              <>
+                «{lookup.data.name}» با این شماره ثبت شده است.{' '}
+                <Link
+                  href={`/accounts/${lookup.data.account_id}`}
+                  className="font-semibold text-primary-ink"
                 >
-                  {s.label}
-                </ChoiceChip>
-              ))}
-            </div>
-          </div>
-        </Section>
+                  رفتن به پرونده
+                </Link>
+              </>
+            ) : (
+              lookup.data.message
+            )}
+          </p>
+        )}
 
-        <Section n={2} title="دنبال چه چیزی هستند؟">
+        <div className="grid grid-cols-2 gap-3">
+          <TextField
+            label="شهر"
+            placeholder="تهران"
+            value={form.city}
+            onChange={(e) => setForm((f) => ({ ...f, city: e.target.value }))}
+          />
+          <TextField
+            label="منطقه"
+            placeholder="مثلاً ونک"
+            value={form.region_text}
+            onChange={(e) => setForm((f) => ({ ...f, region_text: e.target.value }))}
+            error={errors.region_text}
+          />
+        </div>
+
+        <div>
+          <p className="mb-2 text-sm font-medium">سرنخ از کجا آمده؟</p>
           <div className="flex flex-wrap gap-2">
-            {REQUESTED_PRODUCTS.map((p) => (
+            {LEAD_SOURCES.map((s) => (
               <ChoiceChip
-                key={p.code}
-                selected={products.includes(p.code)}
-                onClick={() => toggleProduct(p.code)}
+                key={s.code}
+                selected={source === s.code}
+                onClick={() => setSource(s.code)}
               >
-                {p.label}
+                {s.label}
               </ChoiceChip>
             ))}
           </div>
-          <p className="text-xs text-fg-muted">
-            می‌توانید چند مورد را انتخاب کنید — روی پیشنهاد قیمت اثر می‌گذارد.
-          </p>
-        </Section>
-
-        <Section n={3} title="قدم بعدی چیست؟">
-          <div className="rounded-md border border-border bg-surface p-4">
-            <p className="mb-2 text-sm font-medium">نوع اقدام</p>
-            <div className="flex flex-wrap gap-2">
-              {NEXT_ACTION_TYPES.map((t) => (
-                <ChoiceChip
-                  key={t.code}
-                  selected={actionType === t.code}
-                  onClick={() => setActionType(t.code)}
-                >
-                  {t.label}
-                </ChoiceChip>
-              ))}
-            </div>
-
-            <p className="mb-2 mt-4 text-sm font-medium">کِی؟</p>
-            <div className="flex flex-wrap gap-2">
-              {NEXT_ACTION_OFFSETS.map((o) => (
-                <ChoiceChip
-                  key={o.key}
-                  selected={whenKey === o.key}
-                  onClick={() => setWhenKey(o.key)}
-                >
-                  {o.label}
-                </ChoiceChip>
-              ))}
-              <ChoiceChip selected={whenKey === 'saturday'} onClick={() => setWhenKey('saturday')}>
-                شنبه
-              </ChoiceChip>
-              <ChoiceChip selected={whenKey === 'custom'} onClick={() => setWhenKey('custom')}>
-                تاریخ دلخواه
-              </ChoiceChip>
-            </div>
-
-            <div className="mt-4 grid grid-cols-2 gap-3">
-              {whenKey === 'custom' && (
-                <TextField
-                  label="تاریخ"
-                  type="date"
-                  value={customDate}
-                  onChange={(e) => setCustomDate(e.target.value)}
-                  error={errors.when}
-                />
-              )}
-              <TextField
-                label="ساعت"
-                type="time"
-                dir="ltr"
-                className="num"
-                value={time}
-                onChange={(e) => setTime(e.target.value)}
-              />
-            </div>
-
-            <div className="mt-4">
-              <TextField
-                label="یادداشت برای خودم"
-                placeholder="مثلاً: قیمت پلن استاندارد را بگو"
-                value={note}
-                onChange={(e) => setNote(e.target.value)}
-                hint="روی خط زمانی پرونده ثبت می‌شود."
-              />
-            </div>
-          </div>
-        </Section>
-
-        <Section n={4} title="فلوی پیگیری">
-          {flows.isPending ? (
-            <div className="skeleton h-20 rounded-md" />
-          ) : leadFlows.length === 0 ? (
-            <p className="rounded-md border border-border bg-surface p-4 text-[13px] text-fg-muted">
-              هنوز فلویی برای سرنخ‌ها تعریف نشده — قدم بعدی را خودتان تعیین می‌کنید.
-            </p>
-          ) : (
-            <div className="overflow-hidden rounded-md border border-border bg-surface">
-              {leadFlows.map((flow) => (
-                <FlowOption
-                  key={flow.id}
-                  selected={flowId === flow.id}
-                  onSelect={() => setFlowId(flow.id)}
-                  title={flow.label}
-                  detail={`${faNum(flow.steps.length)} قدم · ${flow.steps
-                    .map((s) => s.label)
-                    .slice(0, 4)
-                    .join(' ← ')}`}
-                />
-              ))}
-              <FlowOption
-                selected={flowId === null}
-                onSelect={() => setFlowId(null)}
-                title="بدون فلو — دستی پیگیری می‌کنم"
-                detail="هر بار خودم قدم بعدی را تعیین می‌کنم"
-              />
-            </div>
-          )}
-          <p className="text-xs leading-relaxed text-fg-muted">
-            وقتی سرنخ داخل یک فلو باشد، بعد از هر اقدام سیستم <b>قدم بعدی همان فلو</b> را پیشنهاد
-            می‌دهد — مگر اینکه خودتان قدم دیگری انتخاب کنید.
-          </p>
-        </Section>
-
-        <div className="fixed inset-x-0 bottom-0 z-30 mx-auto w-full max-w-md border-t md:max-w-2xl border-border bg-surface px-4 pb-[calc(env(safe-area-inset-bottom)+12px)] pt-3">
-          <button
-            type="submit"
-            disabled={submit.isPending}
-            className="flex min-h-[52px] w-full items-center justify-center rounded-md bg-primary text-base font-semibold text-primary-fg shadow-[0_8px_20px_rgba(24,176,153,0.32)] transition active:scale-[0.985] disabled:opacity-60"
-          >
-            {submit.isPending ? 'در حال ثبت…' : 'ثبت سرنخ و زمان‌بندی قدم بعد'}
-          </button>
-          <p className="mt-2 text-center text-xs text-fg-muted">
-            قدم بعد: <b className="text-fg">{actionLabel}</b> — {faDateTime.format(dueAt())} ساعت{' '}
-            <span className="num ltr">{toFaDigits(time)}</span>
-          </p>
         </div>
-      </form>
-    </main>
+      </Section>
+
+      <Section n={2} title="دنبال چه چیزی هستند؟">
+        <div className="flex flex-wrap gap-2">
+          {REQUESTED_PRODUCTS.map((p) => (
+            <ChoiceChip
+              key={p.code}
+              selected={products.includes(p.code)}
+              onClick={() => toggleProduct(p.code)}
+            >
+              {p.label}
+            </ChoiceChip>
+          ))}
+        </div>
+        <p className="text-xs text-fg-muted">
+          می‌توانید چند مورد را انتخاب کنید — روی پیشنهاد قیمت اثر می‌گذارد.
+        </p>
+      </Section>
+
+      <Section n={3} title="قدم بعدی چیست؟">
+        <div className="rounded-md border border-border bg-surface p-4">
+          <p className="mb-2 text-sm font-medium">نوع اقدام</p>
+          <div className="flex flex-wrap gap-2">
+            {NEXT_ACTION_TYPES.map((t) => (
+              <ChoiceChip
+                key={t.code}
+                selected={actionType === t.code}
+                onClick={() => setActionType(t.code)}
+              >
+                {t.label}
+              </ChoiceChip>
+            ))}
+          </div>
+
+          <p className="mb-2 mt-4 text-sm font-medium">کِی؟</p>
+          <div className="flex flex-wrap gap-2">
+            {NEXT_ACTION_OFFSETS.map((o) => (
+              <ChoiceChip
+                key={o.key}
+                selected={whenKey === o.key}
+                onClick={() => setWhenKey(o.key)}
+              >
+                {o.label}
+              </ChoiceChip>
+            ))}
+            <ChoiceChip selected={whenKey === 'saturday'} onClick={() => setWhenKey('saturday')}>
+              شنبه
+            </ChoiceChip>
+            <ChoiceChip selected={whenKey === 'custom'} onClick={() => setWhenKey('custom')}>
+              تاریخ دلخواه
+            </ChoiceChip>
+          </div>
+
+          <div className="mt-4 grid grid-cols-2 gap-3">
+            {whenKey === 'custom' && (
+              <TextField
+                label="تاریخ"
+                type="date"
+                value={customDate}
+                onChange={(e) => setCustomDate(e.target.value)}
+                error={errors.when}
+              />
+            )}
+            <TextField
+              label="ساعت"
+              type="time"
+              dir="ltr"
+              className="num"
+              value={time}
+              onChange={(e) => setTime(e.target.value)}
+            />
+          </div>
+
+          <div className="mt-4">
+            <TextField
+              label="یادداشت برای خودم"
+              placeholder="مثلاً: قیمت پلن استاندارد را بگو"
+              value={note}
+              onChange={(e) => setNote(e.target.value)}
+              hint="روی خط زمانی پرونده ثبت می‌شود."
+            />
+          </div>
+        </div>
+      </Section>
+
+      <Section n={4} title="فلوی پیگیری">
+        {flows.isPending ? (
+          <div className="skeleton h-20 rounded-md" />
+        ) : leadFlows.length === 0 ? (
+          <p className="rounded-md border border-border bg-surface p-4 text-[13px] text-fg-muted">
+            هنوز فلویی برای سرنخ‌ها تعریف نشده — قدم بعدی را خودتان تعیین می‌کنید.
+          </p>
+        ) : (
+          <div className="overflow-hidden rounded-md border border-border bg-surface">
+            {leadFlows.map((flow) => (
+              <FlowOption
+                key={flow.id}
+                selected={flowId === flow.id}
+                onSelect={() => setFlowId(flow.id)}
+                title={flow.label}
+                detail={`${faNum(flow.steps.length)} قدم · ${flow.steps
+                  .map((s) => s.label)
+                  .slice(0, 4)
+                  .join(' ← ')}`}
+              />
+            ))}
+            <FlowOption
+              selected={flowId === null}
+              onSelect={() => setFlowId(null)}
+              title="بدون فلو — دستی پیگیری می‌کنم"
+              detail="هر بار خودم قدم بعدی را تعیین می‌کنم"
+            />
+          </div>
+        )}
+        <p className="text-xs leading-relaxed text-fg-muted">
+          وقتی سرنخ داخل یک فلو باشد، بعد از هر اقدام سیستم <b>قدم بعدی همان فلو</b> را پیشنهاد
+          می‌دهد — مگر اینکه خودتان قدم دیگری انتخاب کنید.
+        </p>
+      </Section>
+    </FormShell>
   );
 }
 

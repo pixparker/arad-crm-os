@@ -125,10 +125,20 @@ export default function AccountsPage() {
     <main className="min-h-dvh pb-28 md:pb-10">
       <Subhead
         title="سرنخ‌ها و مشتریان"
+        collapse
         subtitle={
           accounts.isSuccess
             ? `${faNum(all.length)} پرونده${customers > 0 ? ` · ${faNum(customers)} مشتری فعال` : ''}`
             : 'در حال بارگیری…'
+        }
+        // The count is the only thing this header gives up when it folds, so it
+        // comes back as the one-line stand-in rather than being lost.
+        trailing={
+          accounts.isSuccess ? (
+            <span className="num rounded-full bg-white/15 px-2.5 py-1 text-[11px] font-bold text-on-canopy">
+              {faNum(all.length)} پرونده
+            </span>
+          ) : undefined
         }
       />
 

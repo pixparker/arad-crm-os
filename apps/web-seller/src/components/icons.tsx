@@ -109,9 +109,13 @@ export const CheckIcon = ({ className }: IconProps) => (
   </svg>
 );
 
-export const ChevronLeftIcon = ({ className }: IconProps) => (
+// «بازگشت». In an RTL layout the previous screen lies to the RIGHT, so the
+// back chevron points right — the prototype's own glyph. A left-pointing
+// chevron here reads as "forward" to a Persian reader, which is why iOS and
+// Android both mirror it under RTL.
+export const BackIcon = ({ className }: IconProps) => (
   <svg {...base(className)}>
-    <path d="m14 6-6 6 6 6" />
+    <path d="m10 6 6 6-6 6" />
   </svg>
 );
 

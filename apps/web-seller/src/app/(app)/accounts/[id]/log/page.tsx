@@ -7,12 +7,12 @@
 // flaky-network retry never double-logs.
 
 import { ChoiceChip, SelectField } from '@/components/field';
-import { ChevronLeftIcon } from '@/components/icons';
+import { FormShell } from '@/components/form-shell';
 import { useToast } from '@/components/toast';
 import { dateInputToIso, faDateOfInput, localDatePlusDays } from '@/lib/format';
 import { CURRENT_MENU_OPTIONS, OFFER_HINT_OPTIONS, SEGMENT_OPTIONS } from '@/lib/labels';
 import { LOSS_REASONS, NEXT_ACTION_TYPES, VISIT_OUTCOMES } from '@arad-crm/vertical-mizro';
-import { ApiError, apiFetch } from '@arad-crm/web-shared';
+import { ApiError, apiFetch, randomId } from '@arad-crm/web-shared';
 import { useMutation } from '@tanstack/react-query';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { useMemo, useRef, useState } from 'react';
@@ -35,7 +35,10 @@ export default function QuickLogPage() {
     kindParam === 'call' || kindParam === 'note' || kindParam === 'visit' ? kindParam : 'visit';
   const router = useRouter();
   const toast = useToast();
-  const idempotencyKey = useRef(crypto.randomUUID()).current;
+  // Not `crypto.randomUUID` — that is secure-context-only, so it is undefined
+  // over plain http on a LAN address, which is exactly how a seller opens this
+  // on their phone during a field test.
+  const idempotencyKey = useRef(randomId()).current;
 
   const [kind, setKind] = useState<Kind>(initialKind);
   const [outcome, setOutcome] = useState<string>('');
@@ -48,6 +51,7 @@ export default function QuickLogPage() {
   const [nextDate, setNextDate] = useState('');
   const [closeReason, setCloseReason] = useState('');
   const [nextError, setNextError] = useState(false);
+  const [noteError, setNoteError] = useState(false);
 
   const outcomeDef = useMemo(() => VISIT_OUTCOMES.find((o) => o.code === outcome), [outcome]);
   const closes = Boolean(outcomeDef?.closes);
@@ -84,10 +88,20 @@ export default function QuickLogPage() {
     },
   });
 
-  const submit = () => {
-    const isField = kind === 'visit' || kind === 'call';
+  // A note is not a field touch: it has no standard outcome, records no
+  // findings, and carries no mandatory next action. Showing it all three anyway
+  // — including a red `*` on a field this kind does not require — is how a
+  // «یادداشت» ends up feeling like a failed «بازدید».
+  const isField = kind === 'visit' || kind === 'call';
+
+  const submit = (e?: React.FormEvent) => {
+    e?.preventDefault();
     if (isField && !closes && (!nextType || !nextDate)) {
       setNextError(true);
+      return;
+    }
+    if (!isField && !note.trim()) {
+      setNoteError(true);
       return;
     }
     const findings: Record<string, unknown> = {};
@@ -111,23 +125,45 @@ export default function QuickLogPage() {
     });
   };
 
-  return (
-    <main className="flex min-h-dvh flex-col px-4 pb-28 pt-6">
-      <header className="mb-2 flex items-center gap-2">
-        <button
-          type="button"
-          onClick={() => router.back()}
-          aria-label="بازگشت"
-          className="-ms-2 flex h-9 w-9 items-center justify-center rounded-full text-fg-muted active:bg-surface-2"
-        >
-          <ChevronLeftIcon className="h-6 w-6" />
-        </button>
-        <h1 className="text-xl font-bold">ثبت سریع</h1>
-        <span className="ms-auto text-[11px] text-fg-muted">هدف: زیر ۲ دقیقه ⏱</span>
-      </header>
+  // «یادداشت» is optional evidence after a visit but IS the note itself when
+  // that is the kind — so it moves ahead of the optional next action rather
+  // than sitting last, under a field the user may skip.
+  const noteField = (
+    <fieldset className="!mt-5">
+      <legend className="mb-2 text-sm font-bold">
+        یادداشت
+        {isField ? ' (اختیاری)' : <span className="text-danger"> *</span>}
+      </legend>
+      <textarea
+        value={note}
+        onChange={(e) => {
+          setNote(e.target.value);
+          setNoteError(false);
+        }}
+        rows={isField ? 2 : 4}
+        aria-invalid={noteError || undefined}
+        placeholder="مثلاً: کافه لوکس است، پیشنهاد VIP شود"
+        className={`w-full rounded-md border bg-surface px-3.5 py-3 text-base outline-none focus:border-primary ${
+          noteError ? 'border-danger' : 'border-border'
+        }`}
+      />
+      {noteError ? (
+        <p className="mt-1.5 text-xs text-danger">یادداشت خالی چیزی ثبت نمی‌کند — متن را بنویس.</p>
+      ) : null}
+    </fieldset>
+  );
 
+  return (
+    <FormShell
+      title="ثبت سریع"
+      subtitle={isField ? 'هدف: زیر ۲ دقیقه ⏱' : 'یادداشتی روی این پرونده'}
+      back
+      onSubmit={submit}
+      busy={log.isPending}
+      submitLabel="ثبت تعامل"
+    >
       {/* نوع تعامل */}
-      <fieldset className="mt-4">
+      <fieldset>
         <legend className="mb-2 text-sm font-bold">نوع تعامل</legend>
         <div className="flex gap-2">
           {KINDS.map((k) => (
@@ -138,78 +174,84 @@ export default function QuickLogPage() {
         </div>
       </fieldset>
 
-      {/* نتیجهٔ استاندارد */}
-      <fieldset className="mt-5">
-        <legend className="mb-2 text-sm font-bold">نتیجهٔ استاندارد</legend>
-        <div className="flex flex-wrap gap-2">
-          {VISIT_OUTCOMES.map((o) => (
-            <ChoiceChip
-              key={o.code}
-              selected={outcome === o.code}
-              onClick={() => pickOutcome(o.code)}
-            >
-              {o.label}
-            </ChoiceChip>
-          ))}
-        </div>
-      </fieldset>
+      {/* نتیجهٔ استاندارد — visits and calls have outcomes; a note does not */}
+      {isField ? (
+        <fieldset className="!mt-5">
+          <legend className="mb-2 text-sm font-bold">نتیجهٔ استاندارد</legend>
+          <div className="flex flex-wrap gap-2">
+            {VISIT_OUTCOMES.map((o) => (
+              <ChoiceChip
+                key={o.code}
+                selected={outcome === o.code}
+                onClick={() => pickOutcome(o.code)}
+              >
+                {o.label}
+              </ChoiceChip>
+            ))}
+          </div>
+        </fieldset>
+      ) : null}
 
-      {/* یافته‌ها (findings → account file) */}
-      <fieldset className="mt-5">
-        <legend className="mb-2 text-sm font-bold">یافته‌ها (اختیاری)</legend>
-        <p className="mb-2 text-xs text-fg-muted">بخش کسب‌وکار</p>
-        <div className="flex flex-wrap gap-2">
-          {SEGMENT_OPTIONS.map((s) => (
-            <ChoiceChip
-              key={s.code}
-              selected={segment === s.code}
-              onClick={() => setSegment(segment === s.code ? '' : s.code)}
-            >
-              {s.label}
-            </ChoiceChip>
-          ))}
-        </div>
-        <p className="mb-2 mt-3 text-xs text-fg-muted">پیشنهاد مناسب</p>
-        <div className="flex flex-wrap gap-2">
-          {OFFER_HINT_OPTIONS.map((o) => (
-            <ChoiceChip
-              key={o.code}
-              selected={offerHint === o.code}
-              onClick={() => setOfferHint(offerHint === o.code ? '' : o.code)}
-            >
-              {o.label}
-            </ChoiceChip>
-          ))}
-        </div>
-        <p className="mb-2 mt-3 text-xs text-fg-muted">منوی فعلی</p>
-        <div className="flex flex-wrap gap-2">
-          {CURRENT_MENU_OPTIONS.map((m) => (
-            <ChoiceChip
-              key={m.code}
-              selected={currentMenu === m.code}
-              onClick={() => setCurrentMenu(currentMenu === m.code ? '' : m.code)}
-            >
-              {m.label}
-            </ChoiceChip>
-          ))}
-        </div>
-        <p className="mb-2 mt-3 text-xs text-fg-muted">میزان علاقه</p>
-        <div className="flex gap-2">
-          {[1, 2, 3, 4, 5].map((n) => (
-            <ChoiceChip
-              key={n}
-              selected={interest === n}
-              onClick={() => setInterest(interest === n ? 0 : n)}
-            >
-              {new Intl.NumberFormat('fa-IR').format(n)}
-            </ChoiceChip>
-          ))}
-        </div>
-      </fieldset>
+      {/* یافته‌ها (findings → account file) — observed on site, so field-only */}
+      {isField ? (
+        <fieldset className="!mt-5">
+          <legend className="mb-2 text-sm font-bold">یافته‌ها (اختیاری)</legend>
+          <p className="mb-2 text-xs text-fg-muted">بخش کسب‌وکار</p>
+          <div className="flex flex-wrap gap-2">
+            {SEGMENT_OPTIONS.map((s) => (
+              <ChoiceChip
+                key={s.code}
+                selected={segment === s.code}
+                onClick={() => setSegment(segment === s.code ? '' : s.code)}
+              >
+                {s.label}
+              </ChoiceChip>
+            ))}
+          </div>
+          <p className="mb-2 mt-3 text-xs text-fg-muted">پیشنهاد مناسب</p>
+          <div className="flex flex-wrap gap-2">
+            {OFFER_HINT_OPTIONS.map((o) => (
+              <ChoiceChip
+                key={o.code}
+                selected={offerHint === o.code}
+                onClick={() => setOfferHint(offerHint === o.code ? '' : o.code)}
+              >
+                {o.label}
+              </ChoiceChip>
+            ))}
+          </div>
+          <p className="mb-2 mt-3 text-xs text-fg-muted">منوی فعلی</p>
+          <div className="flex flex-wrap gap-2">
+            {CURRENT_MENU_OPTIONS.map((m) => (
+              <ChoiceChip
+                key={m.code}
+                selected={currentMenu === m.code}
+                onClick={() => setCurrentMenu(currentMenu === m.code ? '' : m.code)}
+              >
+                {m.label}
+              </ChoiceChip>
+            ))}
+          </div>
+          <p className="mb-2 mt-3 text-xs text-fg-muted">میزان علاقه</p>
+          <div className="flex gap-2">
+            {[1, 2, 3, 4, 5].map((n) => (
+              <ChoiceChip
+                key={n}
+                selected={interest === n}
+                onClick={() => setInterest(interest === n ? 0 : n)}
+              >
+                {new Intl.NumberFormat('fa-IR').format(n)}
+              </ChoiceChip>
+            ))}
+          </div>
+        </fieldset>
+      ) : null}
 
-      {/* اقدام بعدی * / دلیل بستن */}
+      {isField ? null : noteField}
+
+      {/* اقدام بعدی / دلیل بستن */}
       {closes ? (
-        <fieldset className="mt-5">
+        <fieldset className="!mt-5">
           <legend className="mb-2 text-sm font-bold text-danger">دلیل بستن *</legend>
           <SelectField
             label=""
@@ -221,10 +263,12 @@ export default function QuickLogPage() {
         </fieldset>
       ) : (
         <fieldset
-          className={`mt-5 rounded-md p-3 ${nextError ? 'bg-danger/5 ring-1 ring-danger' : ''}`}
+          className={`!mt-5 rounded-md ${nextError ? 'bg-danger/5 p-3 ring-1 ring-danger' : ''}`}
         >
           <legend className="mb-2 text-sm font-bold">
-            اقدام بعدی <span className="text-danger">*</span>
+            اقدام بعدی
+            {/* 🔒 mandatory for a visit or a call — never for a note */}
+            {isField ? <span className="text-danger"> *</span> : ' (اختیاری)'}
           </legend>
           {nextError ? (
             <p className="mb-2 text-xs text-danger">
@@ -265,28 +309,7 @@ export default function QuickLogPage() {
         </fieldset>
       )}
 
-      {/* یادداشت */}
-      <fieldset className="mt-5">
-        <legend className="mb-2 text-sm font-bold">یادداشت (اختیاری)</legend>
-        <textarea
-          value={note}
-          onChange={(e) => setNote(e.target.value)}
-          rows={2}
-          placeholder="مثلاً: کافه لوکس است، پیشنهاد VIP شود"
-          className="w-full rounded-md border border-border bg-surface px-3.5 py-3 text-base outline-none focus:border-primary"
-        />
-      </fieldset>
-
-      <div className="fixed inset-x-0 bottom-0 z-40 mx-auto w-full max-w-md border-t md:max-w-2xl border-border bg-surface p-4 pb-[calc(env(safe-area-inset-bottom)+1rem)]">
-        <button
-          type="button"
-          onClick={submit}
-          disabled={log.isPending}
-          className="w-full rounded-md bg-gradient-primary shadow-card py-3.5 text-base font-bold text-primary-fg disabled:opacity-60"
-        >
-          {log.isPending ? 'در حال ثبت…' : 'ثبت تعامل'}
-        </button>
-      </div>
-    </main>
+      {isField ? noteField : null}
+    </FormShell>
   );
 }

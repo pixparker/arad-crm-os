@@ -2,7 +2,7 @@
 
 > **Repo:** `arad-crm-os` · **Status:** Concluded product description (2026-07-18) — **evolved to the portfolio CRM spec 2026-07-26** per the north-star's §9 instruction ("from Mizro's sales tool up to the SMB CRM product"). Core loop **built + tested**; Mizro event loop **integration-verified** (see *Build state*).
 > **Working name:** "Arad CRM-OS" / "Sales OS" (final brand TBD).
-> **Governed by:** `arad-foundation/docs/product/00-arad-business-os-north-star.md` — the portfolio frame (3-layer map, entity-ownership rules, sequencing discipline). Boundary or sequence changes go **there** first.
+> **Governed by:** `foundation/docs/00-north-star.md` — the portfolio frame (3-layer map, entity-ownership rules, sequencing discipline). Boundary or sequence changes go **there** first.
 > **Audience:** CTO + build team. This is the **business WHAT/WHY + the locked architectural direction + the roadmap.** The technical design (schemas, module internals, enforcement) is the CTO's to own.
 > **Source materials (read alongside):**
 > - Founder idea + a dev's 32-section "Sales OS" spec v0.1 → `arad-crm-os` seed (originally `digital-menu/docs/_ideas/funder/crm-idea.md`).

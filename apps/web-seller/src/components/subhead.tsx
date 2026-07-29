@@ -15,7 +15,7 @@
 // folds away on scroll, leaving the title, the back chevron and `trailing` as
 // the one-line stand-in.
 
-import { ChevronLeftIcon } from '@/components/icons';
+import { BackIcon } from '@/components/icons';
 import { useCollapsedHeader } from '@/lib/use-collapsed-header';
 import { useRouter } from 'next/navigation';
 import type { ReactNode } from 'react';
@@ -56,7 +56,7 @@ export function Subhead({
               aria-label="بازگشت"
               className="-ms-1.5 grid h-9 w-9 flex-none place-items-center rounded-full text-on-canopy-muted transition active:bg-white/10"
             >
-              <ChevronLeftIcon className="h-5 w-5" />
+              <BackIcon className="h-5 w-5" />
             </button>
           ) : null}
           <span className="min-w-0 flex-1">
@@ -71,11 +71,15 @@ export function Subhead({
               </small>
             ) : null}
           </span>
-          {/* The stand-in: nothing while the hero is open, the headline once it folds. */}
+          {/* The stand-in: nothing while the header is open, the headline once
+              it folds. Keyed off `collapse`, not off `children` — a header can
+              fold with nothing but a subtitle to give up (سرنخ‌ها و مشتریان),
+              and one that never folds (the pipeline filter) must show its
+              control the whole time. */}
           {trailing ? (
             <span
               className={`flex-none transition-opacity duration-200 ${
-                children && !compact ? 'pointer-events-none opacity-0' : 'opacity-100'
+                collapse && !compact ? 'pointer-events-none opacity-0' : 'opacity-100'
               }`}
             >
               {trailing}

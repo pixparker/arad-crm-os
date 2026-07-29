@@ -6,6 +6,7 @@
 // <2-minute flow and the mandatory next action already live).
 
 import { AccountPicker } from '@/components/account-picker';
+import { FormShell } from '@/components/form-shell';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Suspense } from 'react';
 
@@ -20,19 +21,15 @@ function PickAccount() {
   const kind = useSearchParams().get('kind') ?? 'visit';
   const copy = TITLES[kind] ?? TITLES.visit;
 
+  // No `submitLabel`: picking a row IS the submit. The old hand-rolled header
+  // here had no escape control at all — the shared shell always gives one.
   return (
-    <main className="min-h-dvh bg-bg pb-28">
-      <header className="border-b border-border bg-surface px-4 pb-4 pt-safe">
-        <b className="block text-[17px] font-bold">{copy?.title}</b>
-        <small className="block text-xs text-fg-muted">{copy?.subtitle}</small>
-      </header>
-      <div className="px-4 pt-5">
-        <AccountPicker
-          onPick={(id) => router.push(`/accounts/${id}/log?kind=${kind}`)}
-          emptyHint="فعالیت روی پروندهٔ موجود ثبت می‌شود — اول یک سرنخ یا مشتری بسازید."
-        />
-      </div>
-    </main>
+    <FormShell title={copy?.title ?? ''} subtitle={copy?.subtitle ?? ''}>
+      <AccountPicker
+        onPick={(id) => router.push(`/accounts/${id}/log?kind=${kind}`)}
+        emptyHint="فعالیت روی پروندهٔ موجود ثبت می‌شود — اول یک سرنخ یا مشتری بسازید."
+      />
+    </FormShell>
   );
 }
 
