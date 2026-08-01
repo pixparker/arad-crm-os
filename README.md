@@ -25,7 +25,7 @@ Sales execution system + CRM: leads → daily plan → visits → opportunities 
 git clone --recurse-submodules git@github.com:pixparker/arad-crm-os.git
 cd arad-crm-os && cp .env.example .env   # fill JWT_SECRET
 pnpm install
-pnpm services:up      # postgres:5433 + redis:6380 (offset from Mizro) + migrate
+pnpm services:up      # shared portfolio dev stack + provision arad_crm + migrate
 pnpm dev              # api :6100 · seller :6101 · admin :6102 · ops :6103
 pnpm verify           # biome → typecheck → guards → secret-grep → tests
 ```
@@ -36,8 +36,10 @@ pnpm verify           # biome → typecheck → guards → secret-grep → tests
 |---|---|---|
 | api | 4000 | **6100** |
 | web apps | 3001–3006 | **6101–6103** |
-| Postgres | 5432 | **5433** |
-| Redis | 6379 | **6380** |
+| Postgres | shared **5432** | database `arad_crm`, role `arad` |
+| Redis | shared **6379** | **index 1** |
+
+Datastores are the shared portfolio stack ([`foundation/delivery/dev`](foundation/delivery/dev/README.md), [ADR-P007](foundation/docs/decisions/ADR-P007-shared-dev-stack.md)) — one Postgres and one Redis for every Arad product, isolated per-database and per-index rather than per-container. `pnpm services:reset` drops **only** `arad_crm` and flushes **only** index 1.
 
 ## Rules that CI enforces 🔒
 

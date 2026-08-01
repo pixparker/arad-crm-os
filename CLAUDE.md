@@ -25,10 +25,10 @@ CRM/sales-OS for Arad; Mizro is client + vertical #1. **Read `docs/architecture/
 ## Commands
 
 - `pnpm verify` — full gate: biome → typecheck → org-scope guard → contracts-enums guard → migration-drift → secret-grep → tests. Run before declaring work done.
-- `pnpm services:up` / `services:reset` — dev Postgres (5433) + Redis (6380) + migrate.
+- `pnpm services:up` / `services:reset` — the **shared** portfolio dev stack (`foundation/delivery/dev`, ADR-P007): one Postgres :5432 + one Redis :6379 for every product, isolated by database (`arad_crm`/role `arad`) and Redis index (**1**). 🔒 `services:reset` drops only this product's database and flushes only index 1 — never `docker compose down -v`, which would wipe every product on the machine.
 - `pnpm dev:ops` — the Arad control plane (ADR-014). `SEED_OPS_PHONE=09… pnpm db:seed` bootstraps the first ops user; ops roles are granted from the panel after that.
 - `pnpm db:generate` after ANY `packages/db/src/schema.ts` change (drift guard fails otherwise).
-- Dev ports: api **6100**, web-seller **6101**, web-admin **6102**, ops **6103** (Mizro owns 4000/3001-3006/5432/6379 — never reuse).
+- Dev ports: api **6100**, web-seller **6101**, web-admin **6102**, ops **6103**. Mizro owns 4000/3001-3006, faraward 7100-7103, neksta 6200-6203 — the registry is `foundation/delivery/dev/allocations.tsv`, not a comment in a compose file.
 
 ## Hard rules (CI-enforced, do not work around)
 

@@ -30,7 +30,7 @@ cp .env.example .env
 # Set JWT_SECRET (min 32 chars):  openssl rand -base64 32
 # Leave SMS_PROVIDER=fake for now — OTP codes print to the api's stdout.
 
-pnpm services:up                       # postgres :5433 + redis :6380 + migrate
+pnpm services:up                       # shared dev stack + provision + migrate
 SEED_OWNER_PHONE=09163349938 pnpm db:seed   # org آراد + تهران + commission plan + you as owner_admin
 
 pnpm dev:api                           # :6100   — API + Scalar docs at /docs
