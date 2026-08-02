@@ -21,7 +21,7 @@
     "check": "biome check .",
     "typecheck": "turbo run typecheck",
     "test": "turbo run test",
-    "verify": "pnpm check && pnpm typecheck && pnpm lint:org-scope && pnpm lint:contracts-enums && pnpm lint:ledger-integrity && pnpm lint:migration-drift && pnpm secret-grep && pnpm test",
+    "verify": "pnpm foundation:check && pnpm check && pnpm typecheck && pnpm lint:org-scope && pnpm lint:contracts-enums && pnpm lint:ledger-integrity && pnpm lint:migration-drift && pnpm secret-grep && pnpm test",
     "lint:org-scope": "tsx scripts/check-org-scope.ts",
     "env:check": "tsx scripts/check-prod-env.ts",
     "lint:ledger-integrity": "tsx scripts/check-ledger-integrity.ts",
@@ -37,7 +37,8 @@
     "foundation:status": "git submodule status foundation && git -C foundation log --oneline -3",
     "foundation:pull": "git submodule update --remote foundation && git -C foundation log --oneline -1",
     "prepare": "lefthook install || true",
-    "services:status": "bash deploy/dev/services.sh status"
+    "services:status": "bash deploy/dev/services.sh status",
+    "foundation:check": "bash foundation/scripts/check-foundation-pointer.sh"
   },
   "devDependencies": {
     "@biomejs/biome": "1.9.4",
